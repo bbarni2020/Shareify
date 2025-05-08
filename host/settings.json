@@ -2,5 +2,8 @@
     "api_key": "ABC",
     "version": "0.0.1",
     "host": "localhost",
-    "port": 6969
+    "port": 6969,
+    "ftp_host": "localhost",
+    "ftp_port": 5656,
+    "ftp_timeout": 300
 }

@@ -8,9 +8,27 @@ import datetime
 import mimetypes
 from colorama import init, Fore, Back, Style
 import subprocess
+from pyftpdlib.authorizers import DummyAuthorizer
+from pyftpdlib.handlers import FTPHandler
+from pyftpdlib.servers import FTPServer
+import threading
 
 # Initialize packages
 init(autoreset=True)
+
+class CustomAuthorizer(DummyAuthorizer):
+    def edit_user(self, username, password=None, homedir=None, perm=None):
+        if username not in self.user_table:
+            raise ValueError(f"User '{username}' does not exist.")
+        if password:
+            self.user_table[username]['pwd'] = password
+        if homedir:
+            self.user_table[username]['home'] = homedir
+        if perm:
+            self.user_table[username]['perm'] = perm
+
+authorizer = CustomAuthorizer()
+
 
 def initialize_logs_db():
     db_path = os.path.join(os.path.dirname(__file__), 'logs.db')
@@ -27,12 +45,59 @@ def initialize_logs_db():
     conn.commit()
     conn.close()
 
+def initialize_users_db():
+    db_path = os.path.join(os.path.dirname(__file__), 'users.db')
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            name TEXT NOT NULL,
+            ip TEXT,
+            role TEXT NOT NULL,
+            ftp_users TEXT,
+            paths TEXT,
+            settings TEXT,
+            API_KEY TEXT NOT NULL
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
 def get_db_connection():
     db_path = os.path.join(os.path.dirname(__file__), 'logs.db')
     conn = sqlite3.connect(db_path, check_same_thread=False)
     conn.execute('PRAGMA journal_mode=WAL;')
     return conn
 
+def get_users_db_connection():
+    db_path = os.path.join(os.path.dirname(__file__), 'users.db')
+    conn = sqlite3.connect(db_path, check_same_thread=False)
+    conn.execute('PRAGMA journal_mode=WAL;')
+    return conn
+
+def start_ftp_server():
+    def run_ftp():
+        try:
+            handler = FTPHandler
+            handler.authorizer = authorizer
+
+            handler.timeout = settings['ftp_timeout']
+
+            address = (settings['ftp_host'], settings['ftp_port'])
+            server = FTPServer(address, handler)
+
+            print_status("FTP server started successfully.", "success")
+            log("FTP server started", "-")
+            server.serve_forever()
+        except Exception as e:
+            print_status(f"Error starting FTP server: {e}", "error")
+            log("FTP server start error: " + str(e), "-")
+    
+    ftp_thread = threading.Thread(target=run_ftp, daemon=True)
+    ftp_thread.start()
 
 # Functions
 def log(action, ip):
@@ -353,6 +418,175 @@ def update():
     subprocess.run(["python3", os.path.join(os.path.dirname(__file__), "update.py")])
     return jsonify({"status": "Update started"}), 200
 
+@app.route('/api/create_ftp_user', methods=['POST'])
+def create_ftp_user():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    path = data.get('path')
+    permissions = data.get('permissions')
+    if username and password and permissions:
+        try:
+            if path:
+                full_path = os.path.join(settings['path'], path)
+            else:
+                full_path = settings['path']
+            if not os.path.exists(full_path):
+                return jsonify({"error": "Path does not exist"}), 404
+            authorizer.add_user(username, password, full_path, permissions)
+            log("FTP user created: " + username, request.remote_addr)
+            return jsonify({"status": "FTP user created"}), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"error": "No username, password or permissions provided"}), 400
+    
+@app.route('/api/delete_ftp_user', methods=['POST'])
+def delete_ftp_user():
+    username = request.json.get('username')
+    if username:
+        try:
+            authorizer.remove_user(username)
+            log("FTP user deleted:" + username, request.remote_addr)
+            return jsonify({"status": "FTP user deleted"}), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+@app.route('/api/get_ftp_users', methods=['GET'])
+def get_ftp_users():
+    try:
+        user_list = authorizer.get_user_list()
+        users = []
+        for user in user_list:
+            users.append({
+                "username": user[0],
+                "password": user[1], 
+                "path": user[2],
+                "permissions": user[3]
+            })
+        log("FPT users retrived", request.remote_addr)
+        return jsonify(users), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/edit_ftp_user', methods=['POST'])
+def edit_ftp_user():
+    username = request.json.get('username')
+    password = request.json.get('password')
+    path = request.json.get('path')
+    permissions = request.json.get('permissions')
+    if username:
+        try:
+            full_path = os.path.join(settings['path'], path) if path else settings['path']
+            if path and not os.path.exists(full_path):
+                return jsonify({"error": "Path does not exist"}), 404
+            authorizer.edit_user(username, password, full_path, permissions)
+            log("FTP user edited: " + username, request.remote_addr)
+            return jsonify({"status": "FTP user edited"}), 200
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"error": "No username provided"}), 400
+
+@app.route('/api/user/create', methods=['POST'])
+def create_user():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    name = data.get('name')
+    ip = ""
+    role = data.get('role')
+    ftp_user = ""
+    paths = data.get('paths')
+    settings = ""
+    if username and password and name and role:
+        try:
+            conn = get_users_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO users (username, password, name, ip, role, ftp_user, paths, settings)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?))
+                           ''', (username, password, name, ip, role, ftp_user, paths, settings))
+            conn.commit()
+            conn.close()
+            log("User created: " + username, request.remote_addr)
+            return jsonify({"status": "User created"}), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"error": "No username, password, name or role provided"}), 400
+
+@app.route('/api/user/delete', mothods=['POST'])
+def delete_user():
+    username = request.json.get('username')
+    if username:
+        try:
+            conn = get_users_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                           DELETE FROM users WHERE username = ?
+                           ''', (username))
+            conn.commit()
+            conn.close()
+            log("User deleted: " + username, request.remote_addr)
+            return jsonify({"status": "User deleted"}), 200
+        except Exception as e:
+            return jsonify ({"error": str(e)}), 500
+        else:
+            return jsonify({"error": "No username provided"}), 400
+    
+@app.route('/api/user/edit', methods=['GET'])
+def edit_user():
+    username = request.json.get('username')
+    password = request.json.get('password')
+    name = request.json.get('name')
+    role = request.json.get('role')
+    paths = request.json.get('paths')
+    id = request.json.get('id')
+    if username and password and name and role and paths and id:
+        try:
+            conn = get_users_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                           UPDATE users
+                           SET username = ?, password = ?, name = ?, role = ?, paths = ?
+                           WHERE id = ?
+                           '''), (username, password, name, role, paths, id)
+            log("User edited: " + username, request.remote_addr)
+            conn.commit()
+            conn.close()
+            return jsonify({"status": "User edited"}), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"error": "No username, password, name, role or paths provided"}), 400
+
+@app.route('/api/user/login', methods=['GET'])
+def login():
+    username = request.json.get('username')
+    password = request.json.get('password')
+    if username and password:
+        try:
+            conn = get_users_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                           SELECT * FROM users WHERE username = ? AND password = ?
+                           ''', (username, password))
+            user = cursor.fetchone()
+            conn.close()
+            if user:
+                log("User logged in: " + username, request.remote_addr)
+                return jsonify({"API_KEY": user[9]}), 200
+            else:
+                log("Invalid login attempt: " + username, request.remote_addr)
+                return jsonify({"error": "Invalid username or password"}), 401
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"error": "No username or password provided"}), 400
+    
 
 # Main
 print(r"""
@@ -368,7 +602,9 @@ _\ \ | | | (_| | | |  __/  _| |_| |
 if settings:
     print_status("Settings loaded successfully.", "success")
     initialize_logs_db()
+    initialize_users_db()
     try:
+        start_ftp_server()
         app.run(host=settings['host'], port=settings['port'], debug=False)
     except Exception as e:
         print_status(f"Error starting server: {e}", "error")
