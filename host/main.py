@@ -7,6 +7,7 @@ import sqlite3
 import datetime
 import mimetypes
 from colorama import init, Fore, Back, Style
+import subprocess
 
 # Initialize packages
 init(autoreset=True)
@@ -343,9 +344,14 @@ def get_version():
     version = settings['version']
     return jsonify ({"version": version})
 
+@app.route('/update_start_exit_program', methods=['POST'])
+def update_exit():
+    exit(0)
+
 @app.route('/api/update', methods=['POST'])
 def update():
-    exit(0)
+    subprocess.run(["python3", os.path.join(os.path.dirname(__file__), "update.py")])
+    return jsonify({"status": "Update started"}), 200
 
 
 # Main

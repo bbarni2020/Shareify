@@ -1,6 +1,6 @@
 {
     "api_key": "ABC",
-    "version": "0.0.0",
+    "version": "0.0.1",
     "host": "localhost",
     "port": 6969
 }
