@@ -1,3 +1,4 @@
+#Imports
 from flask import Flask, request, jsonify
 import os
 import json
@@ -5,6 +6,10 @@ import psutil
 import sqlite3
 import datetime
 import mimetypes
+from colorama import init, Fore, Back, Style
+
+# Initialize packages
+init(autoreset=True)
 
 def initialize_logs_db():
     db_path = os.path.join(os.path.dirname(__file__), 'logs.db')
@@ -27,6 +32,8 @@ def get_db_connection():
     conn.execute('PRAGMA journal_mode=WAL;')
     return conn
 
+
+# Functions
 def log(action, ip):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     conn = get_db_connection()
@@ -37,7 +44,15 @@ def log(action, ip):
     ''', (timestamp, action, ip))
     conn.commit()
 
-app = Flask(__name__)
+def print_status(message, status_type="info"):
+    if status_type == "success":
+        print(Fore.GREEN + message)
+    elif status_type == "error":
+        print(Fore.RED + message)
+    elif status_type == "warning":
+        print(Fore.YELLOW + message)
+    else:
+        print(Fore.BLUE + message)
 
 def load_settings(file_path):
     if os.path.exists(file_path):
@@ -55,6 +70,10 @@ def load_settings(file_path):
 
 settings_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.json")
 settings = load_settings(settings_file)
+
+
+# Flask app
+app = Flask(__name__)
 
 @app.before_request
 def require_api_key():
@@ -296,11 +315,60 @@ def get_logs():
     log("Logs retrieved", request.remote_addr)
     return jsonify(log_list)
 
+@app.route('/api/get_settings', methods=['GET'])
+def get_settings():
+    try:
+        with open(settings_file, 'r') as file:
+            settings = json.load(file)
+            return jsonify(settings)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/update_settings', methods=['POST'])
+def update_settings():
+    new_settings = request.json
+    if new_settings:
+        try:
+            with open(settings_file, 'w') as file:
+                json.dump(new_settings, file)
+            log("Settings updated", request.remote_addr)
+            return jsonify({"status": "Settings updated"}), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"error": "No settings provided"}), 400
+
+@app.route('/api/get_version', methods=['GET'])
+def get_version():
+    version = settings['version']
+    return jsonify ({"version": version})
+
+@app.route('/api/update', methods=['POST'])
+def update():
+    exit(0)
+
+
+# Main
+print(r"""
+ __ _                     __       
+/ _\ |__   __ _ _ __ ___ / _|_   _ 
+\ \| '_ \ / _` | '__/ _ \ |_| | | |
+_\ \ | | | (_| | | |  __/  _| |_| |
+\__/_| |_|\__,_|_|  \___|_|  \__, |
+                             |___/ 
+""")
+
 
 if settings:
-    print("Settings loaded successfully.")
+    print_status("Settings loaded successfully.", "success")
     initialize_logs_db()
-    app.run(host=settings['host'], port=settings['port'], debug=False)
+    try:
+        app.run(host=settings['host'], port=settings['port'], debug=False)
+    except Exception as e:
+        print_status(f"Error starting server: {e}", "error")
+        log("Server start error: " + str(e), "-")
+        exit(1)
 else:
-    print("Failed to load settings. Exiting.")
+    print_status("Failed to load settings. Exiting.", "error")
+    print_status("Please check the documentation for more.", "info")
     exit(1)
