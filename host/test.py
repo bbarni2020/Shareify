@@ -31,6 +31,10 @@ def rename_folder(old_name, new_name, path=None):
 def resources():
     response = requests.get(f"{BASE_URL}/resources", headers=HEADERS)
     print(response.json())
+def login(username, password):
+    payload = {"username": username, "password": password}
+    response = requests.post(f"{BASE_URL}/user/login", json=payload)
+    print(response.json())
 
 if __name__ == "__main__":
 
@@ -53,3 +57,4 @@ if __name__ == "__main__":
     #print("\nRenaming a folder:")
     #rename_folder("new_folder2", "new_folder_name")
     resources()
+    login("admin", "root")

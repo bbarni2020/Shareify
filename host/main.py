@@ -1,5 +1,5 @@
 #Imports
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 import os
 import json
 import psutil
@@ -28,11 +28,13 @@ class CustomAuthorizer(DummyAuthorizer):
             self.user_table[username]['perm'] = perm
 
 authorizer = CustomAuthorizer()
+logs_db_path = os.path.join(os.path.dirname(__file__), 'db/logs.db')
+users_db_path = os.path.join(os.path.dirname(__file__), 'db/users.db')
 
+ftp_server_instance = None
 
 def initialize_logs_db():
-    db_path = os.path.join(os.path.dirname(__file__), 'logs.db')
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(logs_db_path)
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS logs (
@@ -46,7 +48,7 @@ def initialize_logs_db():
     conn.close()
 
 def initialize_users_db():
-    db_path = os.path.join(os.path.dirname(__file__), 'users.db')
+    db_path = os.path.join(os.path.dirname(__file__), 'db/users.db')
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute('''
@@ -64,21 +66,44 @@ def initialize_users_db():
         )
     ''')
     conn.commit()
+
+    default_user = {
+        "username": "admin",
+        "password": "root",
+        "name": "Administrator",
+        "ip": "",
+        "role": "admin",
+        "ftp_users": "",
+        "paths": "",
+        "settings": "",
+        "API_KEY": "ABC"
+    }
+    try:
+        cursor.execute('''
+            INSERT INTO users (username, password, name, ip, role, ftp_users, paths, settings, API_KEY)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (default_user["username"], default_user["password"], default_user["name"], default_user["ip"],
+              default_user["role"], default_user["ftp_users"], default_user["paths"], default_user["settings"],
+              default_user["API_KEY"]))
+        conn.commit()
+        conn.close()
+    except sqlite3.IntegrityError:
+        conn.close()
+    
     conn.close()
 
 def get_db_connection():
-    db_path = os.path.join(os.path.dirname(__file__), 'logs.db')
-    conn = sqlite3.connect(db_path, check_same_thread=False)
+    conn = sqlite3.connect(logs_db_path, check_same_thread=False)
     conn.execute('PRAGMA journal_mode=WAL;')
     return conn
 
 def get_users_db_connection():
-    db_path = os.path.join(os.path.dirname(__file__), 'users.db')
-    conn = sqlite3.connect(db_path, check_same_thread=False)
+    conn = sqlite3.connect(users_db_path, check_same_thread=False)
     conn.execute('PRAGMA journal_mode=WAL;')
     return conn
 
 def start_ftp_server():
+    global ftp_server_instance
     def run_ftp():
         try:
             handler = FTPHandler
@@ -87,11 +112,11 @@ def start_ftp_server():
             handler.timeout = settings['ftp_timeout']
 
             address = (settings['ftp_host'], settings['ftp_port'])
-            server = FTPServer(address, handler)
+            ftp_server_instance = FTPServer(address, handler)
 
             print_status("FTP server started successfully.", "success")
             log("FTP server started", "-")
-            server.serve_forever()
+            ftp_server_instance.serve_forever()
         except Exception as e:
             print_status(f"Error starting FTP server: {e}", "error")
             log("FTP server start error: " + str(e), "-")
@@ -127,26 +152,74 @@ def load_settings(file_path):
                 settings = json.load(file)
                 return settings
             except json.JSONDecodeError:
-                print("Error: Invalid JSON format in settings file.")
+                print_status("Error: Invalid JSON format in settings file.", "error")
                 log("Invalid JSON format in settings file", "-")
     else:
-        print(f"Settings file '{file_path}' not found.")
+        print_status(f"Settings file '{file_path}' not found.", "error")
         log("Settings file not found", "-")
         exit(1)
 
-settings_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings.json")
+def load_roles(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as file:
+            try:
+                roles = json.load(file)
+                return roles
+            except json.JSONDecodeError:
+                print_status("Error: Invalid JSON format in roles file.", "error")
+    else:
+        print_status("Roles file not found.", "error")
+        log("Roles file not found", "-")
+        exit(1)
+    
+settings_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings/settings.json")
+roles_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings/roles.json")
 settings = load_settings(settings_file)
+roles = load_roles(roles_file)
+def reload_jsons():
+    settings = load_settings(settings_file)
+    roles = load_roles(roles_file)
 
+def is_accessible(api):
+    try:
+        list = roles[api]
+        for item in list:
+            if item == g.role:
+                return True
+        log("Unauthorized access attempt", request.remote_addr)
+        return False
+    except Exception as e:
+        print_status("Error: " + str(e), "error")
+        log("Error on is_accessible: " + str(e), "-")
+        return False
 
 # Flask app
 app = Flask(__name__)
 
 @app.before_request
 def require_api_key():
+    if request.endpoint == 'login' or request.endpoint == 'is_up':
+        return
     api_key = request.headers.get('X-API-KEY')
-    if not api_key or api_key != settings.get('api_key'):
+    conn = get_users_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT role FROM users WHERE API_KEY = ?
+    ''', (api_key,))
+    result = cursor.fetchone()
+    conn.close()
+    if not result or not api_key:
         log("Unauthorized access attempt", request.remote_addr)
         return jsonify({"error": "Unauthorized"}), 401
+    else:
+        role = result[0]
+        g.role = role
+        if not is_accessible(request.path):
+            return jsonify({"error": "Unauthorized"}), 401
+        
+@app.route('/api/is_up', methods=['GET'])
+def is_up():
+    return jsonify({"status": "Server is up"}), 200
 
 @app.route('/api/shutdown', methods=['POST'])
 def shutdown():
@@ -281,6 +354,7 @@ def resource():
         return jsonify({"cpu": cpu, "memory": memory, "disk": disk})
     except Exception as e:
         return jsonify ({"error": str(e)}), 500
+
     
 @app.route('/api/new_file', methods=['POST'])
 def new_file():
@@ -397,7 +471,9 @@ def update_settings():
         try:
             with open(settings_file, 'w') as file:
                 json.dump(new_settings, file)
+                file.close
             log("Settings updated", request.remote_addr)
+            reload_jsons()
             return jsonify({"status": "Settings updated"}), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -418,7 +494,7 @@ def update():
     subprocess.run(["python3", os.path.join(os.path.dirname(__file__), "update.py")])
     return jsonify({"status": "Update started"}), 200
 
-@app.route('/api/create_ftp_user', methods=['POST'])
+@app.route('/api/ftp/create_user', methods=['POST'])
 def create_ftp_user():
     data = request.json
     username = data.get('username')
@@ -441,7 +517,7 @@ def create_ftp_user():
     else:
         return jsonify({"error": "No username, password or permissions provided"}), 400
     
-@app.route('/api/delete_ftp_user', methods=['POST'])
+@app.route('/api/ftp/delete_user', methods=['POST'])
 def delete_ftp_user():
     username = request.json.get('username')
     if username:
@@ -452,7 +528,7 @@ def delete_ftp_user():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
-@app.route('/api/get_ftp_users', methods=['GET'])
+@app.route('/api/ftp/get_users', methods=['GET'])
 def get_ftp_users():
     try:
         user_list = authorizer.get_user_list()
@@ -469,7 +545,7 @@ def get_ftp_users():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/edit_ftp_user', methods=['POST'])
+@app.route('/api/ftp/edit_user', methods=['POST'])
 def edit_ftp_user():
     username = request.json.get('username')
     password = request.json.get('password')
@@ -489,6 +565,35 @@ def edit_ftp_user():
             return jsonify({"error": str(e)}), 500
     else:
         return jsonify({"error": "No username provided"}), 400
+
+@app.route('/api/ftp/start', methods=['POST'])
+def start_ftp_server_from_api():
+    try:
+        start_ftp_server()
+        log("FTP server started from API", request.remote_addr)
+        new_settings = settings.copy()
+        new_settings['ftp'] = True
+        with open(settings_file, 'w') as file:
+                json.dump(new_settings, file)
+        print_status("FTP server started from API", "success")
+        return jsonify({"status": "FTP server started"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/ftp/stop', methods=['POST'])
+def stop_ftp_server_from_api():
+    global ftp_server_instance
+    if ftp_server_instance:
+        try:
+            ftp_server_instance.close_all()
+            ftp_server_instance = None
+            log("FTP server stopped from API", request.remote_addr)
+            print_status("FTP server stopped from API", "success")
+            return jsonify({"status": "FTP server stopped"}), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"error": "FTP server is not running"}), 400
 
 @app.route('/api/user/create', methods=['POST'])
 def create_user():
@@ -518,7 +623,7 @@ def create_user():
     else:
         return jsonify({"error": "No username, password, name or role provided"}), 400
 
-@app.route('/api/user/delete', mothods=['POST'])
+@app.route('/api/user/delete', methods=['POST'])
 def delete_user():
     username = request.json.get('username')
     if username:
@@ -563,7 +668,7 @@ def edit_user():
     else:
         return jsonify({"error": "No username, password, name, role or paths provided"}), 400
 
-@app.route('/api/user/login', methods=['GET'])
+@app.route('/api/user/login', methods=['POST'])
 def login():
     username = request.json.get('username')
     password = request.json.get('password')
@@ -586,8 +691,31 @@ def login():
             return jsonify({"error": str(e)}), 500
     else:
         return jsonify({"error": "No username or password provided"}), 400
-    
 
+@app.route('/api/role/get', methods=['GET'])
+def get_roles():
+    try:
+        with open(roles_file, 'r') as file:
+            roles = json.load(file)
+            return jsonify(roles)
+    except Exception as e:
+        return jsonify ({"error": str(e)}), 500
+
+@app.route('/api/role/edit', methods=['POST'])
+def edit_roles():
+    new_roles = request.json
+    if new_roles:
+        try:
+            with open(roles_file, 'w') as file:
+                json.dump(new_roles, file)
+                file.close()
+            log('Roles updated', request.remote_addr)
+            reload_jsons()
+            return jsonify ({"status": "Roles update"}), 200
+        except Exception as e:
+            return jsonify ({"error": str(e)}), 500
+    else:
+        return jsonify ({"error": "No roles provided"}), 400
 # Main
 print(r"""
  __ _                     __       
@@ -604,7 +732,8 @@ if settings:
     initialize_logs_db()
     initialize_users_db()
     try:
-        start_ftp_server()
+        if settings['ftp']:
+            start_ftp_server()
         app.run(host=settings['host'], port=settings['port'], debug=False)
     except Exception as e:
         print_status(f"Error starting server: {e}", "error")

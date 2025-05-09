@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Install</title>
+    <style>
+        #password-form {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Set Installation Path</h1>
+    <form id="path-form" action="/set_path" method="POST">
+        <label for="path">Enter Path:</label>
+        <input type="text" id="path" name="path" required>
+        <button type="submit">Next</button>
+    </form>
+    <form id="password-form" action="/set_password" method="POST">
+        <label for="password">Enter Password:</label>
+        <input type="password" id="password" name="password" required>
+        <button type="submit">Set password</button>
+    </form>
+    <script>
+        document.getElementById('path-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            fetch(this.action, {
+                method: this.method,
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('path-form').style.display = 'none';
+                    document.getElementById('password-form').style.display = 'block';
+                } else {
+                    alert('Failed to set path. Please try again.');
+                }
+            })
+            .catch(() => alert('An error occurred. Please try again.'));
+        });
+    </script>
+</body>
+</html>
