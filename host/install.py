@@ -8,7 +8,7 @@ app = Flask(__name__, template_folder='web')
 
 path = ""
 password = ""
-api_key = ""
+api_key = "ABC"
 db_dir = os.path.join(os.path.dirname(__file__), 'db')
 if not os.path.exists(db_dir):
     os.makedirs(db_dir)
@@ -47,7 +47,8 @@ def initialize_users_db():
             ftp_users TEXT,
             paths TEXT,
             settings TEXT,
-            API_KEY TEXT NOT NULL
+            API_KEY TEXT NOT NULL,
+            paths_write TEXT
         )
     ''')
     default_user = {
@@ -57,17 +58,18 @@ def initialize_users_db():
         "ip": "",
         "role": "admin",
         "ftp_users": "",
-        "paths": "",
+        "paths": """[""]""",
         "settings": "",
-        "API_KEY": api_key
+        "API_KEY": api_key,
+        "paths_write": """[""]""",
     }
     try:
         cursor.execute('''
-            INSERT INTO users (username, password, name, ip, role, ftp_users, paths, settings, API_KEY)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO users (username, password, name, ip, role, ftp_users, paths, settings, API_KEY, paths_write)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (default_user["username"], default_user["password"], default_user["name"], default_user["ip"],
               default_user["role"], default_user["ftp_users"], default_user["paths"], default_user["settings"],
-              default_user["API_KEY"]))
+              default_user["API_KEY"], default_user["paths_write"]))
     except sqlite3.IntegrityError:
         print("Default user already exists in the database.")
     conn.commit()

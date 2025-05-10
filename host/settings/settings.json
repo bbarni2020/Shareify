@@ -6,5 +6,5 @@
     "ftp_host": "localhost",
     "ftp_port": 5656,
     "ftp_timeout": 300,
-    "ftp": true
+    "ftp": false
 }

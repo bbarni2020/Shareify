@@ -62,34 +62,11 @@ def initialize_users_db():
             ftp_users TEXT,
             paths TEXT,
             settings TEXT,
-            API_KEY TEXT NOT NULL
+            API_KEY TEXT NOT NULL,
+            paths_write TEXT
         )
     ''')
     conn.commit()
-
-    default_user = {
-        "username": "admin",
-        "password": "root",
-        "name": "Administrator",
-        "ip": "",
-        "role": "admin",
-        "ftp_users": "",
-        "paths": "",
-        "settings": "",
-        "API_KEY": "ABC"
-    }
-    try:
-        cursor.execute('''
-            INSERT INTO users (username, password, name, ip, role, ftp_users, paths, settings, API_KEY)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (default_user["username"], default_user["password"], default_user["name"], default_user["ip"],
-              default_user["role"], default_user["ftp_users"], default_user["paths"], default_user["settings"],
-              default_user["API_KEY"]))
-        conn.commit()
-        conn.close()
-    except sqlite3.IntegrityError:
-        conn.close()
-    
     conn.close()
 
 def get_db_connection():
@@ -193,6 +170,28 @@ def is_accessible(api):
         log("Error on is_accessible: " + str(e), "-")
         return False
 
+def has_access(path):
+    result = g.result
+    if result:
+        paths = result[7]
+        if paths:
+            paths = json.loads(paths)
+            for p in paths:
+                if path.startswith(p):
+                    return True
+    return False
+
+def has_write_access(path):
+    result = g.result
+    if result:
+        paths_write = result[10]
+        if paths_write:
+            paths_write = json.loads(paths_write)
+            for p in paths_write:
+                if path.startswith(p):
+                    return True
+    return False
+
 # Flask app
 app = Flask(__name__)
 
@@ -204,7 +203,7 @@ def require_api_key():
     conn = get_users_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT role FROM users WHERE API_KEY = ?
+        SELECT * FROM users WHERE API_KEY = ?
     ''', (api_key,))
     result = cursor.fetchone()
     conn.close()
@@ -212,8 +211,9 @@ def require_api_key():
         log("Unauthorized access attempt", request.remote_addr)
         return jsonify({"error": "Unauthorized"}), 401
     else:
-        role = result[0]
+        role = result[5]
         g.role = role
+        g.result = result
         if not is_accessible(request.path):
             return jsonify({"error": "Unauthorized"}), 401
         
@@ -241,22 +241,30 @@ def finder():
         path = None
     if path:
         try:
-            full_path = os.path.join(settings['path'], path)
-            if os.path.exists(full_path):
-                items = os.listdir(full_path)
-                return jsonify({"items": items})
+            if has_access(path):
+                full_path = os.path.join(settings['path'], path)
+                if os.path.exists(full_path):
+                    items = os.listdir(full_path)
+                    return jsonify({"items": items})
+                else:
+                    return jsonify({"error": "Path does not exist"}), 404
             else:
-                return jsonify({"error": "Path does not exist"}), 404
+                log("Unauthorized access attempt", request.remote_addr)
+                return jsonify({"error": "Unauthorized"}), 401
         except Exception as e:
             return jsonify({"error": str(e)}), 500
     else:
         try:
-            full_path = settings['path']
-            if os.path.exists(full_path):
-                items = os.listdir(full_path)
-                return jsonify({"items": items})
+            if has_access(""):
+                full_path = settings['path']
+                if os.path.exists(full_path):
+                    items = os.listdir(full_path)
+                    return jsonify({"items": items})
+                else:
+                    return jsonify({"error": "Path does not exist"}), 404
             else:
-                return jsonify({"error": "Path does not exist"}), 404
+                log("Unauthorized access attempt", request.remote_addr)
+                return jsonify({"error": "Unauthorized"}), 401
         except Exception as e:
             log("Finder error: " + str(e), request.remote_addr)
             return jsonify({"error": str(e)}), 500
@@ -282,19 +290,27 @@ def create_folder():
     path = request.json.get('path')
     if folder_name:
         if path:
-            try:
-                full_path = os.path.join(settings['path'], path, folder_name)
-                os.mkdir(full_path)
-                return jsonify({"status": "Folder created", "path": path + folder_name})
-            except Exception as e:
-                return jsonify({"error": str(e)}), 500
+            if has_write_access(path):
+                try:
+                    full_path = os.path.join(settings['path'], path, folder_name)
+                    os.mkdir(full_path)
+                    return jsonify({"status": "Folder created", "path": path + folder_name})
+                except Exception as e:
+                    return jsonify({"error": str(e)}), 500
+            else:
+                log("Unauthorized access attempt", request.remote_addr)
+                return jsonify({"error": "Unauthorized"}), 401
         else:
-            try:
-                full_path = os.path.join(settings['path'], folder_name)
-                os.mkdir(full_path)
-                return jsonify({"status": "Folder created", "path": folder_name})
-            except Exception as e:
-                return jsonify({"error": str(e)}), 500
+            if has_write_access(""):
+                try:
+                    full_path = os.path.join(settings['path'], folder_name)
+                    os.mkdir(full_path)
+                    return jsonify({"status": "Folder created", "path": folder_name})
+                except Exception as e:
+                    return jsonify({"error": str(e)}), 500
+            else:
+                log("Unauthorized access attempt", request.remote_addr)
+                return jsonify({"error": "Unauthorized"}), 401
     else:
         return jsonify({"error": "No folder name provided"}), 400
     
@@ -302,15 +318,19 @@ def create_folder():
 def delete_folder():
     path = request.json.get('path')
     if path:
-        try:
-            full_path = os.path.join(settings['path'], path)
-            if os.path.exists(full_path):
-                os.rmdir(full_path)
-                return jsonify({"status": "Folder deleted"})
-            else:
-                return jsonify ({"error": "Path does not exist"}), 404
-        except Exception as e:
-                return jsonify({"error": str(e)}), 500
+        if has_write_access(path):
+            try:
+                full_path = os.path.join(settings['path'], path)
+                if os.path.exists(full_path):
+                    os.rmdir(full_path)
+                    return jsonify({"status": "Folder deleted"})
+                else:
+                    return jsonify ({"error": "Path does not exist"}), 404
+            except Exception as e:
+                    return jsonify({"error": str(e)}), 500
+        else:
+            log("Unauthorized access attempt", request.remote_addr)
+            return jsonify({"error": "Unauthorized"}), 401
     else:
         return jsonify({"error": "No path provided"}), 400
     
@@ -321,27 +341,34 @@ def rename_folder():
     path = request.json.get('path')
     if old_name and new_name:
         if path:
-            try:
-                full_path = os.path.join(settings['path'], path, old_name)
-                new_full_path = os.path.join(settings['path'], path, new_name)
-                if os.path.exists(full_path):
-                    os.rename(full_path, new_full_path)
-                    return jsonify({"status": "Folder renamed", "path": path + new_name})
-                else:
-                    return jsonify({"error": "Path does not exist"}), 404
-            except Exception as e:
-                return jsonify({"error": str(e)}), 500
+            if has_write_access(path):
+                try:
+                    full_path = os.path.join(settings['path'], path, old_name)
+                    new_full_path = os.path.join(settings['path'], path, new_name)
+                    if os.path.exists(full_path):
+                        os.rename(full_path, new_full_path)
+                        return jsonify({"status": "Folder renamed", "path": path + new_name})
+                    else:
+                        return jsonify({"error": "Path does not exist"}), 404
+                except Exception as e:
+                    return jsonify({"error": str(e)}), 500
+            else:
+                log("Unauthorized access attempt", request.remote_addr)
         else:
-            try:
-                full_path = os.path.join(settings['path'], old_name)
-                new_full_path = os.path.join(settings['path'], new_name)
-                if os.path.exists(full_path):
-                    os.rename(full_path, new_full_path)
-                    return jsonify({"status": "Folder renamed", "path": new_name})
-                else:
-                    return jsonify({"error": "Path does not exist"}), 404
-            except Exception as e:
-                return jsonify({"error": str(e)}), 500
+            if has_write_access(""):
+                try:
+                    full_path = os.path.join(settings['path'], old_name)
+                    new_full_path = os.path.join(settings['path'], new_name)
+                    if os.path.exists(full_path):
+                        os.rename(full_path, new_full_path)
+                        return jsonify({"status": "Folder renamed", "path": new_name})
+                    else:
+                        return jsonify({"error": "Path does not exist"}), 404
+                except Exception as e:
+                    return jsonify({"error": str(e)}), 500
+            else:
+                log("Unauthorized access attempt", request.remote_addr)
+                return jsonify({"error": "Unauthorized"}), 401
     else:
         return jsonify({"error": "No folder name provided"}), 400
     
@@ -379,15 +406,19 @@ def new_file():
 def delete_file():
     path = request.json.get('path')
     if path:
-        try:
-            full_path = os.path.join(settings['path'], path)
-            if os.path.exists(full_path):
-                os.remove(full_path)
-                return jsonify({"status": "File deleted"})
-            else:
-                return jsonify({"error": "Path does not exist"}), 404
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+        if has_write_access(path):
+            try:
+                full_path = os.path.join(settings['path'], path)
+                if os.path.exists(full_path):
+                    os.remove(full_path)
+                    return jsonify({"status": "File deleted"})
+                else:
+                    return jsonify({"error": "Path does not exist"}), 404
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+        else:
+            log("Unauthorized access attempt", request.remote_addr)
+            return jsonify({"error": "Unauthorized"}), 401
     else:
         return jsonify({"error": "No path provided"}), 400
 
@@ -401,16 +432,19 @@ def rename_file():
             full_path = os.path.join(settings['path'], path, old_name)
             new_full_path = os.path.join(settings['path'], path, new_name)
         else:
-            full_path = os.path.join(settings['path'], old_name)
-            new_full_path = os.path.join(settings['path'], new_name)
-        try:
-            if os.path.exists(full_path):
-                os.rename(full_path, new_full_path)
-                return jsonify({"status": "File renamed", "path": path + new_name})
-            else:
-                return jsonify({"error": "Path does not exist"}), 404
-        except Exception as e:
-            return jsonify({"error":str(e)}), 500
+            return jsonify({"error": "No path provided"}), 400
+        if has_write_access(path):
+            try:
+                if os.path.exists(full_path):
+                    os.rename(full_path, new_full_path)
+                    return jsonify({"status": "File renamed", "path": path + new_name})
+                else:
+                    return jsonify({"error": "Path does not exist"}), 404
+            except Exception as e:
+                return jsonify({"error":str(e)}), 500
+        else:
+            log("Unauthorized access attempt", request.remote_addr)
+            return jsonify({"error": "Unauthorized"}), 401
     else:
         return jsonify({"error": "No file name provided"}), 400
     
@@ -418,24 +452,50 @@ def rename_file():
 def get_file():
     file = request.json.get('file_path')
     if file:
-        try:
-            full_path = os.path.join(settings['path'], file)
-            if os.path.exists(full_path):
-                mime_type, _ = mimetypes.guess_type(full_path)
-                if mime_type and (mime_type.startswith('video/') or mime_type.startswith('image/')):
-                    with open(full_path, 'rb') as f:
-                        content = f.read()
-                    return jsonify({"status": "File content retrieved", "content": content.decode('latin1')}), 200
+        if has_write_access(file):
+            try:
+                full_path = os.path.join(settings['path'], file)
+                if os.path.exists(full_path):
+                    mime_type, _ = mimetypes.guess_type(full_path)
+                    if mime_type and (mime_type.startswith('video/') or mime_type.startswith('image/')):
+                        with open(full_path, 'rb') as f:
+                            content = f.read()
+                        return jsonify({"status": "File content retrieved", "content": content.decode('latin1')}), 200
+                    else:
+                        with open(full_path, 'r') as f:
+                            content = f.read()
+                        return jsonify({"status": "File content retrieved", "content": content}), 200
                 else:
-                    with open(full_path, 'r') as f:
-                        content = f.read()
-                    return jsonify({"status": "File content retrieved", "content": content}), 200
-            else:
-                return jsonify({"error": "Path does not exist"}), 404
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+                    return jsonify({"error": "Path does not exist"}), 404
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+        else:
+            log("Unauthorized access attempt", request.remote_addr)
+            return jsonify({"error": "Unauthorized"}), 401
     else:
         return jsonify({"error": "No file path provided"}), 400
+    
+@app.route('/api/edit_file', methods=['POST'])
+def edit_file():
+    path = request.json.get('path')
+    file_content = request.json.get('file_content')
+    if not file_content:
+        file_content = ""
+    if path:
+        if has_write_access(path):
+            try:
+                full_path = os.path.join(settings['path'], path)
+                with open(full_path, 'w') as file:
+                    file.write(file_content)
+                    file.close()
+                return jsonify({"status": "File edited", "path": path})
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+        else:
+            log("Unauthorized acces attempt", request.remote_addr)
+            return jsonify({"error": "Unauthorized"}), 401
+    else:
+        return jsonify({"error": "No path provided"}), 400
     
 @app.route('/api/get_logs', methods=['GET'])
 def get_logs():
@@ -734,7 +794,7 @@ if settings:
     try:
         if settings['ftp']:
             start_ftp_server()
-        app.run(host=settings['host'], port=settings['port'], debug=False)
+        app.run(host=settings['host'], port=settings['port'], debug=True)
     except Exception as e:
         print_status(f"Error starting server: {e}", "error")
         log("Server start error: " + str(e), "-")

@@ -41,8 +41,8 @@ if __name__ == "__main__":
     #print("\nListing items in base path:")
     #list_items()
 
-    #print("\nListing items in a subdirectory:")
-    #list_items("hello")
+    print("\nListing items in a subdirectory:")
+    list_items("")
 
     #print("\nExecuting a command:")
     #execute_command("ls")
@@ -57,4 +57,4 @@ if __name__ == "__main__":
     #print("\nRenaming a folder:")
     #rename_folder("new_folder2", "new_folder_name")
     resources()
-    login("admin", "root")
+    #login("admin", "root")
