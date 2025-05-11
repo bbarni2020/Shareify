@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shareify</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="container">
+        <div class="app_icons" style="background: url(assets/finder.png) lightgray 50% / cover no-repeat;" onclick="finder_open()">
+            <div class="indicator" id="finder-indicator"></div>
+        </div>
+        <div class="app_icons" style="background: url(assets/user.png) lightgray 50% / cover no-repeat;" onclick="users_open()">
+            <div class="indicator" id="users-indicator"></div>
+        </div>
+        <div class="app_icons" style="background: url(assets/nas.png) lightgray 50% / cover no-repeat;" onclick="nas_open()">
+            <div class="indicator" id="nas-indicator"></div>
+        </div>
+        <div class="app_icons" style="background: url(assets/settings.png) lightgray 50% / cover no-repeat;" onclick="settings_open()">
+            <div class="indicator" id="settings-indicator"></div>
+        </div>
+    </div>
+    <div class="clock_div">
+        <div class="clock_text">19:32</div>
+        <div class="clock_img"></div>
+    </div>
+    <div class="leave"></div>
+    <div class="window" id="finder-window">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="none" class="exit_btn">
+            <g filter="url(#filter0_i_19_3)">
+                <circle cx="11" cy="11" r="11" fill="#DC2626"/>
+            </g>
+        </svg>
+        <div class="content">Finder Content</div>
+        <div class="resize_handle"></div>
+    </div>
+    <div class="window" id="users-window">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="none" class="exit_btn">
+            <g filter="url(#filter0_i_19_3)">
+                <circle cx="11" cy="11" r="11" fill="#DC2626"/>
+            </g>
+        </svg>
+        <div class="content">Users Content</div>
+        <div class="resize_handle"></div>
+    </div>
+    <div class="window" id="nas-window">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="none" class="exit_btn">
+            <g filter="url(#filter0_i_19_3)">
+                <circle cx="11" cy="11" r="11" fill="#DC2626"/>
+            </g>
+        </svg>
+        <div class="content">NAS Content</div>
+        <div class="resize_handle"></div>
+    </div>
+    <div class="window" id="settings-window">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="none" class="exit_btn">
+            <g filter="url(#filter0_i_19_3)">
+                <circle cx="11" cy="11" r="11" fill="#DC2626"/>
+            </g>
+        </svg>
+        <div class="content">Settings Content</div>
+        <div class="resize_handle"></div>
+    </div>
+</body>
+<script>
+    const windows = document.querySelectorAll('.window');
+    let zIndexCounter = 1;
+    windows.forEach((windowElement) => {
+        const exitButton = windowElement.querySelector('.exit_btn');
+        const resizeHandle = windowElement.querySelector('.resize_handle');
+        let isDragging = false;
+        let isResizing = false;
+        let offsetX, offsetY, startWidth, startHeight;
+        exitButton.addEventListener('click', () => {
+            const windowId = windowElement.id;
+            const indicatorId = `${windowId.split('-')[0]}-indicator`;
+            windowElement.classList.add('hide');
+            windowElement.classList.remove('show');
+            updateIndicator(windowId, indicatorId);
+        });
+        windowElement.addEventListener('mousedown', (e) => {
+            if (e.target === resizeHandle || e.target === exitButton) return;
+            isDragging = true;
+            offsetX = e.clientX - windowElement.offsetLeft;
+            offsetY = e.clientY - windowElement.offsetTop;
+            windowElement.style.cursor = 'grabbing';
+            bringToFront(windowElement);
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                windowElement.style.left = `${e.clientX - offsetX}px`;
+                windowElement.style.top = `${e.clientY - offsetY}px`;
+            } else if (isResizing) {
+                const newWidth = Math.max(startWidth + (e.clientX - offsetX), 300);
+                const newHeight = Math.max(startHeight + (e.clientY - offsetY), 200);
+                windowElement.style.width = `${newWidth}px`;
+                windowElement.style.height = `${newHeight}px`;
+            }
+        });
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            isResizing = false;
+            windowElement.style.cursor = 'grab';
+        });
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            offsetX = e.clientX;
+            offsetY = e.clientY;
+            startWidth = windowElement.offsetWidth;
+            startHeight = windowElement.offsetHeight;
+            e.stopPropagation();
+            bringToFront(windowElement);
+        });
+    });
+    function bringToFront(windowElement) {
+        zIndexCounter++;
+        windowElement.style.zIndex = zIndexCounter;
+    }
+    function updateIndicator(windowId, indicatorId) {
+        const windowElement = document.getElementById(windowId);
+        const indicatorElement = document.getElementById(indicatorId);
+        if (windowElement.classList.contains('show')) {
+            indicatorElement.classList.add('active');
+        } else {
+            indicatorElement.classList.remove('active');
+        }
+    }
+    function finder_open() {
+        const windowElement = document.getElementById('finder-window');
+        if (windowElement) {
+            windowElement.classList.add('show');
+            windowElement.classList.remove('hide');
+            bringToFront(windowElement);
+            updateIndicator('finder-window', 'finder-indicator');
+        }
+    }
+    function users_open() {
+        const windowElement = document.getElementById('users-window');
+        if (windowElement) {
+            windowElement.classList.add('show');
+            windowElement.classList.remove('hide');
+            bringToFront(windowElement);
+            updateIndicator('users-window', 'users-indicator');
+        }
+    }
+    function nas_open() {
+        const windowElement = document.getElementById('nas-window');
+        if (windowElement) {
+            windowElement.classList.add('show');
+            windowElement.classList.remove('hide');
+            bringToFront(windowElement);
+            updateIndicator('nas-window', 'nas-indicator');
+        }
+    }
+    function settings_open() {
+        const windowElement = document.getElementById('settings-window');
+        if (windowElement) {
+            windowElement.classList.add('show');
+            windowElement.classList.remove('hide');
+            bringToFront(windowElement);
+            updateIndicator('settings-window', 'settings-indicator');
+        }
+    }
+</script>
+</html>
