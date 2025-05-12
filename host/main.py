@@ -12,6 +12,7 @@ from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 import threading
+from flask_cors import CORS
 
 # Initialize packages
 init(autoreset=True)
@@ -194,6 +195,7 @@ def has_write_access(path):
 
 # Flask app
 app = Flask(__name__)
+CORS(app)
 
 @app.before_request
 def require_api_key():
@@ -216,7 +218,24 @@ def require_api_key():
         g.result = result
         if not is_accessible(request.path):
             return jsonify({"error": "Unauthorized"}), 401
-        
+
+@app.after_request
+def update_ip(response):
+    if response.status_code == 200:
+        try:
+            conn = get_users_db_connection()
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE users
+                SET ip = ?
+                WHERE API_KEY = ?
+            ''', (request.remote_addr, request.headers.get('X-API-KEY')))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print_status(f"Error updating IP in database: {e}", "error")
+    return response
+
 @app.route('/api/is_up', methods=['GET'])
 def is_up():
     return jsonify({"status": "Server is up"}), 200
@@ -224,13 +243,19 @@ def is_up():
 @app.route('/api/shutdown', methods=['POST'])
 def shutdown():
     log("Shutdown", request.remote_addr)
-    os.system("sudo shutdown 10")
+    if os.name == 'nt':
+        os.system("shutdown /s /t 10")
+    else:
+        os.system("sudo shutdown -h +1")
     return jsonify({"status": "Shutting down"})
 
 @app.route('/api/restart', methods=['POST'])
 def restart():
     log("Restart", request.remote_addr)
-    os.system("sudo shutdown -r 10")
+    if os.name == 'nt':
+        os.system("shutdown /r /t 10")
+    else:
+        os.system("sudo shutdown -r +1")
     return jsonify({"status": "Restarting"})
 
 @app.route('/api/finder', methods=['GET'])
@@ -751,6 +776,105 @@ def login():
             return jsonify({"error": str(e)}), 500
     else:
         return jsonify({"error": "No username or password provided"}), 400
+
+@app.route('/api/user/get_self', methods=['GET'])
+def get_user():
+    data = g.result
+    if data:
+        user = {
+            "username": data[1],
+            "password": data[2],
+            "name": data[3],
+            "ip": data[4],
+            "role": data[5],
+            "ftp_users": data[6],
+            "paths": data[7],
+            "settings": data[8],
+            "API_KEY": data[9],
+            "paths_write": data[10]
+        }
+        return jsonify(user), 200
+    else:
+        return jsonify({"error": "User not found"}), 404
+    
+@app.route('/api/user/get_all', methods=['GET'])
+def get_all_users():
+    try:
+        conn = get_users_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users')
+        users = cursor.fetchall()
+        conn.close()
+        user_list = []
+        for user in users:
+            user_list.append({
+                "username": user[1],
+                "password": user[2],
+                "name": user[3],
+                "ip": user[4],
+                "role": user[5],
+                "ftp_users": user[6],
+                "paths": user[7],
+                "settings": user[8],
+                "API_KEY": user[9],
+                "paths_write": user[10]
+            })
+        return jsonify(user_list), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/user/edit_self', methods=['POST'])
+def self_edit_user():
+    data = g.result
+    username = request.json.get('username')
+    password = request.json.get('password')
+    name = request.json.get('name')
+    ftp_users = request.json.get('ftp_users')
+    settings = request.json.get("settings")
+    key = request.json.get("API_KEY")
+    
+    if data:
+        conn = get_users_db_connection()
+        cursor = conn.cursor()
+        updates = []
+        params = []
+
+        if username:
+            updates.append("username = ?")
+            params.append(username)
+        if password:
+            updates.append("password = ?")
+            params.append(password)
+        if name:
+            updates.append("name = ?")
+            params.append(name)
+        if ftp_users:
+            updates.append("ftp_users = ?")
+            params.append(ftp_users)
+        if settings:
+            updates.append("settings = ?")
+            params.append(settings)
+        if key:
+            updates.append("API_KEY = ?")
+            params.append(key)
+
+        if updates:
+            query = f"UPDATE users SET {', '.join(updates)} WHERE id = ?"
+            params.append(data[0])
+            try:
+                cursor.execute(query, tuple(params))
+                conn.commit()
+                log("User self-edited: " + data[1], request.remote_addr)
+                return jsonify({"status": "User updated"}), 200
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+            finally:
+                conn.close()
+        else:
+            return jsonify({"error": "No valid fields provided for update"}), 400
+    else:
+        return jsonify({"error": "User not found"}), 404
+
 
 @app.route('/api/role/get', methods=['GET'])
 def get_roles():

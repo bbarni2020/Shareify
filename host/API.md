@@ -72,6 +72,17 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ---
 
+### `/api/get_file` [GET]
+**Description:** Retrieve the content of a file.  
+**Request Body:**
+- `file_path` (string): Path of the file to retrieve.  
+**Response:**
+- `200 OK`: `{ "status": "File content retrieved", "content": "..." }`
+- `404 Not Found`: `{ "error": "Path does not exist" }`
+- `401 Unauthorized`: `{ "error": "Unauthorized" }`
+
+---
+
 ## Folder Management Endpoints
 
 ### `/api/create_folder` [POST]
@@ -143,6 +154,30 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ---
 
+### `/api/user/get_self` [GET]
+**Description:** Retrieve the current user's details.  
+**Response:**
+- `200 OK`: `{ ...user details... }`
+- `404 Not Found`: `{ "error": "User not found" }`
+
+---
+
+### `/api/user/get_all` [GET]
+**Description:** Retrieve all users.  
+**Response:**
+- `200 OK`: `[ { ...user details... }, ... ]`
+
+---
+
+### `/api/user/edit_self` [POST]
+**Description:** Edit the current user's details.  
+**Request Body:** JSON object with fields to update.  
+**Response:**
+- `200 OK`: `{ "status": "User updated" }`
+- `400 Bad Request`: `{ "error": "No valid fields provided for update" }`
+
+---
+
 ## FTP Management Endpoints
 
 ### `/api/ftp/create_user` [POST]
@@ -164,6 +199,26 @@ This document provides an overview of all the API endpoints available in the `ma
 - `username` (string): FTP username to delete.  
 **Response:**
 - `200 OK`: `{ "status": "FTP user deleted" }`
+
+---
+
+### `/api/ftp/get_users` [GET]
+**Description:** Retrieve all FTP users.  
+**Response:**
+- `200 OK`: `[ { "username": "...", "password": "...", "path": "...", "permissions": "..." }, ... ]`
+
+---
+
+### `/api/ftp/edit_user` [POST]
+**Description:** Edit an FTP user's details.  
+**Request Body:**
+- `username` (string): FTP username.
+- `password` (string, optional): New password.
+- `path` (string, optional): New home directory.
+- `permissions` (string, optional): New permissions.  
+**Response:**
+- `200 OK`: `{ "status": "FTP user edited" }`
+- `404 Not Found`: `{ "error": "User not found" }`
 
 ---
 
@@ -218,6 +273,29 @@ This document provides an overview of all the API endpoints available in the `ma
 **Description:** Get the server version.  
 **Response:**
 - `200 OK`: `{ "version": "..." }`
+
+---
+
+### `/api/update` [POST]
+**Description:** Trigger a server update.  
+**Response:**
+- `200 OK`: `{ "status": "Update started" }`
+
+---
+
+### `/api/role/get` [GET]
+**Description:** Retrieve all roles.  
+**Response:**
+- `200 OK`: `{ ...roles... }`
+
+---
+
+### `/api/role/edit` [POST]
+**Description:** Edit roles.  
+**Request Body:** JSON object with updated roles.  
+**Response:**
+- `200 OK`: `{ "status": "Roles updated" }`
+- `400 Bad Request`: `{ "error": "No roles provided" }`
 
 ---
 
