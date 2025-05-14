@@ -4,20 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shareify</title>
-    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="web/index.css">
 </head>
 <body>
     <div class="container">
-        <div class="app_icons" style="background: url(assets/finder.png) lightgray 50% / cover no-repeat;" onclick="finder_open()">
+        <div class="app_icons" style="background: url(web/assets/finder.png) lightgray 50% / cover no-repeat;" onclick="finder_open()">
             <div class="indicator" id="finder-indicator"></div>
         </div>
-        <div class="app_icons" style="background: url(assets/user.png) lightgray 50% / cover no-repeat;" onclick="users_open()">
+        <div class="app_icons" style="background: url(web/assets/user.png) lightgray 50% / cover no-repeat;" onclick="users_open()">
             <div class="indicator" id="users-indicator"></div>
         </div>
-        <div class="app_icons" style="background: url(assets/nas.png) lightgray 50% / cover no-repeat;" onclick="nas_open()">
+        <div class="app_icons" style="background: url(web/assets/nas.png) lightgray 50% / cover no-repeat;" onclick="nas_open()">
             <div class="indicator" id="nas-indicator"></div>
         </div>
-        <div class="app_icons" style="background: url(assets/settings.png) lightgray 50% / cover no-repeat;" onclick="settings_open()">
+        <div class="app_icons" style="background: url(web/assets/settings.png) lightgray 50% / cover no-repeat;" onclick="settings_open()">
             <div class="indicator" id="settings-indicator"></div>
         </div>
     </div>
@@ -32,7 +32,7 @@
                 <circle cx="11" cy="11" r="11" fill="#DC2626"/>
             </g>
         </svg>
-        <div class="content">Finder Content</div>
+        <div class="window_title">Finder</div>
         <div class="resize_handle"></div>
     </div>
     <div class="window" id="users-window">
@@ -41,7 +41,7 @@
                 <circle cx="11" cy="11" r="11" fill="#DC2626"/>
             </g>
         </svg>
-        <div class="content">Users Content</div>
+        <div class="window_title">Users</div>
         <div class="resize_handle"></div>
     </div>
     <div class="window" id="nas-window">
@@ -50,7 +50,7 @@
                 <circle cx="11" cy="11" r="11" fill="#DC2626"/>
             </g>
         </svg>
-        <div class="content">NAS Content</div>
+        <div class="window_title">NAS</div>
         <div class="resize_handle"></div>
     </div>
     <div class="window" id="settings-window">
@@ -59,7 +59,39 @@
                 <circle cx="11" cy="11" r="11" fill="#DC2626"/>
             </g>
         </svg>
-        <div class="content">Settings Content</div>
+        <div class="window_title">Settings</div>
+        <div class="sections_container">
+            <div class="section">
+                <div class="section_title" onclick="toggleSection(this)">
+                    <p>Personal settings</p>
+                    <div class="dropdown_icon"></div>
+                </div>
+                <div class="section_content">
+                    <p>Section content goes here...</p>
+                    <input type="text" name="random" id="random" class="textbox">
+                </div>
+            </div>
+            <div class="section">
+                <div class="section_title" onclick="toggleSection(this)">
+                    <p>Server settings</p>
+                    <div class="dropdown_icon"></div>
+                </div>
+                <div class="section_content">
+                    <p>Section content goes here...</p>
+                    <input type="text" name="random" id="random" class="textbox">
+                </div>
+            </div>
+            <div class="section">
+                <div class="section_title" onclick="toggleSection(this)">
+                    <p>FTP settings</p>
+                    <div class="dropdown_icon"></div>
+                </div>
+                <div class="section_content">
+                    <p>Section content goes here...</p>
+                    <input type="text" name="random" id="random" class="textbox">
+                </div>
+            </div>
+        </div>
         <div class="resize_handle"></div>
     </div>
     <div class="icon"></div>
@@ -67,12 +99,14 @@
 <script>
     const windows = document.querySelectorAll('.window');
     let zIndexCounter = 1;
+    let isDragging = false;
+    let isResizing = false;
+    let offsetX, offsetY, startWidth, startHeight;
+
     windows.forEach((windowElement) => {
         const exitButton = windowElement.querySelector('.exit_btn');
         const resizeHandle = windowElement.querySelector('.resize_handle');
-        let isDragging = false;
-        let isResizing = false;
-        let offsetX, offsetY, startWidth, startHeight;
+
         exitButton.addEventListener('click', () => {
             const windowId = windowElement.id;
             const indicatorId = `${windowId.split('-')[0]}-indicator`;
@@ -80,6 +114,7 @@
             windowElement.classList.remove('show');
             updateIndicator(windowId, indicatorId);
         });
+
         windowElement.addEventListener('mousedown', (e) => {
             if (e.target === resizeHandle || e.target === exitButton) return;
             isDragging = true;
@@ -88,22 +123,7 @@
             windowElement.style.cursor = 'grabbing';
             bringToFront(windowElement);
         });
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                windowElement.style.left = `${e.clientX - offsetX}px`;
-                windowElement.style.top = `${e.clientY - offsetY}px`;
-            } else if (isResizing) {
-                const newWidth = Math.max(startWidth + (e.clientX - offsetX), 300);
-                const newHeight = Math.max(startHeight + (e.clientY - offsetY), 200);
-                windowElement.style.width = `${newWidth}px`;
-                windowElement.style.height = `${newHeight}px`;
-            }
-        });
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-            isResizing = false;
-            windowElement.style.cursor = 'grab';
-        });
+
         resizeHandle.addEventListener('mousedown', (e) => {
             isResizing = true;
             offsetX = e.clientX;
@@ -114,10 +134,36 @@
             bringToFront(windowElement);
         });
     });
+
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            const activeWindow = document.querySelector('.window.show');
+            if (activeWindow) {
+                activeWindow.style.left = `${e.clientX - offsetX}px`;
+                activeWindow.style.top = `${e.clientY - offsetY}px`;
+            }
+        } else if (isResizing) {
+            const activeWindow = document.querySelector('.window.show');
+            if (activeWindow) {
+                const newWidth = Math.max(startWidth + (e.clientX - offsetX), 300);
+                const newHeight = Math.max(startHeight + (e.clientY - offsetY), 200);
+                activeWindow.style.width = `${newWidth}px`;
+                activeWindow.style.height = `${newHeight}px`;
+            }
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        isResizing = false;
+        document.body.style.cursor = 'default';
+    });
+
     function bringToFront(windowElement) {
         zIndexCounter++;
         windowElement.style.zIndex = zIndexCounter;
     }
+
     function updateIndicator(windowId, indicatorId) {
         const windowElement = document.getElementById(windowId);
         const indicatorElement = document.getElementById(indicatorId);
@@ -127,6 +173,7 @@
             indicatorElement.classList.remove('active');
         }
     }
+
     function finder_open() {
         const windowElement = document.getElementById('finder-window');
         if (windowElement) {
@@ -136,6 +183,7 @@
             updateIndicator('finder-window', 'finder-indicator');
         }
     }
+
     function users_open() {
         const windowElement = document.getElementById('users-window');
         if (windowElement) {
@@ -145,6 +193,7 @@
             updateIndicator('users-window', 'users-indicator');
         }
     }
+
     function nas_open() {
         const windowElement = document.getElementById('nas-window');
         if (windowElement) {
@@ -154,6 +203,7 @@
             updateIndicator('nas-window', 'nas-indicator');
         }
     }
+
     function settings_open() {
         const windowElement = document.getElementById('settings-window');
         if (windowElement) {
@@ -163,5 +213,12 @@
             updateIndicator('settings-window', 'settings-indicator');
         }
     }
+
+    document.querySelectorAll('.section_title').forEach((titleElement) => {
+        titleElement.addEventListener('click', () => {
+            const section = titleElement.parentElement;
+            section.classList.toggle('expanded');
+        });
+    });
 </script>
 </html>

@@ -1,5 +1,5 @@
 #Imports
-from flask import Flask, request, jsonify, g
+from flask import Flask, request, jsonify, g, send_from_directory
 import os
 import json
 import psutil
@@ -199,7 +199,7 @@ CORS(app)
 
 @app.before_request
 def require_api_key():
-    if request.endpoint == 'login' or request.endpoint == 'is_up':
+    if request.endpoint in ['login', 'is_up', 'root', 'serve_static', 'serve_assets']:
         return
     api_key = request.headers.get('X-API-KEY')
     conn = get_users_db_connection()
@@ -900,6 +900,19 @@ def edit_roles():
             return jsonify ({"error": str(e)}), 500
     else:
         return jsonify ({"error": "No roles provided"}), 400
+
+@app.route('/', methods=['GET'])
+def root():
+    return send_from_directory(os.path.join(os.path.dirname(__file__), 'web'), 'index.html')
+
+@app.route('/web/<path:filename>', methods=['GET'])
+def serve_static(filename):
+    return send_from_directory(os.path.join(os.path.dirname(__file__), 'web'), filename)
+
+@app.route('/web/assets/<path:filename>', methods=['GET'])
+def serve_assets(filename):
+    return send_from_directory(os.path.join(os.path.dirname(__file__), 'web', 'assets'), filename, mimetype=mimetypes.guess_type(filename)[0])
+
 # Main
 print(r"""
  __ _                     __       
