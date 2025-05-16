@@ -77,8 +77,26 @@
                     <div class="dropdown_icon"></div>
                 </div>
                 <div class="section_content">
-                    <p>Section content goes here...</p>
-                    <input type="text" name="random" id="random" class="textbox">
+                    <p>Here you can edit the server's general settings.</p>
+                    <div class="horizontal-align">
+                        <label for="path">Default path:</label>
+                        <input type="text" name="path" id="path" class="textbox">
+                    </div>
+                    <div class="horizontal-align">
+                        <label for="host">Host ip:</label>
+                        <input type="text" name="host" id="host" class="textbox">
+                    </div>
+                    <div class="horizontal-align">
+                        <label for="port">Host port:</label>
+                        <input type="text" name="port" id="port" class="textbox">
+                    </div>
+                    <div class="horizontal-align">
+                        <label for="ftp-server">FTP server:</label>
+                        <select id="ftp-server">
+                            <option>On</option>
+                            <option>Off</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="section">
@@ -218,6 +236,51 @@
         titleElement.addEventListener('click', () => {
             const section = titleElement.parentElement;
             section.classList.toggle('expanded');
+        });
+    });
+
+    // Custom dropdown logic
+    document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+        const selected = dropdown.querySelector('.dropdown-selected');
+        const list = dropdown.querySelector('.dropdown-list');
+        const options = dropdown.querySelectorAll('.dropdown-option');
+        const selectedText = dropdown.querySelector('span');
+
+        // Toggle dropdown open/close
+        selected.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.custom-dropdown.open').forEach(d => {
+                if (d !== dropdown) d.classList.remove('open');
+            });
+            dropdown.classList.toggle('open');
+        });
+
+        // Option selection
+        options.forEach(option => {
+            option.addEventListener('click', (e) => {
+                options.forEach(o => o.classList.remove('active'));
+                option.classList.add('active');
+                selectedText.textContent = option.textContent;
+                dropdown.classList.remove('open');
+            });
+        });
+
+        // Close dropdown on outside click
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('open');
+            }
+        });
+
+        // Keyboard accessibility
+        dropdown.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                dropdown.classList.toggle('open');
+                e.preventDefault();
+            }
+            if (e.key === 'Escape') {
+                dropdown.classList.remove('open');
+            }
         });
     });
 </script>
