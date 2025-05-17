@@ -13,6 +13,7 @@ from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 import threading
 from flask_cors import CORS
+import secrets
 
 # Initialize packages
 init(autoreset=True)
@@ -149,6 +150,16 @@ def load_roles(file_path):
         print_status("Roles file not found.", "error")
         log("Roles file not found", "-")
         exit(1)
+
+def generate_unique_api_key():
+    conn = get_users_db_connection()
+    cursor = conn.cursor()
+    while True:
+        api_key = secrets.token_hex(32)
+        cursor.execute('SELECT 1 FROM users WHERE API_KEY = ?', (api_key,))
+        if not cursor.fetchone():
+            conn.close()
+            return api_key
     
 settings_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings/settings.json")
 roles_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings/roles.json")
@@ -690,19 +701,21 @@ def create_user():
     role = data.get('role')
     ftp_user = ""
     paths = data.get('paths')
-    settings = ""
+    settings_val = ""
+    paths_write = data.get('paths_write', "")
     if username and password and name and role:
         try:
+            api_key = generate_unique_api_key()
             conn = get_users_db_connection()
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO users (username, password, name, ip, role, ftp_user, paths, settings)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?))
-                           ''', (username, password, name, ip, role, ftp_user, paths, settings))
+                INSERT INTO users (username, password, name, ip, role, ftp_users, paths, settings, API_KEY, paths_write)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (username, password, name, ip, role, ftp_user, paths, settings_val, api_key, paths_write))
             conn.commit()
             conn.close()
             log("User created: " + username, request.remote_addr)
-            return jsonify({"status": "User created"}), 200
+            return jsonify({"status": "User created", "API_KEY": api_key}), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 500
     else:
@@ -785,12 +798,10 @@ def get_user():
             "username": data[1],
             "password": data[2],
             "name": data[3],
-            "ip": data[4],
             "role": data[5],
             "ftp_users": data[6],
             "paths": data[7],
             "settings": data[8],
-            "API_KEY": data[9],
             "paths_write": data[10]
         }
         return jsonify(user), 200
