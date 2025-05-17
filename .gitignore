@@ -1,0 +1,5 @@
+host/db/users.db
+host/db/logs.db
+host/db/logs.db-shm
+host/db/logs.db-wal
+host/settings/settings.json
