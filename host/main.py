@@ -7,7 +7,6 @@ import sqlite3
 import datetime
 import mimetypes
 from colorama import init, Fore, Back, Style
-import subprocess
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
@@ -15,6 +14,7 @@ import threading
 from flask_cors import CORS
 import secrets
 from time import sleep
+import threading
 
 
 # Initialize packages
@@ -600,8 +600,6 @@ def update_exit():
 
 @app.route('/api/update', methods=['POST'])
 def update_server():
-    sleep(5)
-    import threading
     def run_update():
         os.system(f'python3 "{os.path.join(os.path.dirname(__file__), "update.py")}"')
     t = threading.Thread(target=run_update)

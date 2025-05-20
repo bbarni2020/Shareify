@@ -1,7 +1,6 @@
 import requests
 import os
 import json
-import subprocess
 import sqlite3
 import threading
 
@@ -46,9 +45,7 @@ def update():
             )
         except:
             print("Error: Unable to send update_start_exit_program request. Make sure the server is running.")
-            t = threading.Thread(target=run_main)
-            t.start()
-            exit(1)
+            pass
         new_update = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/main.py").text
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py"), 'w') as file:
             file.write(new_update)
