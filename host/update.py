@@ -34,14 +34,6 @@ def get_admin_api_key():
 def update():
     if requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version").text != settings['version']:
         print("Updating...")
-        try:
-            api_key = get_admin_api_key()
-            requests.post(
-                "http://localhost:" + str(settings['port']) + "/update_start_exit_program",
-                headers={"X-API-KEY": api_key}
-            )
-        except:
-            exit(1)
         new_update = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/main.py").text
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py"), 'w') as file:
             file.write(new_update)
@@ -65,6 +57,14 @@ def update():
             json.dump(settings, file, indent=4)
             print("Updated settings.json")
             file.close()
+        try:
+            api_key = get_admin_api_key()
+            requests.post(
+                "http://localhost:" + str(settings['port']) + "/update_start_exit_program",
+                headers={"X-API-KEY": api_key}
+            )
+        except:
+            exit(1)
         subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py")])
         exit(0)
     else:
