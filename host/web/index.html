@@ -422,7 +422,7 @@
     setInterval(updateClock, 1000);
 
     document.querySelectorAll('.accept_btn, .update_btn').forEach(btn => {
-        btn.addEventListener('click', function () {
+        btn.addEventListener('click', async function () {
             this.classList.remove('active');
             void this.offsetWidth;
             this.classList.add('active');
@@ -462,6 +462,18 @@
             }
 
             if (this.classList.contains('update_btn')) {
+                try {
+                    await fetch('http://localhost:6969/api/update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-API-KEY': apiKey
+                        }
+                    });
+                } catch (e) {
+                    alert('Update failed.');
+                    return;
+                }
                 const bodyChildren = Array.from(document.body.children);
                 bodyChildren.forEach(el => {
                     if (el.id !== 'bg-fade-overlay' && el.tagName !== 'SCRIPT' && !el.classList.contains('icon')) {
