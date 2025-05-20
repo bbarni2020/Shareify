@@ -165,13 +165,30 @@ def generate_unique_api_key():
 
 def stop_completely():
     global ftp_server_instance
+    print_status("Initiating server shutdown...", "info")
+    log("Initiating server shutdown", "-")
+    
     if ftp_server_instance:
-        ftp_server_instance.close_all()
-        ftp_server_instance = None
-    sleep(10)
-    log("Stopping server", "-")
-    print_status("Stopping server", "info")
-    os._exit(0)
+        try:
+            print_status("Stopping FTP server...", "info")
+            ftp_server_instance.close_all()
+            ftp_server_instance = None
+            print_status("FTP server stopped", "success")
+        except Exception as e:
+            print_status(f"Error stopping FTP server: {e}", "error")
+
+    try:
+        def shutdown_server():
+            sleep(1)
+            print_status("Server shutdown complete", "success")
+            os._exit(0)
+        
+        threading.Thread(target=shutdown_server).start()
+        return True
+    except Exception as e:
+        print_status(f"Error during shutdown: {e}", "error")
+        log(f"Error during shutdown: {e}", "-")
+        os._exit(1)
     
 settings_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings/settings.json")
 roles_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings/roles.json")
