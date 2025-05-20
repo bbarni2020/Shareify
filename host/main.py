@@ -958,7 +958,6 @@ if settings:
     try:
         if settings['ftp']:
             start_ftp_server()
-        sleep(5)
         app.run(host=settings['host'], port=settings['port'], debug=True)
     except Exception as e:
         print_status(f"Error starting server: {e}", "error")

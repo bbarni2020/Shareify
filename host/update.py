@@ -3,6 +3,29 @@ import os
 import json
 import sqlite3
 import threading
+from time import sleep
+import sys
+
+def kill_process_on_port(port):
+    try:
+        if sys.platform.startswith('win'):
+            result = subprocess.check_output(
+                f'netstat -ano | findstr :{port}', shell=True
+            ).decode()
+            for line in result.strip().split('\n'):
+                if line:
+                    pid = line.strip().split()[-1]
+                    os.system(f'taskkill /PID {pid} /F')
+        else:
+            result = subprocess.check_output(
+                f'lsof -t -i:{port}', shell=True
+            ).decode().strip().split('\n')
+            for pid in result:
+                if pid:
+                    os.system(f'kill -9 {pid}')
+        print(f"Killed process(es) on port {port}")
+    except Exception as e:
+        print(f"Error: {e}")
 
 def load_settings(file_path):
     if os.path.exists(file_path):
@@ -68,6 +91,9 @@ def update():
             json.dump(settings, file, indent=4)
             print("Updated settings.json")
             file.close()
+            
+        kill_process_on_port(settings['port'])
+        sleep(5)
         t = threading.Thread(target=run_main)
         t.start()
         exit(0)
