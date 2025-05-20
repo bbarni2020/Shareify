@@ -14,6 +14,8 @@ from pyftpdlib.servers import FTPServer
 import threading
 from flask_cors import CORS
 import secrets
+from time import sleep
+
 
 # Initialize packages
 init(autoreset=True)
@@ -160,6 +162,16 @@ def generate_unique_api_key():
         if not cursor.fetchone():
             conn.close()
             return api_key
+
+def stop_completely():
+    global ftp_server_instance
+    if ftp_server_instance:
+        ftp_server_instance.close_all()
+        ftp_server_instance = None
+    sleep(10)
+    log("Stopping server", "-")
+    print_status("Stopping server", "info")
+    os._exit(0)
     
 settings_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings/settings.json")
 roles_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings/roles.json")
@@ -583,10 +595,12 @@ def get_version():
 
 @app.route('/update_start_exit_program', methods=['POST'])
 def update_exit():
-    exit(0)
+    stop_completely()
+    return jsonify({"status": "Update started"}), 200
 
 @app.route('/api/update', methods=['POST'])
-def update():
+def update_server():
+    sleep(5)
     subprocess.run(["python3", os.path.join(os.path.dirname(__file__), "update.py")])
     return jsonify({"status": "Update started"}), 200
 

@@ -2,6 +2,7 @@ import requests
 import os
 import json
 import subprocess
+import sqlite3
 
 def load_settings(file_path):
     if os.path.exists(file_path):
@@ -17,12 +18,28 @@ def load_settings(file_path):
 
 settings_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings/settings.json")
 settings = load_settings(settings_file)
+def get_admin_api_key():
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "users.db")
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute("SELECT API_KEY FROM users WHERE role = 'admin' LIMIT 1")
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return row[0]
+    else:
+        print("No admin API_KEY found in users.db.")
+        exit(1)
 
 def update():
     if requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version").text != settings['version']:
         print("Updating...")
         try:
-            requests.post("http://localhost:" + str(settings['port']) + "/update_start_exit_program", headers={"X-API-KEY": settings['api_key']})
+            api_key = get_admin_api_key()
+            requests.post(
+                "http://localhost:" + str(settings['port']) + "/update_start_exit_program",
+                headers={"X-API-KEY": api_key}
+            )
         except:
             exit(1)
         new_update = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/main.py").text
