@@ -36,7 +36,6 @@ def run_main():
 
 def update():
     if requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version").text != settings['version']:
-        print("Updating...")
         try:
             api_key = get_admin_api_key()
             requests.post(
