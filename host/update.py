@@ -5,6 +5,7 @@ import sqlite3
 import threading
 from time import sleep
 import sys
+import subprocess
 
 def kill_process_on_port(port):
     try:
@@ -71,27 +72,30 @@ def update():
         new_update = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/main.py").text
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py"), 'w') as file:
             file.write(new_update)
-            print("Updated to the latest version.")
             file.close()
         web_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
         index_html = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/web/index.html").text
         with open(os.path.join(web_dir, "index.html"), 'w') as file:
             file.write(index_html)
+            file.close()
         install_html = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/web/install.html").text
         with open(os.path.join(web_dir, "install.html"), 'w') as file:
             file.write(install_html)
+            file.close()
         index_css = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/web/index.css").text
         with open(os.path.join(web_dir, "index.css"), 'w') as file:
             file.write(index_css)
+            file.close()
         database_py = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/database.py").text
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "database.py"), 'w') as file:
             file.write(database_py)
+            file.close()
         with open(settings_file, 'w') as file:
             settings['version'] = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version").text
             json.dump(settings, file, indent=4)
             print("Updated settings.json")
             file.close()
-            
+        print("Updated to the latest version.")
         kill_process_on_port(settings['port'])
         sleep(5)
         t = threading.Thread(target=run_main)
