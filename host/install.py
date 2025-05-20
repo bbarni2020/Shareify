@@ -78,19 +78,28 @@ def initialize_users_db():
 def create_jsons():
     settings_path = os.path.join(os.path.dirname(__file__), 'settings/settings.json')
     if not os.path.exists(settings_path):
-        with open(settings_path, 'w') as f:
+        try:
             settings = requests.get(
                 "https://raw.githubusercontent.com/bbarni2020/Shareify/main/host/settings/settings.json"
-            ).json()
-            settings['path'] = path
-            json.dump(settings, f, indent=4)
+            )
+            settings.raise_for_status()
+            settings_json = settings.json()
+            settings_json['path'] = path
+            with open(settings_path, 'w') as f:
+                json.dump(settings_json, f, indent=4)
+        except Exception as e:
+            print(f"Failed to fetch or write settings.json: {e}")
     roles_path = os.path.join(os.path.dirname(__file__), 'settings/roles.json')
     if not os.path.exists(roles_path):
-        with open(roles_path, 'w') as f:
+        try:
             roles = requests.get(
                 "https://raw.githubusercontent.com/bbarni2020/Shareify/main/host/settings/roles.json"
-            ).text
-            f.write(roles)
+            )
+            roles.raise_for_status()
+            with open(roles_path, 'w') as f:
+                f.write(roles.text)
+        except Exception as e:
+            print(f"Failed to fetch or write roles.json: {e}")
 
 @app.route('/')
 def install_page():

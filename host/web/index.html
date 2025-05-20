@@ -26,7 +26,7 @@
         <div id="clock" class="clock_text"></div>
         <div class="clock_img"></div>
     </div>
-    <div class="leave"></div>
+    <div class="leave" id="leave"></div>
     <div class="window" id="finder-window">
         <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="none" class="exit_btn">
             <g filter="url(#filter0_i_19_3)">
@@ -63,12 +63,12 @@
         <div class="window_title">Settings</div>
         <div class="sections_container">
             <div class="section">
-                <div class="section_title" onclick="toggleSection(this)">
+                <div class="section_title">
                     <p>Personal settings</p>
                     <div class="dropdown_icon"></div>
                 </div>
                 <div class="section_content">
-                    <p style="font-size: 17px;">Here you can edit the server's general settings.</p>
+                    <p style="font-size: 17px;">Here you can edit your personal settings.</p>
                     <div class="horizontal-align">
                         <label for="name">Preferred name:</label>
                         <input type="text" name="name" id="name" class="textbox">
@@ -83,8 +83,15 @@
                     </div>
                     <div class="horizontal-align" style="margin-top: 10px;">
                         <div style="width: 100%;"></div>
-                        <div id="personal_saved">Saved</div>
+                        <div id="personal_saved" class="saved_text">Saved</div>
                         <div class="accept_btn" id="personal_accept"><img src="web/assets/pipe.png" alt="pipe" class="centered-img"></div>
+                    </div>
+                    <div class="horizontal-align" style="margin-top: 10px;">
+                        <label for="icon-select">Icon (in background):</label>
+                        <select id="icon-select">
+                            <option>Visible</option>
+                            <option>Hidden</option>
+                        </select>
                     </div>
                     <div style="margin-top: 18px; margin-bottom: 8px; font-size: 17px;">Choose background:</div>
                     <div class="background-selector" id="background-selector">
@@ -106,7 +113,7 @@
                 </div>
             </div>
             <div class="section">
-                <div class="section_title" onclick="toggleSection(this)">
+                <div class="section_title">
                     <p>Server settings</p>
                     <div class="dropdown_icon"></div>
                 </div>
@@ -131,16 +138,49 @@
                             <option>Off</option>
                         </select>
                     </div>
+                    <div class="horizontal-align" style="margin-top: 10px;">
+                        <div style="width: 100%;"></div>
+                        <div id="server_saved" class="saved_text">Saved</div>
+                        <div class="accept_btn" id="server_accept"><img src="web/assets/pipe.png" alt="pipe" class="centered-img"></div>
+                    </div>
+                    <div class="horizontal-align" style="margin-top: 25px;">
+                        <label id="current_version">Current version: loading...</label>
+                    </div>
+                    <div id="version" style="margin-top: 5px;">
+                        <div class="horizontal-align">
+                            <h4 id="newest_version">Newest: loading...</h2>
+                            <div style="width: 90%;"></div>
+                            <h5>Update</h6>
+                            <div class="update_btn" id="verison"><img src="web/assets/go.png" alt="Update" class="centered-img"></div>
+                        </div>
+                        <h5 id="version_description">Description: loading...</h3>
+                    </div>
                 </div>
             </div>
             <div class="section">
-                <div class="section_title" onclick="toggleSection(this)">
+                <div class="section_title">
                     <p>FTP settings</p>
                     <div class="dropdown_icon"></div>
                 </div>
                 <div class="section_content">
-                    <p>Section content goes here...</p>
-                    <input type="text" name="random" id="random" class="textbox">
+                    <p style="font-size: 17px;">Here you can edit the server's general settings.</p>
+                    <div class="horizontal-align">
+                        <label for="ftp-ip">FTP server ip:</label>
+                        <input type="text" name="ftp-ip" id="ftp-ip" class="textbox">
+                    </div>
+                    <div class="horizontal-align">
+                        <label for="ftp-port">FTP server port:</label>
+                        <input type="number" name="ftp-port" id="ftp-port" class="textbox">
+                    </div>
+                    <div class="horizontal-align">
+                        <label for="ftp-timeout">FTP timeout:</label>
+                        <input type="number" name="ftp-timeout" id="ftp-timeout" class="textbox">
+                    </div>
+                    <div class="horizontal-align" style="margin-top: 10px;">
+                        <div style="width: 100%;"></div>
+                        <div id="ftp_saved" class="saved_text">Saved</div>
+                        <div class="accept_btn" id="ftp_accept"><img src="web/assets/pipe.png" alt="pipe" class="centered-img"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -381,7 +421,7 @@
     updateClock();
     setInterval(updateClock, 1000);
 
-    document.querySelectorAll('.accept_btn').forEach(btn => {
+    document.querySelectorAll('.accept_btn, .update_btn').forEach(btn => {
         btn.addEventListener('click', function () {
             this.classList.remove('active');
             void this.offsetWidth;
@@ -400,7 +440,261 @@
                     }, 5000);
                 }
             }
+            if (this.id === 'server_accept') {
+                const savedDiv = document.getElementById('server_saved');
+                if (savedDiv) {
+                    savedDiv.classList.add('visible');
+                    clearTimeout(savedDiv._hideTimeout);
+                    savedDiv._hideTimeout = setTimeout(() => {
+                        savedDiv.classList.remove('visible');
+                    }, 5000);
+                }
+            }
+            if (this.id === 'ftp_accept') {
+                const savedDiv = document.getElementById('ftp_saved');
+                if (savedDiv) {
+                    savedDiv.classList.add('visible');
+                    clearTimeout(savedDiv._hideTimeout);
+                    savedDiv._hideTimeout = setTimeout(() => {
+                        savedDiv.classList.remove('visible');
+                    }, 5000);
+                }
+            }
+
+            if (this.classList.contains('update_btn')) {
+                const bodyChildren = Array.from(document.body.children);
+                bodyChildren.forEach(el => {
+                    if (el.id !== 'bg-fade-overlay' && el.tagName !== 'SCRIPT' && !el.classList.contains('icon')) {
+                        el.classList.add('fade-out');
+                    }
+                });
+                setTimeout(() => {
+                    bodyChildren.forEach(el => {
+                        if (el.id !== 'bg-fade-overlay' && el.tagName !== 'SCRIPT' && !el.classList.contains('icon')) {
+                            el.style.display = 'none';
+                        }
+                    });
+                    const icon = document.querySelector('.icon');
+                    if (icon) {
+                        icon.classList.remove('fade-out');
+                        icon.style.display = '';
+                        icon.classList.add('icon-center-animate');
+                    }
+                }, 600);
+            }
         });
+    });
+
+    function updateIconVisibility() {
+        const iconSelect = document.getElementById('icon-select');
+        const icon = document.querySelector('.icon');
+        if (!iconSelect || !icon) return;
+        if (iconSelect.value === 'Hidden') {
+            icon.classList.add('hide');
+        } else {
+            icon.classList.remove('hide');
+        }
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        const iconSelect = document.getElementById('icon-select');
+        if (iconSelect) {
+            iconSelect.addEventListener('change', updateIconVisibility);
+            updateIconVisibility();
+        }
+    });
+
+    let apiKey = localStorage.getItem('api_key');
+    if (!apiKey) {
+        apiKey = prompt("Please enter your API key:");
+        if (apiKey) {
+            localStorage.setItem('api_key', apiKey);
+            const expiry = Date.now() + 60 * 60 * 10000;
+            localStorage.setItem('api_key_expiry', expiry);
+        }
+    }
+    const apiKeyExpiry = localStorage.getItem('api_key_expiry');
+    if (apiKeyExpiry && Date.now() > parseInt(apiKeyExpiry, 10)) {
+        localStorage.removeItem('api_key');
+        localStorage.removeItem('api_key_expiry');
+        location.reload();
+    }
+
+    async function loadPersonalSettings() {
+        if (!apiKey) return;
+        try {
+            const res = await fetch('http://localhost:6969/api/user/get_self', {
+                headers: { 'X-API-KEY': apiKey }
+            });
+            if (!res.ok) throw new Error('Failed to fetch user data');
+            const user = await res.json();
+
+            document.getElementById('name').value = user.name || '';
+            document.getElementById('username').value = user.username || '';
+            document.getElementById('password_web').value = user.password || '';
+
+            let settings = {};
+            try {
+                settings = JSON.parse(user.settings || '{}');
+            } catch (e) {}
+
+            if (settings.background) {
+                document.querySelectorAll('.background-thumb').forEach(thumb => {
+                    if (thumb.dataset.bg === settings.background.replace('web/', '')) {
+                        thumb.classList.add('selected');
+                        document.documentElement.style.backgroundImage = `url('web/${settings.background.replace('web/', '')}')`;
+                    } else {
+                        thumb.classList.remove('selected');
+                    }
+                });
+            }
+
+            if (settings.iconVisible !== undefined) {
+                document.getElementById('icon-select').value = settings.iconVisible ? 'Visible' : 'Hidden';
+                updateIconVisibility();
+            }
+        } catch (err) {
+            alert(err);
+        }
+    }
+
+    async function savePersonalSettings() {
+        if (!apiKey) return;
+        const name = document.getElementById('name').value;
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password_web').value;
+        const iconVisible = document.getElementById('icon-select').value === 'Visible';
+        const selectedBg = document.querySelector('.background-thumb.selected')?.dataset.bg || '';
+
+        const settings = {
+            background: selectedBg,
+            iconVisible: iconVisible
+        };
+
+        try {
+            const res = await fetch('http://localhost:6969/api/user/edit_self', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': apiKey,
+                },
+                body: JSON.stringify({
+                    name,
+                    username,
+                    password,
+                    settings: JSON.stringify(settings)
+                })
+            });
+            if (!res.ok) throw new Error('Failed to save settings');
+        } catch (err) {
+            alert('Could not save personal settings.');
+        }
+    }
+
+    let currentServerSettings = null;
+
+    async function loadServerSettings() {
+        if (!apiKey) return;
+        try {
+            const res = await fetch('http://localhost:6969/api/get_settings', {
+                headers: { 'X-API-KEY': apiKey }
+            });
+            if (!res.ok) throw new Error('Failed to fetch server settings');
+            const settings = await res.json();
+            currentServerSettings = settings;
+
+            document.getElementById('path').value = settings.path || '';
+            document.getElementById('host').value = settings.host || '';
+            document.getElementById('port').value = settings.port || '';
+
+            document.getElementById('ftp-server').value = settings.ftp ? 'On' : 'Off';
+            document.getElementById('ftp-ip').value = settings.ftp_host || '';
+            document.getElementById('ftp-port').value = settings.ftp_port || '';
+            document.getElementById('ftp-timeout').value = settings.ftp_timeout || '';
+
+            // --- Version check logic ---
+            const currentVersionLabel = document.getElementById('current_version');
+            const versionDiv = document.getElementById('version');
+            const newestVersionLabel = document.getElementById('newest_version');
+            const versionDescription = document.getElementById('version_description');
+            if (currentVersionLabel) {
+                currentVersionLabel.textContent = "Current version: " + (settings.version || "unknown");
+            }
+            try {
+                // Fetch newest version and description from GitHub
+                const [newestVersionRes, descRes] = await Promise.all([
+                    fetch("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version"),
+                    fetch("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version_dsc")
+                ]);
+                const newestVersion = (await newestVersionRes.text()).trim();
+                const versionDsc = (await descRes.text()).trim();
+                if ((settings.version || "").trim() !== newestVersion) {
+                    if (versionDiv) versionDiv.style.display = "";
+                    if (newestVersionLabel) newestVersionLabel.textContent = "Newest: " + newestVersion;
+                    if (versionDescription) versionDescription.textContent = "Description: " + versionDsc;
+                } else {
+                    if (versionDiv) versionDiv.style.display = "none";
+                    currentVersionLabel.textContent = "Current version: " + (settings.version || "unknown") + " (latest)";
+                }
+            } catch (e) {
+                // If fetch fails, just hide versionDiv
+                if (versionDiv) versionDiv.style.display = "none";
+            }
+            // --- end version check logic ---
+        } catch (err) {
+            alert('Could not load server settings.');
+        }
+    }
+
+    function gatherServerSettingsFromFields() {
+        return {
+            ftp: document.getElementById('ftp-server').value === 'On',
+            ftp_host: document.getElementById('ftp-ip').value,
+            ftp_port: parseInt(document.getElementById('ftp-port').value, 10) || 0,
+            ftp_timeout: parseInt(document.getElementById('ftp-timeout').value, 10) || 0,
+            host: document.getElementById('host').value,
+            path: document.getElementById('path').value,
+            port: parseInt(document.getElementById('port').value, 10) || 0,
+            version: currentServerSettings?.version || ''
+        };
+    }
+
+    async function saveServerSettings() {
+        if (!apiKey) return;
+        const settings = gatherServerSettingsFromFields();
+        try {
+            const res = await fetch('http://localhost:6969/api/update_settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': apiKey
+                },
+                body: JSON.stringify(settings)
+            });
+            if (!res.ok) throw new Error('Failed to update server settings');
+            currentServerSettings = settings;
+        } catch (err) {
+            alert('Could not save server settings.');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadServerSettings);
+
+    document.getElementById('server_accept').addEventListener('click', saveServerSettings);
+    document.getElementById('ftp_accept').addEventListener('click', saveServerSettings);
+
+    document.addEventListener('DOMContentLoaded', loadPersonalSettings);
+
+    document.getElementById('personal_accept').addEventListener('click', savePersonalSettings);
+
+    document.querySelectorAll('.background-thumb').forEach(thumb => {
+        thumb.addEventListener('click', savePersonalSettings);
+    });
+    document.getElementById('icon-select').addEventListener('change', savePersonalSettings);
+
+    document.getElementById('leave').addEventListener('click', () => {
+        localStorage.removeItem('api_key');
+        localStorage.removeItem('api_key_expiry');
+        location.reload();
     });
 </script>
 </html>

@@ -169,9 +169,9 @@ def reload_jsons():
     settings = load_settings(settings_file)
     roles = load_roles(roles_file)
 
-def is_accessible(api):
+def is_accessible(address):
     try:
-        list = roles[api]
+        list = roles.get('/api/role/get', [])
         for item in list:
             if item == g.role:
                 return True
