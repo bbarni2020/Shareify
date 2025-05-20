@@ -601,7 +601,11 @@ def update_exit():
 @app.route('/api/update', methods=['POST'])
 def update_server():
     sleep(5)
-    subprocess.run(["python3", os.path.join(os.path.dirname(__file__), "update.py")])
+    import threading
+    def run_update():
+        os.system(f'python3 "{os.path.join(os.path.dirname(__file__), "update.py")}"')
+    t = threading.Thread(target=run_update)
+    t.start()
     return jsonify({"status": "Update started"}), 200
 
 @app.route('/api/ftp/create_user', methods=['POST'])

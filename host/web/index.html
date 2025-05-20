@@ -491,6 +491,19 @@
                         icon.style.display = '';
                         icon.classList.add('icon-center-animate');
                     }
+                    setTimeout(() => {
+                        let pollInterval = setInterval(async () => {
+                            try {
+                                const res = await fetch('http://localhost:6969/api/is_up');
+                                if (res.ok) {
+                                    clearInterval(pollInterval);
+                                    location.reload();
+                                }
+                            } catch (e) {
+                                // ignore error
+                            }
+                        }, 10000);
+                    }, 20000);
                 }, 600);
             }
         });

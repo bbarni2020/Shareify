@@ -3,6 +3,7 @@ import os
 import json
 import subprocess
 import sqlite3
+import threading
 
 def load_settings(file_path):
     if os.path.exists(file_path):
@@ -31,9 +32,23 @@ def get_admin_api_key():
         print("No admin API_KEY found in users.db.")
         exit(1)
 
+def run_main():
+            os.system(f'python3 "{os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py")}"')
+
 def update():
     if requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version").text != settings['version']:
         print("Updating...")
+        try:
+            api_key = get_admin_api_key()
+            requests.post(
+                "http://localhost:" + str(settings['port']) + "/update_start_exit_program",
+                headers={"X-API-KEY": api_key}
+            )
+        except:
+            print("Error: Unable to send update_start_exit_program request. Make sure the server is running.")
+            t = threading.Thread(target=run_main)
+            t.start()
+            exit(1)
         new_update = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/main.py").text
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py"), 'w') as file:
             file.write(new_update)
@@ -57,15 +72,8 @@ def update():
             json.dump(settings, file, indent=4)
             print("Updated settings.json")
             file.close()
-        try:
-            api_key = get_admin_api_key()
-            requests.post(
-                "http://localhost:" + str(settings['port']) + "/update_start_exit_program",
-                headers={"X-API-KEY": api_key}
-            )
-        except:
-            exit(1)
-        subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py")])
+        t = threading.Thread(target=run_main)
+        t.start()
         exit(0)
     else:
         print("You are already using the latest version.")
