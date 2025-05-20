@@ -4,29 +4,35 @@ import json
 import sqlite3
 import threading
 from time import sleep
-import sys
-import subprocess
+import psutil
 
 def kill_process_on_port(port):
-    try:
-        if sys.platform.startswith('win'):
-            result = subprocess.check_output(
-                f'netstat -ano | findstr :{port}', shell=True
-            ).decode()
-            for line in result.strip().split('\n'):
-                if line:
-                    pid = line.strip().split()[-1]
-                    os.system(f'taskkill /PID {pid} /F')
-        else:
-            result = subprocess.check_output(
-                f'lsof -t -i:{port}', shell=True
-            ).decode().strip().split('\n')
-            for pid in result:
-                if pid:
-                    os.system(f'kill -9 {pid}')
-        print(f"Killed process(es) on port {port}")
-    except Exception as e:
-        print(f"Error: {e}")
+    def process_killer():
+        try:
+            print(f"Searching for processes using port {port}...")
+            for conn in psutil.net_connections():
+                if conn.laddr.port == port and conn.pid:
+                    try:
+                        process = psutil.Process(conn.pid)
+                        process.terminate()
+                        print(f"Terminated process {conn.pid} using port {port}")
+                        try:
+                            process.wait(timeout=3)
+                        except psutil.TimeoutExpired:
+                            process.kill()
+                            print(f"Force killed process {conn.pid} using port {port}")
+                    except psutil.NoSuchProcess:
+                        print(f"Process {conn.pid} no longer exists")
+                    except Exception as e:
+                        print(f"Error killing process {conn.pid}: {e}")
+            print(f"Finished killing processes on port {port}")
+        except Exception as e:
+            print(f"Error finding processes on port {port}: {e}")
+    
+    killer_thread = threading.Thread(target=process_killer)
+    killer_thread.daemon = True
+    killer_thread.start()
+    sleep(0.5)
 
 def load_settings(file_path):
     if os.path.exists(file_path):
@@ -56,7 +62,7 @@ def get_admin_api_key():
         exit(1)
 
 def run_main():
-            os.system(f'python3 "{os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py")}"')
+    os.system(f'python3 "{os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py")}"')
 
 def update():
     if requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version").text != settings['version']:
@@ -97,7 +103,9 @@ def update():
             file.close()
         print("Updated to the latest version.")
         kill_process_on_port(settings['port'])
+        print("Waiting for 5 seconds before restarting...")
         sleep(5)
+        print("Restarting the program...")
         t = threading.Thread(target=run_main)
         t.start()
         exit(0)
