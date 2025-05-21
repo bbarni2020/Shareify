@@ -206,8 +206,6 @@ def stop_completely():
             print_status("Server shutdown complete", "success")
             update.kill_process_on_port(settings['port'])
             os._exit(0)
-        
-        threading.Thread(target=shutdown_server).start()
         return True
     except Exception as e:
         print_status(f"Error during shutdown: {e}", "error")
@@ -642,6 +640,7 @@ def update_exit():
 @app.route('/api/update', methods=['POST'])
 def update_server():
     def run_update():
+        print_status("Update started", "info")
         os.system(f'python3 "{os.path.join(os.path.dirname(__file__), "update.py")}"')
     t = threading.Thread(target=run_update)
     t.start()
