@@ -52,6 +52,42 @@
             </g>
         </svg>
         <div class="window_title">NAS</div>
+        <div class="sections_container">
+            <div class="section_content resource-section-content">
+                <div id="resource-meters">
+                    <div class="resource-meter">
+                        <svg id="cpu-meter" width="120" height="120"></svg>
+                        <div class="meter-label">CPU</div>
+                    </div>
+                    <div class="resource-meter">
+                        <svg id="memory-meter" width="120" height="120"></svg>
+                        <div class="meter-label">Memory</div>
+                    </div>
+                    <div class="resource-meter">
+                        <svg id="disk-meter" width="120" height="120"></svg>
+                        <div class="meter-label">Disk</div>
+                    </div>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section_title">
+                    <p>Command line</p>
+                    <div class="dropdown_icon"></div>
+                </div>
+                <div class="section_content">
+                    <p style="font-size: 17px;">Command line section.</p>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section_title">
+                    <p>Logs</p>
+                    <div class="dropdown_icon"></div>
+                </div>
+                <div class="section_content">
+                    <p style="font-size: 17px;">Logs database</p>
+                </div>
+            </div>
+        </div>
         <div class="resize_handle"></div>
     </div>
     <div class="window" id="settings-window">
@@ -471,7 +507,6 @@
                         }
                     });
                 } catch (e) {
-                    //nothing
                 }
                 const bodyChildren = Array.from(document.body.children);
                 bodyChildren.forEach(el => {
@@ -500,7 +535,6 @@
                                     location.reload();
                                 }
                             } catch (e) {
-                                // ignore error
                             }
                         }, 10000);
                     }, 20000);
@@ -635,7 +669,6 @@
             document.getElementById('ftp-port').value = settings.ftp_port || '';
             document.getElementById('ftp-timeout').value = settings.ftp_timeout || '';
 
-            // --- Version check logic ---
             const currentVersionLabel = document.getElementById('current_version');
             const versionDiv = document.getElementById('version');
             const newestVersionLabel = document.getElementById('newest_version');
@@ -644,7 +677,6 @@
                 currentVersionLabel.textContent = "Current version: " + (settings.version || "unknown");
             }
             try {
-                // Fetch newest version and description from GitHub
                 const [newestVersionRes, descRes] = await Promise.all([
                     fetch("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version"),
                     fetch("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version_dsc")
@@ -660,10 +692,8 @@
                     currentVersionLabel.textContent = "Current version: " + (settings.version || "unknown") + " (latest)";
                 }
             } catch (e) {
-                // If fetch fails, just hide versionDiv
                 if (versionDiv) versionDiv.style.display = "none";
             }
-            // --- end version check logic ---
         } catch (err) {
             alert('Could not load server settings.');
         }
@@ -720,5 +750,170 @@
         localStorage.removeItem('api_key_expiry');
         location.reload();
     });
+
+    let nasPollingInterval = null;
+
+    function startNasPolling() {
+        if (nasPollingInterval) return;
+        nasPollingInterval = setInterval(async () => {
+            if (!document.getElementById('nas-window').classList.contains('show')) {
+                clearInterval(nasPollingInterval);
+                nasPollingInterval = null;
+                return;
+            }
+            try {
+                const [cpuRes, memRes, diskRes] = await Promise.all([
+                    fetch('http://localhost:6969/api/stats/cpu', { headers: { 'X-API-KEY': apiKey } }),
+                    fetch('http://localhost:6969/api/stats/memory', { headers: { 'X-API-KEY': apiKey } }),
+                    fetch('http://localhost:6969/api/stats/disk', { headers: { 'X-API-KEY': apiKey } })
+                ]);
+
+                if (!cpuRes.ok || !memRes.ok || !diskRes.ok) throw new Error('Failed to fetch NAS stats');
+
+                const cpuData = await cpuRes.json();
+                const memoryData = await memRes.json();
+                const diskData = await diskRes.json();
+
+                updateMeter('cpu-meter', cpuData.value);
+                updateMeter('memory-meter', memoryData.value);
+                updateMeter('disk-meter', diskData.value);
+            } catch (err) {
+                console.error(err);
+            }
+        }, 5000);
+    }
+
+    function stopNasPolling() {
+        clearInterval(nasPollingInterval);
+        nasPollingInterval = null;
+    }
+
+    const meterLastPercent = {
+        "cpu-meter": 0,
+        "memory-meter": 0,
+        "disk-meter": 0
+    };
+
+    function animateMeter(svgId, fromPercent, toPercent, colorClass, duration = 600) {
+        const start = performance.now();
+        function animate(now) {
+            const elapsed = now - start;
+            const t = Math.min(elapsed / duration, 1);
+            const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+            const current = fromPercent + (toPercent - fromPercent) * ease;
+            drawMeter(svgId, current, colorClass);
+            if (t < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                drawMeter(svgId, toPercent, colorClass);
+                meterLastPercent[svgId] = toPercent;
+            }
+        }
+        requestAnimationFrame(animate);
+    }
+
+    function updateMeter(meterId, value) {
+        const svg = document.getElementById(meterId);
+        if (!svg) return;
+
+        const radius = 50;
+        const circumference = 2 * Math.PI * radius;
+        const offset = circumference - (value / 100) * circumference;
+
+        svg.innerHTML = `
+            <circle cx="60" cy="60" r="${radius}" stroke="#e6e6e6" stroke-width="10" fill="none"/>
+            <circle cx="60" cy="60" r="${radius}" stroke="#4caf50" stroke-width="10" fill="none" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"/>
+        `;
+    }
+
+    function drawMeter(svgId, percent, colorClass) {
+        const svg = document.getElementById(svgId);
+        if (!svg) return;
+        const size = 120;
+        const radius = 48;
+        const cx = size / 2;
+        const cy = size / 2 + 2;
+        const circ = 2 * Math.PI * radius;
+        const angleStart = -90;
+        const angleEnd = 270;
+        const arcLen = angleEnd - angleStart;
+        const percentArc = arcLen * (percent / 100);
+
+        const startRad = (angleStart) * Math.PI / 180;
+        const endRad = (angleStart + percentArc) * Math.PI / 180;
+
+        const x1 = cx + radius * Math.cos(startRad);
+        const y1 = cy + radius * Math.sin(startRad);
+        const x2 = cx + radius * Math.cos(endRad);
+        const y2 = cy + radius * Math.sin(endRad);
+
+        const largeArcFlag = percent > 50 ? 1 : 0;
+
+        let strokeColor = "#65dc50";
+        if (colorClass === "memory") strokeColor = "#3b82f6";
+        if (colorClass === "disk") strokeColor = "#f59e42";
+
+        svg.innerHTML = `
+            <circle class="meter-bg" cx="${cx}" cy="${cy}" r="${radius}" style="stroke:#e5e7eb;"/>
+            <path class="meter-fg ${colorClass}" d="
+                M ${x1} ${y1}
+                A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}
+            " style="stroke:${strokeColor};stroke-width:13;fill:none;stroke-linecap:round;stroke-dasharray:${circ * (percent/100)},${circ};transition:stroke-dasharray 0.5s cubic-bezier(.4,0,.2,1);"/>
+            <text x="${cx}" y="${cy+4}" class="meter-percent" dominant-baseline="middle" alignment-baseline="middle">${Math.round(percent)}%</text>
+        `;
+    }
+
+    let resourceInterval = null;
+    let lastResourceData = {cpu: 0, memory: 0, disk: 0};
+
+    async function fetchAndDrawResources() {
+        try {
+            const res = await fetch('http://localhost:6969/api/resources', {
+                headers: { 'X-API-KEY': apiKey }
+            });
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+
+            animateMeter('cpu-meter', meterLastPercent['cpu-meter'], data.cpu, 'cpu');
+            animateMeter('memory-meter', meterLastPercent['memory-meter'], data.memory, 'memory');
+            animateMeter('disk-meter', meterLastPercent['disk-meter'], data.disk, 'disk');
+
+            lastResourceData = data;
+        } catch {
+            drawMeter('cpu-meter', lastResourceData.cpu || 0, 'cpu');
+            drawMeter('memory-meter', lastResourceData.memory || 0, 'memory');
+            drawMeter('disk-meter', lastResourceData.disk || 0, 'disk');
+        }
+    }
+
+    function startResourcePolling() {
+        if (resourceInterval) return;
+        fetchAndDrawResources();
+        resourceInterval = setInterval(fetchAndDrawResources, 5000);
+    }
+
+    function stopResourcePolling() {
+        if (resourceInterval) {
+            clearInterval(resourceInterval);
+            resourceInterval = null;
+        }
+    }
+
+    const nasWindow = document.getElementById('nas-window');
+    const observer = new MutationObserver(() => {
+        if (nasWindow.classList.contains('show')) {
+            startResourcePolling();
+        } else {
+            stopResourcePolling();
+        }
+    });
+    observer.observe(nasWindow, { attributes: true, attributeFilter: ['class'] });
+
+    drawMeter('cpu-meter', 0, 'cpu');
+    drawMeter('memory-meter', 0, 'memory');
+    drawMeter('disk-meter', 0, 'disk');
+    meterLastPercent['cpu-meter'] = 0;
+    meterLastPercent['memory-meter'] = 0;
+    meterLastPercent['disk-meter'] = 0;
 </script>
 </html>

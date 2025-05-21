@@ -465,7 +465,7 @@ def resource():
         cpu = psutil.cpu_percent(interval=1)
         memory = psutil.virtual_memory().percent
         disk = psutil.disk_usage('/').percent
-        return jsonify({"cpu": cpu, "memory": memory, "disk": disk})
+        return jsonify({"cpu": int(cpu), "memory": int(memory), "disk": int(disk)})
     except Exception as e:
         return jsonify ({"error": str(e)}), 500
 

@@ -292,6 +292,42 @@ html {
     margin: 15px;
 }
 
+.section_content.resource-section-content {
+    border-radius: 36px;
+    background: linear-gradient(93deg, rgba(255, 255, 255, 0.60) 0%, rgba(255, 255, 255, 0.10) 100%);
+    box-shadow: 0px 4px 5px 0px rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(15px);
+    padding: 30px 0;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 220px;
+}
+
+#resource-meters {
+    display: flex;
+    gap: 48px;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto;
+}
+
+.resource-meter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 140px;
+    height: 170px;
+    margin: 0 8px;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    transition: none;
+}
+
 .textbox {
     width: 95%;
     max-width: none;
@@ -514,4 +550,65 @@ select option {
 .fade-out {
     opacity: 0 !important;
     transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1);
+}
+
+.resource-meter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 140px;
+    height: 170px;
+    margin: 0 8px;
+    transition: box-shadow 0.3s, background 0.3s;
+}
+
+.resource-meter svg {
+    display: block;
+    width: 120px !important;
+    height: 120px !important;
+    overflow: visible;
+}
+
+.meter-label {
+    margin-top: 10px;
+    font-family: 'Kantumruy', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #3C4347;
+    text-align: center;
+    letter-spacing: 1px;
+}
+
+.meter-percent {
+    font-family: 'Kantumruy', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    fill: #3C4347;
+    text-anchor: middle;
+    dominant-baseline: middle;
+}
+
+.meter-bg {
+    stroke: #bfc6d1;
+    stroke-width: 13;
+    fill: none;
+}
+
+.meter-fg {
+    stroke: #65dc50;
+    stroke-width: 13;
+    fill: none;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.5s cubic-bezier(.4,0,.2,1);
+}
+
+.meter-fg.cpu {
+    stroke: #65dc50;
+}
+.meter-fg.memory {
+    stroke: #3b82f6;
+}
+.meter-fg.disk {
+    stroke: #f59e42;
 }
