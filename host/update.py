@@ -5,9 +5,36 @@ import sqlite3
 import threading
 from time import sleep
 import psutil
+import sys
+
+def is_admin():
+    try:
+        if os.name == 'nt':
+            import ctypes
+            return ctypes.windll.shell32.IsUserAnAdmin()
+        else:
+            return os.geteuid() == 0
+    except Exception:
+        return False
+
+def relaunch_as_admin():
+    if os.name == 'nt':
+        import ctypes
+        params = ' '.join([f'"{arg}"' for arg in sys.argv])
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, params, None, 1)
+    else:
+        os.execvp('sudo', ['sudo', sys.executable] + sys.argv)
+    sys.exit(0)
+
+if not is_admin():
+    print("update.py is not running as administrator/root. Trying to relaunch as admin/root...")
+    relaunch_as_admin()
 
 def kill_process_on_port(port):
     def process_killer():
+        if not is_admin():
+            print("Thread: update.py is not running as administrator/root. Relaunching as admin/root...")
+            relaunch_as_admin()
         try:
             print(f"Searching for processes using port {port}...")
             for conn in psutil.net_connections():
@@ -132,4 +159,5 @@ def kill_all_main_py():
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             continue
 if __name__ == "__main__":
+    kill_process_on_port(settings['port'])
     update()

@@ -15,7 +15,29 @@ from flask_cors import CORS
 import secrets
 from time import sleep
 import threading
+import sys
+import ctypes
 
+def is_admin():
+    try:
+        if os.name == 'nt':
+            return ctypes.windll.shell32.IsUserAnAdmin()
+        else:
+            return os.geteuid() == 0
+    except Exception:
+        return False
+
+def relaunch_as_admin():
+    if os.name == 'nt':
+        params = ' '.join([f'"{arg}"' for arg in sys.argv])
+        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, params, None, 1)
+    else:
+        os.execvp('sudo', ['sudo', sys.executable] + sys.argv)
+    sys.exit(0)
+
+if not is_admin():
+    print("main.py is not running as administrator/root. Trying to relaunch as admin/root...")
+    relaunch_as_admin()
 
 # Initialize packages
 init(autoreset=True)
@@ -975,8 +997,6 @@ if settings:
     try:
         if settings['ftp']:
             start_ftp_server()
-        app.run(host=settings['host'], port=settings['port'], debug=False)
-        sleep(5)
         app.run(host=settings['host'], port=settings['port'], debug=False)
     except Exception as e:
         print_status(f"Error starting server: {e}", "error")
