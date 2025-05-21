@@ -130,7 +130,6 @@ def update():
             print("Updated settings.json")
             file.close()
         print("Updated to the latest version.")
-        kill_process_on_port(settings['port'])
         print("Waiting for 5 seconds before restarting...")
         sleep(5)
         print("Restarting the program...")
