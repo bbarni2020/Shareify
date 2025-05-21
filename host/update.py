@@ -53,6 +53,7 @@ def kill_process_on_port(port):
                     except Exception as e:
                         print(f"Error killing process {conn.pid}: {e}")
             print(f"Finished killing processes on port {port}")
+            return
         except Exception as e:
             print(f"Error finding processes on port {port}: {e}")
     
@@ -130,7 +131,6 @@ def update():
             file.close()
         print("Updated to the latest version.")
         kill_process_on_port(settings['port'])
-        kill_all_main_py()
         print("Waiting for 5 seconds before restarting...")
         sleep(5)
         print("Restarting the program...")
@@ -140,24 +140,5 @@ def update():
     else:
         print("You are already using the latest version.")
         exit(0)
-def kill_all_main_py():
-    current_pid = os.getpid()
-    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-        try:
-            if (
-                proc.info['pid'] != current_pid and
-                proc.info['cmdline'] and
-                any('main.py' in arg for arg in proc.info['cmdline'])
-            ):
-                print(f"Killing main.py process: {proc.info['pid']} {proc.info['cmdline']}")
-                proc.terminate()
-                try:
-                    proc.wait(timeout=3)
-                except psutil.TimeoutExpired:
-                    proc.kill()
-                    print(f"Force killed main.py process: {proc.info['pid']}")
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            continue
 if __name__ == "__main__":
-    kill_process_on_port(settings['port'])
     update()

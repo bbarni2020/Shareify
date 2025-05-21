@@ -17,6 +17,7 @@ from time import sleep
 import threading
 import sys
 import ctypes
+import update
 
 def is_admin():
     try:
@@ -203,6 +204,7 @@ def stop_completely():
         def shutdown_server():
             sleep(1)
             print_status("Server shutdown complete", "success")
+            update.kill_process_on_port(settings['port'])
             os._exit(0)
         
         threading.Thread(target=shutdown_server).start()
@@ -995,6 +997,7 @@ if settings:
     initialize_logs_db()
     initialize_users_db()
     try:
+        update.kill_process_on_port(settings['port'])
         if settings['ftp']:
             start_ftp_server()
         app.run(host=settings['host'], port=settings['port'], debug=False)
