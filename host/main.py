@@ -356,7 +356,7 @@ def finder():
             log("Finder error: " + str(e), request.remote_addr)
             return jsonify({"error": str(e)}), 500
 
-@app.route('/api/command', methods=['GET'])
+@app.route('/api/command', methods=['POST'])
 def command():
     command = request.json.get('command')
     if command:

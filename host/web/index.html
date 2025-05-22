@@ -75,7 +75,15 @@
                     <div class="dropdown_icon"></div>
                 </div>
                 <div class="section_content">
-                    <p style="font-size: 17px;">Command line section.</p>
+                <div class="command-line-section">
+                    <div class="command-line-output" id="cli-output">
+                        Welcome to Shareify CLI!<br>
+                    </div>
+                    <div class="command-line-input-row">
+                        <span class="command-line-prompt">$</span>
+                        <input class="command-line-input" id="cli-input" type="text" autocomplete="off" placeholder="Type a command..." />
+                    </div>
+                </div>
                 </div>
             </div>
             <div class="section">
@@ -85,6 +93,19 @@
                 </div>
                 <div class="section_content">
                     <p style="font-size: 17px;">Logs database</p>
+                    <div class="database-table-container">
+                    <table class="database-table">
+                        <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Action</th>
+                            <th>Ip</th>
+                        </tr>
+                        </thead>
+                        <tbody id="log-table-body">
+                        </tbody>
+                    </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -915,5 +936,42 @@
     meterLastPercent['cpu-meter'] = 0;
     meterLastPercent['memory-meter'] = 0;
     meterLastPercent['disk-meter'] = 0;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const cliInput = document.getElementById('cli-input');
+        const cliOutput = document.getElementById('cli-output');
+
+        if (cliInput && cliOutput) {
+            cliInput.addEventListener('keydown', async function (e) {
+                if (e.key === 'Enter') {
+                    const command = cliInput.value;
+                    if (!command) return;
+                    cliOutput.innerHTML += `<br><span style="color:#65dc50;">$</span> ${command}<br>`;
+                    cliOutput.scrollTop = cliOutput.scrollHeight;
+                    cliInput.value = '';
+                    try {
+                        const response = await fetch('http://localhost:6969/api/command', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-API-KEY': apiKey
+                            },
+                            body: JSON.stringify({ command })
+                        });
+                        const data = await response.json();
+                        let output = (data && typeof data.output === 'string') ? data.output.trim() : '';
+                        if (!output) {
+                            cliOutput.innerHTML += '<span style="color:#dc2626;">[Error]</span> No such program or command.<br>';
+                        } else {
+                            cliOutput.innerHTML += output.replace(/</g, "&lt;").replace(/>/g, "&gt;") + '<br>';
+                        }
+                    } catch (err) {
+                        cliOutput.innerHTML += '<span style="color:#dc2626;">[Error]</span> Could not execute command.<br>';
+                    }
+                    cliOutput.scrollTop = cliOutput.scrollHeight;
+                }
+            });
+        }
+    });
 </script>
 </html>
