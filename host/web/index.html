@@ -92,7 +92,6 @@
                     <div class="dropdown_icon"></div>
                 </div>
                 <div class="section_content">
-                    <p style="font-size: 17px;">Logs database</p>
                     <div class="database-table-container">
                     <table class="database-table">
                         <thead>
@@ -364,6 +363,7 @@
             windowElement.classList.remove('hide');
             bringToFront(windowElement);
             updateIndicator('nas-window', 'nas-indicator');
+            loadLogs();
         }
     }
 
@@ -936,6 +936,79 @@
     meterLastPercent['cpu-meter'] = 0;
     meterLastPercent['memory-meter'] = 0;
     meterLastPercent['disk-meter'] = 0;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const cliInput = document.getElementById('cli-input');
+        const cliOutput = document.getElementById('cli-output');
+
+        if (cliInput && cliOutput) {
+            cliInput.addEventListener('keydown', async function (e) {
+                if (e.key === 'Enter') {
+                    const command = cliInput.value;
+                    if (!command) return;
+                    cliOutput.innerHTML += `<br><span style="color:#65dc50;">$</span> ${command}<br>`;
+                    cliOutput.scrollTop = cliOutput.scrollHeight;
+                    cliInput.value = '';
+                    try {
+                        const response = await fetch('http://localhost:6969/api/command', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-API-KEY': apiKey
+                            },
+                            body: JSON.stringify({ command })
+                        });
+                        const data = await response.json();
+                        let output = (data && typeof data.output === 'string') ? data.output.trim() : '';
+                        if (!output) {
+                            cliOutput.innerHTML += '<span style="color:#dc2626;">[Error]</span> No such program or command.<br>';
+                        } else {
+                            cliOutput.innerHTML += output.replace(/</g, "&lt;").replace(/>/g, "&gt;") + '<br>';
+                        }
+                    } catch (err) {
+                        cliOutput.innerHTML += '<span style="color:#dc2626;">[Error]</span> Could not execute command.<br>';
+                    }
+                    cliOutput.scrollTop = cliOutput.scrollHeight;
+                }
+            });
+        }
+    });
+
+    async function loadLogs() {
+        const logTableBody = document.getElementById('log-table-body');
+        if (!logTableBody || !apiKey) return;
+        logTableBody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>';
+        try {
+            const res = await fetch('http://localhost:6969/api/get_logs', {
+                headers: { 'X-API-KEY': apiKey }
+            });
+            if (!res.ok) throw new Error('Failed to fetch logs');
+            const logs = await res.json();
+            if (!Array.isArray(logs) || logs.length === 0) {
+                logTableBody.innerHTML = '<tr><td colspan="3">No logs found.</td></tr>';
+                return;
+            }
+            logTableBody.innerHTML = '';
+            logs.forEach(log => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${log.timestamp || ''}</td>
+                    <td>${log.action || ''}</td>
+                    <td>${log.ip || ''}</td>
+                `;
+                logTableBody.appendChild(tr);
+            });
+        } catch (err) {
+            logTableBody.innerHTML = '<tr><td colspan="3">Error loading logs.</td></tr>';
+        }
+    }
+
+    const logsObserver = new MutationObserver(() => {
+        if (nasWindow.classList.contains('show')) {
+            loadLogs();
+        }
+    });
+    logsObserver.observe(nasWindow, { attributes: true, attributeFilter: ['class'] });
 
     document.addEventListener('DOMContentLoaded', () => {
         const cliInput = document.getElementById('cli-input');

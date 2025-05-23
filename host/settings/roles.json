@@ -25,5 +25,6 @@
   "/api/user/create": ["admin"],
   "/api/user/delete": ["admin"],
   "/api/user/edit": ["admin"],
-  "/api/role/get": ["admin"]
+  "/api/role/get": ["admin"],
+  "/api/upload": ["admin"]
 }

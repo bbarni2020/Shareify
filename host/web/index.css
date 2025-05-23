@@ -688,6 +688,8 @@ select option {
     box-shadow: 0px 4px 8px 0px rgba(60, 67, 71, 0.10);
     backdrop-filter: blur(10px);
     padding: 18px;
+    max-height: 320px;
+    overflow-y: auto;
 }
 
 .database-table {

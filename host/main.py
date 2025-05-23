@@ -18,6 +18,7 @@ import threading
 import sys
 import ctypes
 import update
+from werkzeug.utils import secure_filename
 
 def is_admin():
     try:
@@ -592,12 +593,12 @@ def get_logs():
     logs = cursor.fetchall()
     conn.close()
     log_list = []
-    for log in logs:
+    for loger in logs:
         log_list.append({
-            "id": log[0],
-            "timestamp": log[1],
-            "action": log[2],
-            "ip": log[3]
+            "id": loger[0],
+            "timestamp": loger[1],
+            "action": loger[2],
+            "ip": loger[3]
         })
     log("Logs retrieved", request.remote_addr)
     return jsonify(log_list)
@@ -980,6 +981,27 @@ def serve_static(filename):
 def serve_assets(filename):
     return send_from_directory(os.path.join(os.path.dirname(__file__), 'web', 'assets'), filename, mimetype=mimetypes.guess_type(filename)[0])
 
+@app.route('/api/upload', methods=['POST'])
+def upload_file():
+    file = request.files.get('file')
+    path = request.form.get('path', '')
+    if not file:
+        return jsonify({"error": "No file provided"}), 400
+    if path is None:
+        path = ''
+    if not has_write_access(path):
+        return jsonify({"error": "Unauthorized"}), 401
+    filename = secure_filename(file.filename)
+    dest_dir = os.path.join(settings['path'], path) if path else settings['path']
+    os.makedirs(dest_dir, exist_ok=True)
+    dest_path = os.path.join(dest_dir, filename)
+    try:
+        file.save(dest_path)
+        log(f"File uploaded", request.remote_addr)
+        return jsonify({"status": "File uploaded"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 # Main
 print(r"""
  __ _                     __       
