@@ -6,8 +6,29 @@
     <title>Shareify</title>
     <link rel="stylesheet" href="web/index.css">
     <link rel="shortcut icon" href="web/assets/icon.ico" type="image/x-icon">
+    <style>
+        .logout-fade-out {
+            opacity: 0 !important;
+            transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1);
+            pointer-events: none !important;
+        }
+        #bg-fade-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0;
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            transition: opacity 0.4s cubic-bezier(0.4,0,0.2,1);
+        }
+    </style>
 </head>
-<body>
+<body style="opacity:0; transition: opacity 0.5s;">
     <div class="container">
         <div class="app_icons" style="background: url(web/assets/finder.png) lightgray 50% / cover no-repeat;" onclick="finder_open()">
             <div class="indicator" id="finder-indicator"></div>
@@ -245,6 +266,12 @@
     <div class="icon"></div>
 </body>
 <script>
+    window.addEventListener('DOMContentLoaded', () => {document.body.style.opacity = '1';});
+    let apiKey = localStorage.getItem('api_key');
+    if (!apiKey) {
+        window.location.href = '/auth';
+    }
+
     const windows = document.querySelectorAll('.window');
     let zIndexCounter = 1;
     let isDragging = false;
@@ -426,21 +453,13 @@
 
     document.documentElement.style.transition = "background-image 0.4s ease";
 
-    let bgFadeOverlay = document.createElement('div');
-    bgFadeOverlay.id = 'bg-fade-overlay';
-    bgFadeOverlay.style.position = 'fixed';
-    bgFadeOverlay.style.top = 0;
-    bgFadeOverlay.style.left = 0;
-    bgFadeOverlay.style.width = '100vw';
-    bgFadeOverlay.style.height = '100vh';
-    bgFadeOverlay.style.zIndex = '-1';
-    bgFadeOverlay.style.pointerEvents = 'none';
-    bgFadeOverlay.style.opacity = '0';
-    bgFadeOverlay.style.transition = 'opacity 0.4s ease';
-    bgFadeOverlay.style.backgroundSize = 'cover';
-    bgFadeOverlay.style.backgroundPosition = 'center center';
-    bgFadeOverlay.style.backgroundRepeat = 'no-repeat';
-    document.body.prepend(bgFadeOverlay);
+    let bgFadeOverlay = document.getElementById('bg-fade-overlay');
+    if (!bgFadeOverlay) {
+        bgFadeOverlay = document.createElement('div');
+        bgFadeOverlay.id = 'bg-fade-overlay';
+        document.body.prepend(bgFadeOverlay);
+    }
+    bgFadeOverlay.style.zIndex = '0';
 
     document.querySelectorAll('.background-thumb').forEach(thumb => {
         thumb.addEventListener('click', function() {
@@ -457,7 +476,10 @@
 
             bgFadeOverlay.style.backgroundImage = newBg;
             bgFadeOverlay.style.opacity = '0';
+            bgFadeOverlay.style.transition = 'none';
+            bgFadeOverlay.style.zIndex = '0';
             void bgFadeOverlay.offsetWidth;
+            bgFadeOverlay.style.transition = 'opacity 0.4s cubic-bezier(0.4,0,0.2,1)';
             bgFadeOverlay.style.opacity = '1';
 
             setTimeout(() => {
@@ -581,22 +603,6 @@
             updateIconVisibility();
         }
     });
-
-    let apiKey = localStorage.getItem('api_key');
-    if (!apiKey) {
-        apiKey = prompt("Please enter your API key:");
-        if (apiKey) {
-            localStorage.setItem('api_key', apiKey);
-            const expiry = Date.now() + 60 * 60 * 10000;
-            localStorage.setItem('api_key_expiry', expiry);
-        }
-    }
-    const apiKeyExpiry = localStorage.getItem('api_key_expiry');
-    if (apiKeyExpiry && Date.now() > parseInt(apiKeyExpiry, 10)) {
-        localStorage.removeItem('api_key');
-        localStorage.removeItem('api_key_expiry');
-        location.reload();
-    }
 
     async function loadPersonalSettings() {
         if (!apiKey) return;
@@ -767,9 +773,25 @@
     document.getElementById('icon-select').addEventListener('change', savePersonalSettings);
 
     document.getElementById('leave').addEventListener('click', () => {
-        localStorage.removeItem('api_key');
-        localStorage.removeItem('api_key_expiry');
-        location.reload();
+        
+        document.documentElement.style.backgroundImage = "url('web/assets/backgrounds/back1.png')";
+        const bgFadeOverlay = document.getElementById('bg-fade-overlay');
+        if (bgFadeOverlay) {
+            bgFadeOverlay.style.backgroundImage = "url('web/assets/backgrounds/back1.png')";
+            bgFadeOverlay.style.opacity = '0';
+        }
+    
+        const bodyChildren = Array.from(document.body.children);
+        bodyChildren.forEach(el => {
+            if (el.id !== 'bg-fade-overlay' && el.tagName !== 'SCRIPT') {
+                el.classList.add('logout-fade-out');
+            }
+        });
+        setTimeout(() => {
+            localStorage.removeItem('api_key');
+            localStorage.removeItem('api_key_expiry');
+            location.reload();
+        }, 600);
     });
 
     let nasPollingInterval = null;

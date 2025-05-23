@@ -4,23 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Install</title>
-    <style>
-        #password-form {
-            display: none;
-        }
-    </style>
+    <link rel="stylesheet" href="index.css">
 </head>
 <body>
-    <h1>Set Installation Path</h1>
-    <form id="path-form" action="/set_path" method="POST">
-        <label for="path">Enter Path:</label>
-        <input type="text" id="path" name="path" required>
-        <button type="submit">Next</button>
+    <h1 style="margin-top: 80px; text-align: center;">Set Installation Path</h1>
+    <form id="path-form" action="/set_path" method="POST" class="section" style="max-width: 400px; margin: 40px auto 0 auto;">
+        <div class="horizontal-align">
+            <label for="path">Enter Path:</label>
+            <input type="text" id="path" name="path" class="textbox" required>
+        </div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 18px;">
+            <button type="submit" class="accept_btn"><span style="font-weight: bold;">Next</span></button>
+        </div>
     </form>
-    <form id="password-form" action="/set_password" method="POST">
-        <label for="password">Enter Password:</label>
-        <input type="password" id="password" name="password" required>
-        <button type="submit">Set password</button>
+    <form id="password-form" action="/set_password" method="POST" class="section" style="max-width: 400px; margin: 40px auto 0 auto; display: none;">
+        <div class="horizontal-align">
+            <label for="password">Enter Password:</label>
+            <input type="password" id="password" name="password" class="textbox" required>
+        </div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 18px;">
+            <button type="submit" class="accept_btn"><span style="font-weight: bold;">Set password</span></button>
+        </div>
     </form>
     <script>
         document.getElementById('path-form').addEventListener('submit', function (event) {

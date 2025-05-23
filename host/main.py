@@ -262,7 +262,7 @@ CORS(app)
 
 @app.before_request
 def require_api_key():
-    if request.endpoint in ['login', 'is_up', 'root', 'serve_static', 'serve_assets']:
+    if request.endpoint in ['login', 'is_up', 'root', 'serve_static', 'serve_assets', 'auth']:
         return
     api_key = request.headers.get('X-API-KEY')
     conn = get_users_db_connection()
@@ -972,6 +972,10 @@ def edit_roles():
 @app.route('/', methods=['GET'])
 def root():
     return send_from_directory(os.path.join(os.path.dirname(__file__), 'web'), 'index.html')
+
+@app.route('/auth', methods=['GET'])
+def auth():
+    return send_from_directory(os.path.join(os.path.dirname(__file__), 'web'), 'login.html')
 
 @app.route('/web/<path:filename>', methods=['GET'])
 def serve_static(filename):

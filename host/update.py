@@ -120,6 +120,10 @@ def update():
         with open(os.path.join(web_dir, "index.css"), 'w') as file:
             file.write(index_css)
             file.close()
+        login_html = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/web/login.html").text
+        with open(os.path.join(web_dir, "login.html"), 'w') as file:
+            file.write(login_html)
+            file.close()
         database_py = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/database.py").text
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "database.py"), 'w') as file:
             file.write(database_py)

@@ -8,6 +8,7 @@
 html {
     background: url('assets/backgrounds/back1.png') no-repeat center center fixed;
     background-size: cover;
+    font-family: 'Kantumruy', sans-serif;
 }
 
 * {
