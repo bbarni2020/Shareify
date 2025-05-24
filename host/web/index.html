@@ -218,9 +218,9 @@
             <div class="finder-actions">
                 <div class="finder-selection-count" id="finder-selection-count">0 items selected</div>
                 <div class="finder-selection-buttons">
-                    <button class="finder-action-btn" id="finder-rename-btn">Rename</button>
                     <button class="finder-action-btn" id="finder-move-btn">Move</button>
                     <button class="finder-action-btn" id="finder-delete-btn">Delete</button>
+                    <button class="finder-action-btn" id="finder-rename-btn">Rename</button>
                 </div>
                 <div class="finder-always-buttons">
                     <button class="finder-action-btn visible" id="finder-addfile-btn">+ New file</button>
@@ -449,6 +449,8 @@
     <div class="icon"></div>
 </body>
 <script>
+    const baseURL = 'http://localhost:6969';
+    
     window.addEventListener('DOMContentLoaded', () => {document.body.style.opacity = '1';});
     let apiKey = localStorage.getItem('api_key');
     if (!apiKey) {
@@ -606,7 +608,7 @@
                 return;
             }
 
-            const response = await fetch('http://localhost:6969/api/get-self', {
+            const response = await fetch(`${baseURL}/api/get-self`, {
                 headers: {
                     'X-API-KEY': apiKey
                 }
@@ -631,14 +633,13 @@
                 const folderElement = document.createElement('div');
                 folderElement.className = 'finder-item file-folder';
                 folderElement.dataset.path = path;
-                
                 folderElement.innerHTML = `
                     <div class="finder-icon"></div>
                     <div class="finder-label">${path.split('/').pop() || path}</div>
                 `;
-                
                 folderElement.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    if (e.ctrlKey || e.metaKey) return;
                     loadFolderContents(path);
                 });
                 fileManager.appendChild(folderElement);
@@ -659,7 +660,7 @@
                 return;
             }
 
-            let url = 'http://localhost:6969/api/finder';
+            let url = `${baseURL}/api/finder`;
             if (path) {
                 url += `?path=${encodeURIComponent(path)}`;
             }
@@ -682,17 +683,16 @@
             
             if (path && path !== '/' && path.length > 1) {
                 const backElement = document.createElement('div');
-                backElement.className = 'finder-item file-folder';
+                backElement.className = 'finder-item file-folder no-select';
                 const parentPath = path.split('/').slice(0, -1).join('/') || '';
                 backElement.dataset.path = parentPath;
-                
                 backElement.innerHTML = `
                     <div class="finder-icon"></div>
                     <div class="finder-label">..</div>
                 `;
-                
                 backElement.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    if (e.ctrlKey || e.metaKey) return;
                     loadFolderContents(parentPath);
                 });
                 fileManager.appendChild(backElement);
@@ -713,23 +713,20 @@
             items.forEach(item => {
                 const itemPath = path ? `${path === '/' ? '' : path}/${item}` : item;
                 const fileTypeClass = getFileTypeClass(item);
-                
                 const itemElement = document.createElement('div');
                 itemElement.className = `finder-item ${fileTypeClass}`;
                 itemElement.dataset.path = itemPath;
-                
                 itemElement.innerHTML = `
                     <div class="finder-icon"></div>
                     <div class="finder-label">${item}</div>
                 `;
-                
                 if (fileTypeClass === 'file-folder') {
                     itemElement.addEventListener('click', (e) => {
                         e.stopPropagation();
+                        if (e.ctrlKey || e.metaKey) return;
                         loadFolderContents(itemPath);
                     });
                 }
-                
                 fileManager.appendChild(itemElement);
             });
 
@@ -754,22 +751,25 @@
         const fileActionButtons = document.querySelectorAll('.finder-selection-buttons .finder-action-btn');
         const selectionCountElement = document.getElementById('finder-selection-count');
         
-        document.querySelectorAll('.finder-file-manager .finder-item').forEach(item => {
+        document.querySelectorAll('.finder-file-manager .finder-item:not(.no-select)').forEach(item => {
             item.addEventListener('click', function(e) {
                 if (!(e.ctrlKey || e.metaKey)) return;
                 e.stopPropagation();
                 this.classList.toggle('selected');
 
                 const selectedItems = document.querySelectorAll('.finder-item.selected');
-                const hasSelected = selectedItems.length > 0;
                 const count = selectedItems.length;
-                selectionCountElement.textContent = count === 1 
-                    ? "1 item selected" 
+                selectionCountElement.textContent = count === 1
+                    ? "1 item selected"
                     : `${count} items selected`;
-                selectionCountElement.classList.toggle('visible', hasSelected);
-                fileActionButtons.forEach(btn => 
-                    btn.classList.toggle('visible', hasSelected)
-                );
+                selectionCountElement.classList.toggle('visible', count > 0);
+                fileActionButtons.forEach(btn => {
+                    if (btn.id === 'finder-rename-btn') {
+                        btn.classList.toggle('visible', count === 1);
+                    } else {
+                        btn.classList.toggle('visible', count > 0);
+                    }
+                });
             });
         });
     }
@@ -954,7 +954,7 @@
 
             if (this.classList.contains('update_btn')) {
                 try {
-                    await fetch('http://localhost:6969/api/update', {
+                    await fetch(`${baseURL}/api/update`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -984,7 +984,7 @@
                     setTimeout(() => {
                         let pollInterval = setInterval(async () => {
                             try {
-                                const res = await fetch('http://localhost:6969/api/is_up');
+                                const res = await fetch(`${baseURL}/api/is_up`);
                                 if (res.ok) {
                                     clearInterval(pollInterval);
                                     location.reload();
@@ -1019,7 +1019,7 @@
     async function loadPersonalSettings() {
         if (!apiKey) return;
         try {
-            const res = await fetch('http://localhost:6969/api/user/get_self', {
+            const res = await fetch(`${baseURL}/api/user/get_self`, {
                 headers: { 'X-API-KEY': apiKey }
             });
             if (!res.ok) throw new Error('Failed to fetch user data');
@@ -1068,7 +1068,7 @@
         };
 
         try {
-            const res = await fetch('http://localhost:6969/api/user/edit_self', {
+            const res = await fetch(`${baseURL}/api/user/edit_self`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1092,7 +1092,7 @@
     async function loadServerSettings() {
         if (!apiKey) return;
         try {
-            const res = await fetch('http://localhost:6969/api/get_settings', {
+            const res = await fetch(`${baseURL}/api/get_settings`, {
                 headers: { 'X-API-KEY': apiKey }
             });
             if (!res.ok) throw new Error('Failed to fetch server settings');
@@ -1155,7 +1155,7 @@
         if (!apiKey) return;
         const settings = gatherServerSettingsFromFields();
         try {
-            const res = await fetch('http://localhost:6969/api/update_settings', {
+            const res = await fetch(`${baseURL}/api/update_settings`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1218,9 +1218,9 @@
             }
             try {
                 const [cpuRes, memRes, diskRes] = await Promise.all([
-                    fetch('http://localhost:6969/api/stats/cpu', { headers: { 'X-API-KEY': apiKey } }),
-                    fetch('http://localhost:6969/api/stats/memory', { headers: { 'X-API-KEY': apiKey } }),
-                    fetch('http://localhost:6969/api/stats/disk', { headers: { 'X-API-KEY': apiKey } })
+                    fetch(`${baseURL}/api/stats/cpu`, { headers: { 'X-API-KEY': apiKey } }),
+                    fetch(`${baseURL}/api/stats/memory`, { headers: { 'X-API-KEY': apiKey } }),
+                    fetch(`${baseURL}/api/stats/disk`, { headers: { 'X-API-KEY': apiKey } })
                 ]);
 
                 if (!cpuRes.ok || !memRes.ok || !diskRes.ok) throw new Error('Failed to fetch NAS stats');
@@ -1323,7 +1323,7 @@
 
     async function fetchAndDrawResources() {
         try {
-            const res = await fetch('http://localhost:6969/api/resources', {
+            const res = await fetch(`${baseURL}/api/resources`, {
                 headers: { 'X-API-KEY': apiKey }
             });
             if (!res.ok) throw new Error();
@@ -1384,7 +1384,7 @@
                     cliOutput.scrollTop = cliOutput.scrollHeight;
                     cliInput.value = '';
                     try {
-                        const response = await fetch('http://localhost:6969/api/command', {
+                        const response = await fetch(`${baseURL}/api/command`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -1413,7 +1413,7 @@
         if (!logTableBody || !apiKey) return;
         logTableBody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>';
         try {
-            const res = await fetch('http://localhost:6969/api/get_logs', {
+            const res = await fetch(`${baseURL}/api/get_logs`, {
                 headers: { 'X-API-KEY': apiKey }
             });
             if (!res.ok) throw new Error('Failed to fetch logs');
@@ -1457,7 +1457,7 @@
                     cliOutput.scrollTop = cliOutput.scrollHeight;
                     cliInput.value = '';
                     try {
-                        const response = await fetch('http://localhost:6969/api/command', {
+                        const response = await fetch(`${baseURL}/api/command`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -1490,22 +1490,25 @@
             pathGoBtn.classList.add('visible');
         }
         
-        document.querySelectorAll('.finder-file-manager .finder-item').forEach(item => {
+        document.querySelectorAll('.finder-file-manager .finder-item:not(.no-select)').forEach(item => {
             item.addEventListener('click', function(e) {
                 if (!(e.ctrlKey || e.metaKey)) return;
                 e.stopPropagation();
                 this.classList.toggle('selected');
 
                 const selectedItems = document.querySelectorAll('.finder-item.selected');
-                const hasSelected = selectedItems.length > 0;
                 const count = selectedItems.length;
-                selectionCountElement.textContent = count === 1 
-                    ? "1 item selected" 
+                selectionCountElement.textContent = count === 1
+                    ? "1 item selected"
                     : `${count} items selected`;
-                selectionCountElement.classList.toggle('visible', hasSelected);
-                fileActionButtons.forEach(btn => 
-                    btn.classList.toggle('visible', hasSelected)
-                );
+                selectionCountElement.classList.toggle('visible', count > 0);
+                fileActionButtons.forEach(btn => {
+                    if (btn.id === 'finder-rename-btn') {
+                        btn.classList.toggle('visible', count === 1);
+                    } else {
+                        btn.classList.toggle('visible', count > 0);
+                    }
+                });
             });
         });
         const finderPath = document.getElementById('finder-path');
@@ -1521,17 +1524,84 @@
             //move logic
             alert('Move action (implement logic)');
         });
-        document.getElementById('finder-delete-btn').addEventListener('click', () => {
-            //delete logic
-            alert('Delete action (implement logic)');
+        document.getElementById('finder-delete-btn').addEventListener('click', async () => {
+            const selectedItems = document.querySelectorAll('.finder-item.selected');
+            if (selectedItems.length === 0) return;
+            
+            let successCount = 0;
+            let failCount = 0;
+            
+            for (const item of selectedItems) {
+                const itemPath = item.dataset.path;
+                const isFolder = item.classList.contains('file-folder');
+                
+                try {
+                    const endpoint = isFolder ? 'delete_folder' : 'delete_file';
+                    const response = await fetch(`${baseURL}/api/${endpoint}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-API-KEY': apiKey
+                        },
+                        body: JSON.stringify({ path: itemPath })
+                    });
+                    
+                    if (response.ok) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                        console.error(`Failed to delete ${itemPath}`);
+                    }
+                } catch (error) {
+                    failCount++;
+                    console.error(`Error deleting ${itemPath}:`, error);
+                }
+            }
+            
+            if (successCount > 0) {
+                const currentPath = document.getElementById('finder-path').value;
+                const cleanedPath = currentPath.startsWith('/') ? currentPath.substring(1) : currentPath;
+                loadFolderContents(cleanedPath);
+            }
+            
+            if (failCount > 0) {
+                alert(`Failed to delete ${failCount} item(s). ${successCount} item(s) deleted successfully.`);
+            }
         });
         document.getElementById('finder-addfile-btn').addEventListener('click', () => {
             // new file logic
             alert('Add File action (implement logic)');
         });
-        document.getElementById('finder-addfolder-btn').addEventListener('click', () => {
-            //new folder logic
-            alert('Add Folder action (implement logic)');
+        document.getElementById('finder-addfolder-btn').addEventListener('click', async () => {
+            const currentPath = document.getElementById('finder-path').value;
+            const folderName = prompt("Enter folder name:");
+            
+            if (!folderName) return;
+            
+            try {
+                const response = await fetch('http://localhost:6969/api/create_folder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-KEY': apiKey
+                    },
+                    body: JSON.stringify({
+                        folder_name: folderName,
+                        path: currentPath.startsWith('/') ? currentPath.substring(1) : currentPath
+                    })
+                });
+                
+                if (response.ok) {
+                    const cleanedPath = currentPath.startsWith('/') ? currentPath.substring(1) : currentPath;
+                    loadFolderContents(cleanedPath);
+                } else {
+                    const errorData = await response.json();
+                    alert(`Failed to create folder: ${errorData.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('Error creating folder:', error);
+                alert('Failed to create folder. Please try again.');
+            }
         });
     });
 
