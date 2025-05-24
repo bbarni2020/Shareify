@@ -195,8 +195,9 @@
             <div class="indicator" id="nas-indicator"></div>
         </div>
         <div class="app_icons" style="background: url(web/assets/settings.png) lightgray 50% / cover no-repeat;" onclick="settings_open()">
-      </div>      <div class="indicator" id="settings-indicator"></div>
+            <div class="indicator" id="settings-indicator"></div>
         </div>
+    </div>
     </div>
     <div class="clock_div">
         <div id="clock" class="clock_text"></div>
@@ -213,7 +214,6 @@
         <div class="finder-toolbar">
             <div class="finder-path-container">
                 <input type="text" class="finder-path-input" id="finder-path" value="/home/user/Documents" placeholder="Enter path...">
-                <button class="finder-path-go" id="finder-path-go">-></button>
             </div>
             <div class="finder-actions">
                 <div class="finder-selection-count" id="finder-selection-count">0 items selected</div>
@@ -223,8 +223,8 @@
                     <button class="finder-action-btn" id="finder-delete-btn">Delete</button>
                 </div>
                 <div class="finder-always-buttons">
-                    <button class="finder-action-btn visible" id="finder-addfile-btn">Add File</button>
-                    <button class="finder-action-btn visible" id="finder-addfolder-btn">Add Folder</button>
+                    <button class="finder-action-btn visible" id="finder-addfile-btn">+ New file</button>
+                    <button class="finder-action-btn visible" id="finder-addfolder-btn">New folder</button>
                 </div>
             </div>
         </div>
@@ -545,6 +545,234 @@
             indicatorElement.classList.remove('active');
         }
     }
+    function getFileTypeClass(fileName) {
+        const extension = fileName.split('.').pop().toLowerCase();
+        if (!extension || fileName.indexOf('.') === -1) {
+            return 'file-folder';
+        }
+        
+        switch (extension) {
+            case 'jpg':
+            case 'jpeg':
+            case 'png':
+            case 'gif':
+            case 'bmp':
+            case 'svg':
+            case 'webp':
+                return 'file-picture';
+            case 'mp4':
+            case 'webm':
+            case 'avi':
+            case 'mov':
+            case 'wmv':
+            case 'mkv':
+            case 'flv':
+                return 'file-video';
+            case 'zip':
+            case 'rar':
+            case '7z':
+            case 'tar':
+            case 'gz':
+                return 'file-zip';
+            case 'doc':
+            case 'docx':
+                return 'file-docx';
+            case 'xls':
+            case 'xlsx':
+                return 'file-xlsx';
+            case 'ppt':
+            case 'pptx':
+                return 'file-pptx';
+            case 'txt':
+            case 'md':
+            case 'json':
+            case 'xml':
+            case 'html':
+            case 'css':
+            case 'js':
+                return 'file-text';
+            case 'pdf':
+                return 'file-pdf';
+            default:
+                return 'file-unknown';
+        }
+    }
+
+    async function loadInitialPaths() {
+        try {
+            const apiKey = localStorage.getItem('api_key');
+            if (!apiKey) {
+                console.error('API key not found');
+                return;
+            }
+
+            const response = await fetch('http://localhost:6969/api/get-self', {
+                headers: {
+                    'X-API-KEY': apiKey
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to load paths');
+            }
+
+            const data = await response.json();
+            const paths = data.paths || [];
+            
+            const fileManager = document.querySelector('.finder-file-manager');
+            fileManager.innerHTML = '';
+            
+            if (paths.length === 0) {
+                loadFolderContents('');
+                return;
+            }
+            
+            paths.forEach(path => {
+                const folderElement = document.createElement('div');
+                folderElement.className = 'finder-item file-folder';
+                folderElement.dataset.path = path;
+                
+                folderElement.innerHTML = `
+                    <div class="finder-icon"></div>
+                    <div class="finder-label">${path.split('/').pop() || path}</div>
+                `;
+                
+                folderElement.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    loadFolderContents(path);
+                });
+                fileManager.appendChild(folderElement);
+            });
+
+            setupFileSelection();
+        } catch (error) {
+            console.error('Error loading paths:', error);
+            loadFolderContents('');
+        }
+    }
+
+    async function loadFolderContents(path) {
+        try {
+            const apiKey = localStorage.getItem('api_key');
+            if (!apiKey) {
+                console.error('API key not found');
+                return;
+            }
+
+            let url = 'http://localhost:6969/api/finder';
+            if (path) {
+                url += `?path=${encodeURIComponent(path)}`;
+            }
+
+            const response = await fetch(url, {
+                headers: {
+                    'X-API-KEY': apiKey
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to load folder contents');
+            }
+
+            const data = await response.json();
+            const items = data.items || [];
+            
+            const fileManager = document.querySelector('.finder-file-manager');
+            fileManager.innerHTML = '';
+            
+            if (path && path !== '/' && path.length > 1) {
+                const backElement = document.createElement('div');
+                backElement.className = 'finder-item file-folder';
+                const parentPath = path.split('/').slice(0, -1).join('/') || '';
+                backElement.dataset.path = parentPath;
+                
+                backElement.innerHTML = `
+                    <div class="finder-icon"></div>
+                    <div class="finder-label">..</div>
+                `;
+                
+                backElement.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    loadFolderContents(parentPath);
+                });
+                fileManager.appendChild(backElement);
+            }
+            
+            const pathInput = document.getElementById('finder-path');
+            if (pathInput) {
+                let displayedPath = path || '/';
+                if (!displayedPath.startsWith('/')) {
+                    displayedPath = '/' + displayedPath;
+                }
+                if (displayedPath.length > 1 && displayedPath.endsWith('/')) {
+                    displayedPath = displayedPath.slice(0, -1);
+                }
+                pathInput.value = displayedPath;
+            }
+            
+            items.forEach(item => {
+                const itemPath = path ? `${path === '/' ? '' : path}/${item}` : item;
+                const fileTypeClass = getFileTypeClass(item);
+                
+                const itemElement = document.createElement('div');
+                itemElement.className = `finder-item ${fileTypeClass}`;
+                itemElement.dataset.path = itemPath;
+                
+                itemElement.innerHTML = `
+                    <div class="finder-icon"></div>
+                    <div class="finder-label">${item}</div>
+                `;
+                
+                if (fileTypeClass === 'file-folder') {
+                    itemElement.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        loadFolderContents(itemPath);
+                    });
+                }
+                
+                fileManager.appendChild(itemElement);
+            });
+
+            const selectionCountElement = document.getElementById('finder-selection-count');
+            if (selectionCountElement) {
+                selectionCountElement.textContent = "0 items selected";
+                selectionCountElement.classList.remove('visible');
+            }
+            
+            document.querySelectorAll('.finder-selection-buttons .finder-action-btn').forEach(btn => {
+                btn.classList.remove('visible');
+            });
+            
+            setupFileSelection();
+        } catch (error) {
+            console.error('Error loading folder contents:', error);
+            alert('Failed to load folder contents. Please try again.');
+        }
+    }
+
+    function setupFileSelection() {
+        const fileActionButtons = document.querySelectorAll('.finder-selection-buttons .finder-action-btn');
+        const selectionCountElement = document.getElementById('finder-selection-count');
+        
+        document.querySelectorAll('.finder-file-manager .finder-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                if (!(e.ctrlKey || e.metaKey)) return;
+                e.stopPropagation();
+                this.classList.toggle('selected');
+
+                const selectedItems = document.querySelectorAll('.finder-item.selected');
+                const hasSelected = selectedItems.length > 0;
+                const count = selectedItems.length;
+                selectionCountElement.textContent = count === 1 
+                    ? "1 item selected" 
+                    : `${count} items selected`;
+                selectionCountElement.classList.toggle('visible', hasSelected);
+                fileActionButtons.forEach(btn => 
+                    btn.classList.toggle('visible', hasSelected)
+                );
+            });
+        });
+    }
 
     function finder_open() {
         const windowElement = document.getElementById('finder-window');
@@ -553,6 +781,7 @@
             windowElement.classList.remove('hide');
             bringToFront(windowElement);
             updateIndicator('finder-window', 'finder-indicator');
+            loadInitialPaths();
         }
     }
 
@@ -1255,43 +1484,28 @@
     document.addEventListener('DOMContentLoaded', () => {
         const fileActionButtons = document.querySelectorAll('.finder-selection-buttons .finder-action-btn');
         const selectionCountElement = document.getElementById('finder-selection-count');
-
+        
         const pathGoBtn = document.getElementById('finder-path-go');
         if (pathGoBtn) {
             pathGoBtn.classList.add('visible');
         }
         
         document.querySelectorAll('.finder-file-manager .finder-item').forEach(item => {
-            item.addEventListener('click', function (e) {
-                if (!this.classList.contains('selected')) {
-                    this.classList.add('selected');
-                } else {
-                    this.classList.remove('selected');
-                }
+            item.addEventListener('click', function(e) {
+                if (!(e.ctrlKey || e.metaKey)) return;
+                e.stopPropagation();
+                this.classList.toggle('selected');
 
                 const selectedItems = document.querySelectorAll('.finder-item.selected');
-                const hasSelectedItems = selectedItems.length > 0;
-                const itemCount = selectedItems.length;
-                
-                if (selectionCountElement) {
-                    selectionCountElement.textContent = itemCount === 1 
-                        ? "1 item selected" 
-                        : `${itemCount} items selected`;
-                    
-                    if (hasSelectedItems) {
-                        selectionCountElement.classList.add('visible');
-                    } else {
-                        selectionCountElement.classList.remove('visible');
-                    }
-                }
-                
-                fileActionButtons.forEach(btn => {
-                    if (hasSelectedItems) {
-                        btn.classList.add('visible');
-                    } else {
-                        btn.classList.remove('visible');
-                    }
-                });
+                const hasSelected = selectedItems.length > 0;
+                const count = selectedItems.length;
+                selectionCountElement.textContent = count === 1 
+                    ? "1 item selected" 
+                    : `${count} items selected`;
+                selectionCountElement.classList.toggle('visible', hasSelected);
+                fileActionButtons.forEach(btn => 
+                    btn.classList.toggle('visible', hasSelected)
+                );
             });
         });
         const finderPath = document.getElementById('finder-path');
@@ -1327,20 +1541,24 @@
         
         if (finderPathInput && finderPathGoBtn) {
             finderPathGoBtn.addEventListener('click', () => {
-                navigateToPath(finderPathInput.value);
+                const path = finderPathInput.value;
+                const cleanedPath = path.startsWith('/') ? path.substring(1) : path;
+                loadFolderContents(cleanedPath);
             });
             
             finderPathInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
-                    navigateToPath(finderPathInput.value);
+                    const path = finderPathInput.value;
+                    const cleanedPath = path.startsWith('/') ? path.substring(1) : path;
+                    loadFolderContents(cleanedPath);
                 }
             });
         }
-        
-        function navigateToPath(path) {
-            if (!path) return;
-            // navigation logic
-        }
+
+        document.querySelectorAll('.finder-file-manager .finder-item').forEach(item => {
+            const clone = item.cloneNode(true);
+            item.parentNode.replaceChild(clone, item);
+        });
     });
 </script>
 </html>

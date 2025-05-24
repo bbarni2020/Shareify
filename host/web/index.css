@@ -38,7 +38,7 @@ html {
     height: 67.436px;
     aspect-ratio: 67.44/64.44;
     border-radius: 27px;
-    margin-left: 37.84px;
+    margin: 0 18px;
     cursor: pointer;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
@@ -854,4 +854,10 @@ select option {
     width: 18px; height: 18px;
     background: url('web/assets/icons/checkmark.png') center/contain no-repeat;
     opacity: 0.85;
+}
+
+.finder-always-buttons {
+    margin-left: auto;
+    display: flex;
+    gap: 12px;
 }
