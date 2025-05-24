@@ -26,6 +26,161 @@
             background-repeat: no-repeat;
             transition: opacity 0.4s cubic-bezier(0.4,0,0.2,1);
         }
+.finder-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0 30px 0 30px;
+    margin-top: 70px;
+    margin-bottom: 5px;
+    padding: 18px 18px 10px 18px;
+    border-radius: 44px;
+}
+
+.finder-path-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    width: 100%;
+}
+
+.finder-path-input {
+    flex: 1;
+    font-size: 16px;
+    color: #23232a;
+    font-family: 'Kantumruy', sans-serif;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 18px;
+    border: 1px solid rgba(60,67,71,0.15);
+    background: rgba(255,255,255,0.5);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+    transition: all 0.2s ease-out;
+    outline: none;
+}
+
+.finder-path-input:focus {
+    border-color: rgba(65, 137, 230, 0.5);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.08), 0 0 0 3px rgba(65, 137, 230, 0.15);
+    background: rgba(255,255,255,0.7);
+}
+
+.finder-path-go {
+    margin-left: 8px;
+    padding: 6px 16px;
+    border-radius: 18px;
+    border: none;
+    background: rgba(65, 137, 230, 0.18);
+    color: #23232a;
+    font-family: 'Kantumruy', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.18s, transform 0.18s;
+}
+
+.finder-path-go:hover {
+    background: rgba(65, 137, 230, 0.3);
+    transform: translateY(-2px);
+}
+
+.finder-path {
+    font-size: 16px;
+    color: #23232a;
+    font-family: 'Kantumruy', sans-serif;
+    font-weight: 600;
+    margin-bottom: 6px;
+    word-break: break-all;
+}
+
+.finder-selection-count {
+    font-size: 15px;
+    color: #23232a;
+    font-family: 'Kantumruy', sans-serif;
+    font-weight: 600;
+    margin-right: 15px;
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+}
+
+.finder-selection-count.visible {
+    opacity: 1;
+}
+
+.finder-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.finder-selection-buttons {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.finder-always-buttons {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.finder-action-btn {
+    padding: 7px 18px;
+    border-radius: 18px;
+    border: none;
+    background: rgba(65, 137, 230, 0.12);
+    color: #23232a;
+    font-family: 'Kantumruy', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0px 2px 6px 0px rgba(60,67,71,0.08);
+    transition: background 0.18s, box-shadow 0.18s, transform 0.18s, opacity 0.2s ease-out;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.finder-action-btn.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.finder-path-go {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+.finder-file-manager {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px 15px;
+    padding: 15px 20px 10px 20px;
+    margin: 0 auto;
+    max-width: 98%;
+    max-height: 380px;
+    overflow-y: auto;
+    left: 30px;
+    right: 30px;
+    border-radius: 36px;
+}
+
+
+.finder-file-manager::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.finder-file-manager::-webkit-scrollbar-thumb {
+    background: rgba(101, 97, 146, 0.18);
+    border-radius: 8px;
+}
+
+.finder-file-manager::-webkit-scrollbar-track {
+    background: transparent;
+}
+
     </style>
 </head>
 <body style="opacity:0; transition: opacity 0.5s;">
@@ -40,7 +195,7 @@
             <div class="indicator" id="nas-indicator"></div>
         </div>
         <div class="app_icons" style="background: url(web/assets/settings.png) lightgray 50% / cover no-repeat;" onclick="settings_open()">
-            <div class="indicator" id="settings-indicator"></div>
+      </div>      <div class="indicator" id="settings-indicator"></div>
         </div>
     </div>
     <div class="clock_div">
@@ -49,12 +204,40 @@
     </div>
     <div class="leave" id="leave"></div>
     <div class="window" id="finder-window">
-        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="none" class="exit_btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="</div>none" class="exit_btn">
             <g filter="url(#filter0_i_19_3)">
                 <circle cx="11" cy="11" r="11" fill="#DC2626"/>
             </g>
         </svg>
         <div class="window_title">Finder</div>
+        <div class="finder-toolbar">
+            <div class="finder-path-container">
+                <input type="text" class="finder-path-input" id="finder-path" value="/home/user/Documents" placeholder="Enter path...">
+                <button class="finder-path-go" id="finder-path-go">-></button>
+            </div>
+            <div class="finder-actions">
+                <div class="finder-selection-count" id="finder-selection-count">0 items selected</div>
+                <div class="finder-selection-buttons">
+                    <button class="finder-action-btn" id="finder-rename-btn">Rename</button>
+                    <button class="finder-action-btn" id="finder-move-btn">Move</button>
+                    <button class="finder-action-btn" id="finder-delete-btn">Delete</button>
+                </div>
+                <div class="finder-always-buttons">
+                    <button class="finder-action-btn visible" id="finder-addfile-btn">Add File</button>
+                    <button class="finder-action-btn visible" id="finder-addfolder-btn">Add Folder</button>
+                </div>
+            </div>
+        </div>
+        <div class="finder-file-manager">
+            <div class="finder-item file-folder">
+                <div class="finder-icon"></div>
+                <div class="finder-label">Documents</div>
+            </div>
+            <div class="finder-item file-picture">
+                <div class="finder-icon"></div>
+                <div class="finder-label">photo.jpg</div>
+            </div>
+        </div>
         <div class="resize_handle"></div>
     </div>
     <div class="window" id="users-window">
@@ -1066,6 +1249,97 @@
                     cliOutput.scrollTop = cliOutput.scrollHeight;
                 }
             });
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const fileActionButtons = document.querySelectorAll('.finder-selection-buttons .finder-action-btn');
+        const selectionCountElement = document.getElementById('finder-selection-count');
+
+        const pathGoBtn = document.getElementById('finder-path-go');
+        if (pathGoBtn) {
+            pathGoBtn.classList.add('visible');
+        }
+        
+        document.querySelectorAll('.finder-file-manager .finder-item').forEach(item => {
+            item.addEventListener('click', function (e) {
+                if (!this.classList.contains('selected')) {
+                    this.classList.add('selected');
+                } else {
+                    this.classList.remove('selected');
+                }
+
+                const selectedItems = document.querySelectorAll('.finder-item.selected');
+                const hasSelectedItems = selectedItems.length > 0;
+                const itemCount = selectedItems.length;
+                
+                if (selectionCountElement) {
+                    selectionCountElement.textContent = itemCount === 1 
+                        ? "1 item selected" 
+                        : `${itemCount} items selected`;
+                    
+                    if (hasSelectedItems) {
+                        selectionCountElement.classList.add('visible');
+                    } else {
+                        selectionCountElement.classList.remove('visible');
+                    }
+                }
+                
+                fileActionButtons.forEach(btn => {
+                    if (hasSelectedItems) {
+                        btn.classList.add('visible');
+                    } else {
+                        btn.classList.remove('visible');
+                    }
+                });
+            });
+        });
+        const finderPath = document.getElementById('finder-path');
+        if (finderPath) {
+            finderPath.textContent = '/';
+        }
+
+        document.getElementById('finder-rename-btn').addEventListener('click', () => {
+            //rename logic
+            alert('Rename action (implement logic)');
+        });
+        document.getElementById('finder-move-btn').addEventListener('click', () => {
+            //move logic
+            alert('Move action (implement logic)');
+        });
+        document.getElementById('finder-delete-btn').addEventListener('click', () => {
+            //delete logic
+            alert('Delete action (implement logic)');
+        });
+        document.getElementById('finder-addfile-btn').addEventListener('click', () => {
+            // new file logic
+            alert('Add File action (implement logic)');
+        });
+        document.getElementById('finder-addfolder-btn').addEventListener('click', () => {
+            //new folder logic
+            alert('Add Folder action (implement logic)');
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const finderPathInput = document.getElementById('finder-path');
+        const finderPathGoBtn = document.getElementById('finder-path-go');
+        
+        if (finderPathInput && finderPathGoBtn) {
+            finderPathGoBtn.addEventListener('click', () => {
+                navigateToPath(finderPathInput.value);
+            });
+            
+            finderPathInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    navigateToPath(finderPathInput.value);
+                }
+            });
+        }
+        
+        function navigateToPath(path) {
+            if (!path) return;
+            // navigation logic
         }
     });
 </script>

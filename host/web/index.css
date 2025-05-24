@@ -756,3 +756,102 @@ select option {
 .database-table-container::-webkit-scrollbar-track {
     background: transparent;
 }
+
+.finder-file-manager {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px 22px;
+    padding: 30px 20px 10px 20px;
+    min-height: 320px;
+    margin: 0 auto;
+    max-width: 98%;
+    left: 30px;
+    right: 30px;
+    border-radius: 36px;
+}
+
+.finder-item {
+    width: 105px;
+    height: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    border-radius: 18px;
+    padding: 14px 6px 8px 6px;
+    transition: background 0.18s, box-shadow 0.18s;
+    user-select: none;
+    position: relative;
+}
+
+.finder-item:hover{
+    box-shadow: 0 4px 16px rgba(60,67,71,0.12);
+}
+.finder-item.selected {
+    background: rgba(65, 137, 230, 0.12);
+    box-shadow: 0 4px 16px rgba(60,67,71,0.12);
+}
+
+.finder-icon {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 8px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(60,67,71,0.08);
+}
+
+.finder-label {
+    font-size: 15px;
+    color: #23232a;
+    text-align: center;
+    word-break: break-all;
+    font-family: 'Kantumruy', sans-serif;
+    font-weight: 600;
+    margin-top: 2px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-folder .finder-icon {
+    background-image: url('assets/icon/folder.png');
+}
+.file-picture .finder-icon {
+    background-image: url('assets/icon/picture.png');
+}
+.file-video .finder-icon {
+    background-image: url('assets/icon/video.png');
+}
+.file-zip .finder-icon {
+    background-image: url('assets/icons/zip.png');
+}
+.file-docx .finder-icon {
+    background-image: url('web/assets/icons/docx.png');
+}
+.file-xlsx .finder-icon {
+    background-image: url('web/assets/icons/xlsx.png');
+}
+.file-pptx .finder-icon {
+    background-image: url('web/assets/icons/pptx.png');
+}
+.file-text .finder-icon {
+    background-image: url('web/assets/icons/text.png');
+}
+.file-pdf .finder-icon {
+    background-image: url('web/assets/icons/pdf.png');
+}
+.file-unknown .finder-icon {
+    background-image: url('web/assets/icons/file.png');
+}
+
+.finder-item.selected::after {
+    content: '';
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 18px; height: 18px;
+    background: url('web/assets/icons/checkmark.png') center/contain no-repeat;
+    opacity: 0.85;
+}
