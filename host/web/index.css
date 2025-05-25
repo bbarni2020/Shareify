@@ -829,22 +829,22 @@ select option {
     background-image: url('assets/icons/zip.png');
 }
 .file-docx .finder-icon {
-    background-image: url('web/assets/icons/docx.png');
+    background-image: url('assets/icon/docx.png');
 }
 .file-xlsx .finder-icon {
-    background-image: url('web/assets/icons/xlsx.png');
+    background-image: url('assets/icon/xlsx.png');
 }
 .file-pptx .finder-icon {
-    background-image: url('web/assets/icons/pptx.png');
+    background-image: url('assets/icon/pptx.png');
 }
 .file-text .finder-icon {
-    background-image: url('web/assets/icons/text.png');
+    background-image: url('assets/icon/text.png');
 }
 .file-pdf .finder-icon {
-    background-image: url('web/assets/icons/pdf.png');
+    background-image: url('assets/icon/pdf.png');
 }
 .file-unknown .finder-icon {
-    background-image: url('web/assets/icons/file.png');
+    background-image: url('assets/icon/file.png');
 }
 
 .finder-item.selected::after {
@@ -852,7 +852,7 @@ select option {
     position: absolute;
     top: 10px; right: 10px;
     width: 18px; height: 18px;
-    background: url('web/assets/icons/checkmark.png') center/contain no-repeat;
+    background: url('assets/icon/pipe.png') center/contain no-repeat;
     opacity: 0.85;
 }
 
