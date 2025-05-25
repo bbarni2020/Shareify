@@ -652,6 +652,53 @@
         }
     }
 
+    function setupFileSelection() {
+        const fileActionButtons = document.querySelectorAll('.finder-selection-buttons .finder-action-btn');
+        const selectionCountElement = document.getElementById('finder-selection-count');
+        
+        document.querySelectorAll('.finder-file-manager .finder-item:not(.no-select)').forEach(item => {
+            item.addEventListener('click', function(e) {
+                if (!(e.ctrlKey || e.metaKey)) return;
+                e.stopPropagation();
+                this.classList.toggle('selected');
+
+                const selectedItems = document.querySelectorAll('.finder-item.selected');
+                const count = selectedItems.length;
+                selectionCountElement.textContent = count === 1
+                    ? "1 item selected"
+                    : `${count} items selected`;
+                selectionCountElement.classList.toggle('visible', count > 0);
+                fileActionButtons.forEach(btn => {
+                    if (btn.id === 'finder-rename-btn') {
+                        btn.classList.toggle('visible', count === 1);
+                    } else {
+                        btn.classList.toggle('visible', count > 0);
+                    }
+                });
+            });
+        });
+    }
+
+    function updateCreationButtonsState(path) {
+        const addFileBtn = document.getElementById('finder-addfile-btn');
+        const addFolderBtn = document.getElementById('finder-addfolder-btn');
+        const isRootPath = path === '/' || path === '';
+        
+        if (addFileBtn && addFolderBtn) {
+            if (isRootPath) {
+                addFileBtn.classList.add('disabled');
+                addFileBtn.classList.remove('visible');
+                addFolderBtn.classList.add('disabled');
+                addFolderBtn.classList.remove('visible');
+            } else {
+                addFileBtn.classList.remove('disabled');
+                addFileBtn.classList.add('visible');
+                addFolderBtn.classList.remove('disabled');
+                addFolderBtn.classList.add('visible');
+            }
+        }
+    }
+
     async function loadFolderContents(path) {
         try {
             const apiKey = localStorage.getItem('api_key');
@@ -708,6 +755,7 @@
                     displayedPath = displayedPath.slice(0, -1);
                 }
                 pathInput.value = displayedPath;
+                updateCreationButtonsState(displayedPath);
             }
             
             items.forEach(item => {
@@ -745,33 +793,6 @@
             console.error('Error loading folder contents:', error);
             alert('Failed to load folder contents. Please try again.');
         }
-    }
-
-    function setupFileSelection() {
-        const fileActionButtons = document.querySelectorAll('.finder-selection-buttons .finder-action-btn');
-        const selectionCountElement = document.getElementById('finder-selection-count');
-        
-        document.querySelectorAll('.finder-file-manager .finder-item:not(.no-select)').forEach(item => {
-            item.addEventListener('click', function(e) {
-                if (!(e.ctrlKey || e.metaKey)) return;
-                e.stopPropagation();
-                this.classList.toggle('selected');
-
-                const selectedItems = document.querySelectorAll('.finder-item.selected');
-                const count = selectedItems.length;
-                selectionCountElement.textContent = count === 1
-                    ? "1 item selected"
-                    : `${count} items selected`;
-                selectionCountElement.classList.toggle('visible', count > 0);
-                fileActionButtons.forEach(btn => {
-                    if (btn.id === 'finder-rename-btn') {
-                        btn.classList.toggle('visible', count === 1);
-                    } else {
-                        btn.classList.toggle('visible', count > 0);
-                    }
-                });
-            });
-        });
     }
 
     function finder_open() {
@@ -1569,39 +1590,101 @@
             }
         });
         document.getElementById('finder-addfile-btn').addEventListener('click', () => {
-            // new file logic
+            if (document.getElementById('finder-addfile-btn').classList.contains('disabled')) return;
             alert('Add File action (implement logic)');
         });
         document.getElementById('finder-addfolder-btn').addEventListener('click', async () => {
-            const currentPath = document.getElementById('finder-path').value;
-            const folderName = prompt("Enter folder name:");
+            if (document.getElementById('finder-addfolder-btn').classList.contains('disabled')) return;
+            const fileManager = document.querySelector('.finder-file-manager');
             
-            if (!folderName) return;
-            
-            try {
-                const response = await fetch('http://localhost:6969/api/create_folder', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-API-KEY': apiKey
-                    },
-                    body: JSON.stringify({
-                        folder_name: folderName,
-                        path: currentPath.startsWith('/') ? currentPath.substring(1) : currentPath
-                    })
-                });
-                
-                if (response.ok) {
-                    const cleanedPath = currentPath.startsWith('/') ? currentPath.substring(1) : currentPath;
-                    loadFolderContents(cleanedPath);
-                } else {
-                    const errorData = await response.json();
-                    alert(`Failed to create folder: ${errorData.error || 'Unknown error'}`);
-                }
-            } catch (error) {
-                console.error('Error creating folder:', error);
-                alert('Failed to create folder. Please try again.');
+            const existingCreating = fileManager.querySelector('.finder-item.creating-folder');
+            if (existingCreating) {
+                existingCreating.remove();
             }
+            
+            const newFolderItem = document.createElement('div');
+            newFolderItem.className = 'finder-item file-folder creating-folder';
+            newFolderItem.innerHTML = `
+                <div class="finder-icon"></div>
+                <input type="text" class="finder-folder-input" placeholder="New folder" maxlength="50">
+                <button class="finder-confirm-btn"></button>
+            `;
+            
+            const backItem = fileManager.querySelector('.finder-item.no-select');
+            if (backItem) {
+                backItem.insertAdjacentElement('afterend', newFolderItem);
+            } else {
+                fileManager.insertBefore(newFolderItem, fileManager.firstChild);
+            }
+            
+            const input = newFolderItem.querySelector('.finder-folder-input');
+            const confirmBtn = newFolderItem.querySelector('.finder-confirm-btn');
+            
+            input.focus();
+            input.select();
+            
+            async function createFolder() {
+                const folderName = input.value.trim();
+                if (!folderName) {
+                    newFolderItem.remove();
+                    return;
+                }
+                
+                const currentPath = document.getElementById('finder-path').value;
+                
+                try {
+                    const response = await fetch('http://localhost:6969/api/create_folder', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-API-KEY': apiKey
+                        },
+                        body: JSON.stringify({
+                            folder_name: folderName,
+                            path: currentPath.startsWith('/') ? currentPath.substring(1) : currentPath
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        newFolderItem.remove();
+                        const cleanedPath = currentPath.startsWith('/') ? currentPath.substring(1) : currentPath;
+                        loadFolderContents(cleanedPath);
+                    } else {
+                        const errorData = await response.json();
+                        alert(`Failed to create folder: ${errorData.error || 'Unknown error'}`);
+                        newFolderItem.remove();
+                    }
+                } catch (error) {
+                    console.error('Error creating folder:', error);
+                    alert('Failed to create folder. Please try again.');
+                    newFolderItem.remove();
+                }
+            }
+            
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    createFolder();
+                } else if (e.key === 'Escape') {
+                    newFolderItem.remove();
+                }
+            });
+            
+            confirmBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                createFolder();
+            });
+            
+            const handleOutsideClick = (e) => {
+                if (!newFolderItem.contains(e.target)) {
+                    newFolderItem.remove();
+                    document.removeEventListener('click', handleOutsideClick);
+                }
+            };
+            
+            setTimeout(() => {
+                document.addEventListener('click', handleOutsideClick);
+            }, 100);
         });
     });
 
@@ -1623,12 +1706,11 @@
                     loadFolderContents(cleanedPath);
                 }
             });
+            
+            finderPathInput.addEventListener('input', (e) => {
+                updateCreationButtonsState(e.target.value);
+            });
         }
-
-        document.querySelectorAll('.finder-file-manager .finder-item').forEach(item => {
-            const clone = item.cloneNode(true);
-            item.parentNode.replaceChild(clone, item);
-        });
     });
 </script>
 </html>
