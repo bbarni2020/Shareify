@@ -19,6 +19,9 @@ import sys
 import ctypes
 import update
 from werkzeug.utils import secure_filename
+import zipfile
+import tempfile
+import shutil
 
 def is_admin():
     try:
@@ -589,7 +592,7 @@ def edit_file():
 def get_logs():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM logs')
+    cursor.execute('SELECT * FROM logs ORDER BY id DESC')
     logs = cursor.fetchall()
     conn.close()
     log_list = []
@@ -1006,6 +1009,47 @@ def upload_file():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
+@app.route('/api/download', methods=['GET'])
+def download_file():
+    file_path = request.args.get('file_path')
+    if not file_path:
+        return jsonify({"error": "No file path provided"}), 400
+    if not has_access(file_path):
+        return jsonify({"error": "Unauthorized"}), 401
+    full_path = os.path.join(settings['path'], file_path)
+    if os.path.exists(full_path):
+        if os.path.isfile(full_path):
+            directory = os.path.dirname(full_path)
+            filename = os.path.basename(full_path)
+            return send_from_directory(directory, filename, as_attachment=True)
+        elif os.path.isdir(full_path):  
+            temp_dir = tempfile.mkdtemp()
+            zip_filename = f"{os.path.basename(file_path)}.zip"
+            zip_path = os.path.join(temp_dir, zip_filename)
+            
+            try:
+                with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    for root, dirs, files in os.walk(full_path):
+                        for file in files:
+                            file_full_path = os.path.join(root, file)
+                            arcname = os.path.relpath(file_full_path, full_path)
+                            zipf.write(file_full_path, arcname)                
+                def cleanup_temp_file():
+                    try:
+                        shutil.rmtree(temp_dir)
+                    except:
+                        pass
+                
+                response = send_from_directory(temp_dir, zip_filename, as_attachment=True)
+                response.call_on_close(cleanup_temp_file)
+                return response
+                
+            except Exception as e:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                return jsonify({"error": f"Failed to create zip: {str(e)}"}), 500
+    
+    return jsonify({"error": "File or folder does not exist"}), 404
+
 # Main
 print(r"""
  __ _                     __       

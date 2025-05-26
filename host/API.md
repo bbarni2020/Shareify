@@ -59,6 +59,7 @@ This document provides an overview of all the API endpoints available in the `ma
 **Response:**
 - `200 OK`: `{ "status": "File deleted" }`
 - `404 Not Found`: `{ "error": "Path does not exist" }`
+- `401 Unauthorized`: `{ "error": "Unauthorized" }`
 
 ---
 
@@ -69,6 +70,7 @@ This document provides an overview of all the API endpoints available in the `ma
 - `file_content` (string): New content for the file.  
 **Response:**
 - `200 OK`: `{ "status": "File edited", "path": "..." }`
+- `401 Unauthorized`: `{ "error": "Unauthorized" }`
 
 ---
 
@@ -80,6 +82,45 @@ This document provides an overview of all the API endpoints available in the `ma
 - `200 OK`: `{ "status": "File content retrieved", "content": "..." }`
 - `404 Not Found`: `{ "error": "Path does not exist" }`
 - `401 Unauthorized`: `{ "error": "Unauthorized" }`
+- `400 Bad Request`: `{ "error": "No file path provided" }`
+
+---
+
+### `/api/rename_file` [GET]
+**Description:** Rename a file.  
+**Request Body:**
+- `file_name` (string): Current name of the file.
+- `new_name` (string): New name for the file.
+- `path` (string): Directory path.  
+**Response:**
+- `200 OK`: `{ "status": "File renamed", "path": "..." }`
+- `404 Not Found`: `{ "error": "Path does not exist" }`
+- `401 Unauthorized`: `{ "error": "Unauthorized" }`
+- `400 Bad Request`: `{ "error": "No file name provided" }`
+
+---
+
+### `/api/upload` [POST]
+**Description:** Upload a file.  
+**Request Body (multipart/form-data):**
+- `file` (file): The file to upload.
+- `path` (string, optional): Directory path to upload to.  
+**Response:**
+- `200 OK`: `{ "status": "File uploaded" }`
+- `400 Bad Request`: `{ "error": "No file provided" }`
+- `401 Unauthorized`: `{ "error": "Unauthorized" }`
+
+---
+
+### `/api/download` [GET]
+**Description:** Download a file or folder (as zip).  
+**Parameters:**
+- `file_path` (query): Path of the file/folder to download.  
+**Response:**
+- `200 OK`: File download or zip download for folders
+- `400 Bad Request`: `{ "error": "No file path provided" }`
+- `401 Unauthorized`: `{ "error": "Unauthorized" }`
+- `404 Not Found`: `{ "error": "File or folder does not exist" }`
 
 ---
 
@@ -93,6 +134,7 @@ This document provides an overview of all the API endpoints available in the `ma
 **Response:**
 - `200 OK`: `{ "status": "Folder created", "path": "..." }`
 - `400 Bad Request`: `{ "error": "No folder name provided" }`
+- `401 Unauthorized`: `{ "error": "Unauthorized" }`
 
 ---
 
@@ -103,6 +145,8 @@ This document provides an overview of all the API endpoints available in the `ma
 **Response:**
 - `200 OK`: `{ "status": "Folder deleted" }`
 - `404 Not Found`: `{ "error": "Path does not exist" }`
+- `401 Unauthorized`: `{ "error": "Unauthorized" }`
+- `400 Bad Request`: `{ "error": "No path provided" }`
 
 ---
 
@@ -114,6 +158,21 @@ This document provides an overview of all the API endpoints available in the `ma
 - `path` (string): Directory path.  
 **Response:**
 - `200 OK`: `{ "status": "Folder renamed", "path": "..." }`
+- `404 Not Found`: `{ "error": "Path does not exist" }`
+- `401 Unauthorized`: `{ "error": "Unauthorized" }`
+- `400 Bad Request`: `{ "error": "No folder name provided" }`
+
+---
+
+## Command Execution Endpoints
+
+### `/api/command` [POST]
+**Description:** Execute a system command.  
+**Request Body:**
+- `command` (string): Command to execute.  
+**Response:**
+- `200 OK`: `{ "status": "Command executed", "output": "..." }`
+- `400 Bad Request`: `{ "error": "No command provided" }`
 
 ---
 
@@ -126,9 +185,10 @@ This document provides an overview of all the API endpoints available in the `ma
 - `password` (string): Password.
 - `name` (string): Full name.
 - `role` (string): User role.
-- `paths` (string, optional): Accessible paths.  
+- `paths` (string, optional): Accessible paths.
+- `paths_write` (string, optional): Writable paths.  
 **Response:**
-- `200 OK`: `{ "status": "User created" }`
+- `200 OK`: `{ "status": "User created", "API_KEY": "..." }`
 - `400 Bad Request`: `{ "error": "No username, password, name or role provided" }`
 
 ---
@@ -139,7 +199,22 @@ This document provides an overview of all the API endpoints available in the `ma
 - `username` (string): Username to delete.  
 **Response:**
 - `200 OK`: `{ "status": "User deleted" }`
-- `404 Not Found`: `{ "error": "User not found" }`
+- `400 Bad Request`: `{ "error": "No username provided" }`
+
+---
+
+### `/api/user/edit` [GET]
+**Description:** Edit a user's details.  
+**Request Body:**
+- `username` (string): Username.
+- `password` (string): Password.
+- `name` (string): Full name.
+- `role` (string): User role.
+- `paths` (string): Accessible paths.
+- `id` (string): User ID.  
+**Response:**
+- `200 OK`: `{ "status": "User edited" }`
+- `400 Bad Request`: `{ "error": "No username, password, name, role or paths provided" }`
 
 ---
 
@@ -151,13 +226,14 @@ This document provides an overview of all the API endpoints available in the `ma
 **Response:**
 - `200 OK`: `{ "API_KEY": "..." }`
 - `401 Unauthorized`: `{ "error": "Invalid username or password" }`
+- `400 Bad Request`: `{ "error": "No username or password provided" }`
 
 ---
 
 ### `/api/user/get_self` [GET]
 **Description:** Retrieve the current user's details.  
 **Response:**
-- `200 OK`: `{ ...user details... }`
+- `200 OK`: `{ "username": "...", "password": "...", "name": "...", "role": "...", "ftp_users": "...", "paths": "...", "settings": "...", "paths_write": "..." }`
 - `404 Not Found`: `{ "error": "User not found" }`
 
 ---
@@ -165,16 +241,23 @@ This document provides an overview of all the API endpoints available in the `ma
 ### `/api/user/get_all` [GET]
 **Description:** Retrieve all users.  
 **Response:**
-- `200 OK`: `[ { ...user details... }, ... ]`
+- `200 OK`: `[ { "username": "...", "password": "...", "name": "...", "ip": "...", "role": "...", "ftp_users": "...", "paths": "...", "settings": "...", "API_KEY": "...", "paths_write": "..." }, ... ]`
 
 ---
 
 ### `/api/user/edit_self` [POST]
 **Description:** Edit the current user's details.  
-**Request Body:** JSON object with fields to update.  
+**Request Body:** JSON object with fields to update:
+- `username` (string, optional): New username.
+- `password` (string, optional): New password.
+- `name` (string, optional): New full name.
+- `ftp_users` (string, optional): FTP users.
+- `settings` (string, optional): User settings.
+- `API_KEY` (string, optional): New API key.  
 **Response:**
 - `200 OK`: `{ "status": "User updated" }`
 - `400 Bad Request`: `{ "error": "No valid fields provided for update" }`
+- `404 Not Found`: `{ "error": "User not found" }`
 
 ---
 
@@ -190,6 +273,7 @@ This document provides an overview of all the API endpoints available in the `ma
 **Response:**
 - `200 OK`: `{ "status": "FTP user created" }`
 - `404 Not Found`: `{ "error": "Path does not exist" }`
+- `400 Bad Request`: `{ "error": "No username, password or permissions provided" }`
 
 ---
 
@@ -218,7 +302,8 @@ This document provides an overview of all the API endpoints available in the `ma
 - `permissions` (string, optional): New permissions.  
 **Response:**
 - `200 OK`: `{ "status": "FTP user edited" }`
-- `404 Not Found`: `{ "error": "User not found" }`
+- `404 Not Found`: `{ "error": "User not found" }` or `{ "error": "Path does not exist" }`
+- `400 Bad Request`: `{ "error": "No username provided" }`
 
 ---
 
@@ -283,6 +368,13 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ---
 
+### `/update_start_exit_program` [POST]
+**Description:** Exit program for update process.  
+**Response:**
+- `200 OK`: `{ "status": "Update started" }`
+
+---
+
 ### `/api/role/get` [GET]
 **Description:** Retrieve all roles.  
 **Response:**
@@ -296,6 +388,28 @@ This document provides an overview of all the API endpoints available in the `ma
 **Response:**
 - `200 OK`: `{ "status": "Roles updated" }`
 - `400 Bad Request`: `{ "error": "No roles provided" }`
+
+---
+
+## Static File Serving
+
+### `/` [GET]
+**Description:** Serve the main index.html page.
+
+---
+
+### `/auth` [GET]
+**Description:** Serve the login.html page.
+
+---
+
+### `/web/<path:filename>` [GET]
+**Description:** Serve static files from the web directory.
+
+---
+
+### `/web/assets/<path:filename>` [GET]
+**Description:** Serve asset files from the web/assets directory.
 
 ---
 

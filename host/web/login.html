@@ -120,11 +120,42 @@
     </div>
     <script>
         window.addEventListener('DOMContentLoaded', () => {
+            checkExistingAuth();
+            
             document.body.style.opacity = '1';
             setTimeout(() => {
                 document.getElementById('loginWindow').classList.add('show');
             }, 60);
         });
+
+        async function checkExistingAuth() {
+            const apiKey = localStorage.getItem('api_key');
+            const expiry = localStorage.getItem('api_key_expiry');
+            
+            if (apiKey && expiry && Date.now() < parseInt(expiry)) {
+                try {
+                    const baseURL = window.location.origin;
+                    const res = await fetch(`${baseURL}/api/user/get_self`, {
+                        headers: { 'X-API-KEY': apiKey }
+                    });
+                    
+                    if (res.ok) {
+                        // Valid API key, redirect to home
+                        window.location.href = '/';
+                        return;
+                    }
+                } catch (err) {
+                    // API call failed, continue with login
+                }
+            }
+            
+            // Clear invalid/expired keys
+            if (apiKey) {
+                localStorage.removeItem('api_key');
+                localStorage.removeItem('api_key_expiry');
+            }
+        }
+
         const baseURL = window.location.origin;
         document.querySelector('.login-btn').addEventListener('click', async function () {
             const username = document.getElementById('username').value.trim();
