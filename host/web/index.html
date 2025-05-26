@@ -218,12 +218,13 @@
             <div class="finder-actions">
                 <div class="finder-selection-count" id="finder-selection-count">0 items selected</div>
                 <div class="finder-selection-buttons">
+                    <button class="finder-action-btn" id="finder-dwonload-btn">Download</button>
                     <button class="finder-action-btn" id="finder-move-btn">Move</button>
                     <button class="finder-action-btn" id="finder-delete-btn">Delete</button>
                     <button class="finder-action-btn" id="finder-rename-btn">Rename</button>
                 </div>
                 <div class="finder-always-buttons">
-                    <button class="finder-action-btn visible" id="finder-addfile-btn">+ New file</button>
+                    <button class="finder-action-btn visible" id="finder-addfile-btn">Upload</button>
                     <button class="finder-action-btn visible" id="finder-addfolder-btn">New folder</button>
                 </div>
             </div>
@@ -247,6 +248,9 @@
             </g>
         </svg>
         <div class="window_title">Users</div>
+        <div style="display: flex; justify-content: center; align-items: center; height: 100%; width: 100%;">
+            <p style="font-size: 18px; color: #666;">Not yet available</p>
+        </div>
         <div class="resize_handle"></div>
     </div>
     <div class="window" id="nas-window">
@@ -446,10 +450,41 @@
         </div>
         <div class="resize_handle"></div>
     </div>
+    <div class="window upload-window" id="upload-window">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="none" class="exit_btn">
+            <g filter="url(#filter0_i_19_3)">
+                <circle cx="11" cy="11" r="11" fill="#DC2626"/>
+            </g>
+        </svg>
+        <div class="window_title">Upload</div>
+        <div class="upload-content">
+            <div class="upload-drop-zone" id="upload-drop-zone">
+                <div class="upload-icon"></div>
+                <div class="upload-text">
+                    <h3>Drop files here or click to browse</h3>
+                    <p>Select files to upload to the current directory</p>
+                </div>
+                <input type="file" class="upload-file-input" id="upload-file-input" multiple>
+            </div>
+            <div class="upload-actions">
+                <div class="upload-progress" id="upload-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <div class="progress-text" id="progress-text">0%</div>
+                </div>
+                <button class="upload-btn" id="upload-btn">
+                    <span>Upload Files</span>
+                </button>
+            </div>
+        </div>
+        <div class="resize_handle"></div>
+    </div>
+    
     <div class="icon"></div>
 </body>
 <script>
-    const baseURL = 'http://localhost:6969';
+    const baseURL = window.location.origin;
     
     window.addEventListener('DOMContentLoaded', () => {document.body.style.opacity = '1';});
     let apiKey = localStorage.getItem('api_key');
@@ -608,7 +643,7 @@
                 return;
             }
 
-            const response = await fetch(`${baseURL}/api/get-self`, {
+            const response = await fetch(`${baseURL}/api/get_self`, {
                 headers: {
                     'X-API-KEY': apiKey
                 }
@@ -1545,6 +1580,45 @@
             //move logic
             alert('Move action (implement logic)');
         });
+        document.getElementById('finder-dwonload-btn').addEventListener('click', async () => {
+            const selectedItems = document.querySelectorAll('.finder-item.selected');
+            if (selectedItems.length === 0) return;
+            
+            for (const item of selectedItems) {
+                const itemPath = item.dataset.path;
+                const isFolder = item.classList.contains('file-folder');
+                
+                try {
+                    const response = await fetch(`${baseURL}/api/download?file_path=${encodeURIComponent(itemPath)}`, {
+                        headers: {
+                            'X-API-KEY': apiKey
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = url;
+                        downloadLink.download = itemPath.split('/').pop() + (isFolder ? '.zip' : '');
+                        downloadLink.style.display = 'none';
+                        
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+                        
+                        window.URL.revokeObjectURL(url);
+                    } else {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (error) {
+                    console.error(`Error downloading ${itemPath}:`, error);
+                    alert(`Failed to download ${itemPath.split('/').pop()}`);
+                }
+            }
+        });
         document.getElementById('finder-delete-btn').addEventListener('click', async () => {
             const selectedItems = document.querySelectorAll('.finder-item.selected');
             if (selectedItems.length === 0) return;
@@ -1591,7 +1665,7 @@
         });
         document.getElementById('finder-addfile-btn').addEventListener('click', () => {
             if (document.getElementById('finder-addfile-btn').classList.contains('disabled')) return;
-            alert('Add File action (implement logic)');
+            upload_open();
         });
         document.getElementById('finder-addfolder-btn').addEventListener('click', async () => {
             if (document.getElementById('finder-addfolder-btn').classList.contains('disabled')) return;
@@ -1633,7 +1707,7 @@
                 const currentPath = document.getElementById('finder-path').value;
                 
                 try {
-                    const response = await fetch('http://localhost:6969/api/create_folder', {
+                    const response = await fetch(`${baseURL}/api/create_folder`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1710,6 +1784,160 @@
             finderPathInput.addEventListener('input', (e) => {
                 updateCreationButtonsState(e.target.value);
             });
+        }
+    });
+
+    let selectedFiles = [];
+
+    function upload_open() {
+        const windowElement = document.getElementById('upload-window');
+        if (windowElement) {
+            windowElement.classList.add('show');
+            windowElement.classList.remove('hide');
+            bringToFront(windowElement);
+            updateIndicator('upload-window', 'upload-indicator');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const uploadDropZone = document.getElementById('upload-drop-zone');
+        const uploadFileInput = document.getElementById('upload-file-input');
+        const uploadBtn = document.getElementById('upload-btn');
+        const uploadProgress = document.getElementById('upload-progress');
+        const progressFill = document.getElementById('progress-fill');
+        const progressText = document.getElementById('progress-text');
+
+        if (uploadDropZone && uploadFileInput) {
+            uploadDropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadDropZone.classList.add('dragover');
+            });
+
+            uploadDropZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                uploadDropZone.classList.remove('dragover');
+            });
+
+            uploadDropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadDropZone.classList.remove('dragover');
+                const files = Array.from(e.dataTransfer.files);
+                handleFileSelection(files);
+            });
+
+            uploadFileInput.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                handleFileSelection(files);
+            });
+
+            uploadBtn.addEventListener('click', () => {
+                if (selectedFiles.length > 0) {
+                    uploadFiles();
+                }
+            });
+        }
+
+        function handleFileSelection(files) {
+            selectedFiles = files;
+            updateUploadUI();
+        }
+
+        function updateUploadUI() {
+            const uploadText = document.querySelector('.upload-text');
+            
+            if (selectedFiles.length > 0) {
+                uploadText.querySelector('h3').textContent = `${selectedFiles.length} file(s) selected`;
+                uploadText.querySelector('p').textContent = 'Click upload to begin';
+                uploadBtn.disabled = false;
+                
+                let existingList = uploadDropZone.querySelector('.upload-file-list');
+                if (existingList) {
+                    existingList.remove();
+                }
+                
+                const fileList = document.createElement('div');
+                fileList.className = 'upload-file-list';
+                
+                selectedFiles.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'upload-file-item';
+                    fileItem.innerHTML = `
+                        <span class="upload-file-name" title="${file.name}">${file.name}</span>
+                        <span class="upload-file-remove" onclick="removeFile(${index})">×</span>
+                    `;
+                    fileList.appendChild(fileItem);
+                });
+                
+                uploadDropZone.appendChild(fileList);
+            } else {
+                uploadText.querySelector('h3').textContent = 'Drop files here or click to browse';
+                uploadText.querySelector('p').textContent = 'Select files to upload to the current directory';
+                uploadBtn.disabled = true;
+                
+                const existingList = uploadDropZone.querySelector('.upload-file-list');
+                if (existingList) {
+                    existingList.remove();
+                }
+            }
+        }
+
+        window.removeFile = function(index) {
+            selectedFiles.splice(index, 1);
+            updateUploadUI();
+        }
+
+        async function uploadFiles() {
+            if (selectedFiles.length === 0) return;
+            
+            uploadProgress.style.display = 'flex';
+            uploadBtn.disabled = true;
+            
+            const currentPath = document.getElementById('finder-path')?.value || '/';
+            let uploadedCount = 0;
+            
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('path', currentPath.startsWith('/') ? currentPath.substring(1) : currentPath);
+                
+                try {
+                    const response = await fetch(`${baseURL}/api/upload`, {
+                        method: 'POST',
+                        headers: {
+                            'X-API-KEY': apiKey
+                        },
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        uploadedCount++;
+                    } else {
+                        console.error(`Failed to upload ${file.name}`);
+                    }
+                } catch (error) {
+                    console.error(`Error uploading ${file.name}:`, error);
+                }
+                
+                const progress = ((i + 1) / selectedFiles.length) * 100;
+                progressFill.style.width = `${progress}%`;
+                progressText.textContent = `${Math.round(progress)}% (${i + 1}/${selectedFiles.length})`;
+            }
+            setTimeout(() => {
+                uploadProgress.style.display = 'none';
+                progressFill.style.width = '0%';
+                progressText.textContent = '0%';
+                selectedFiles = [];
+                updateUploadUI();
+                uploadBtn.disabled = false;
+                
+                const finderWindow = document.getElementById('finder-window');
+                if (finderWindow && finderWindow.classList.contains('show')) {
+                    const currentPath = document.getElementById('finder-path')?.value || '/';
+                    const cleanedPath = currentPath.startsWith('/') ? currentPath.substring(1) : currentPath;
+                    loadFolderContents(cleanedPath);
+                }
+            }, 500);
         }
     });
 </script>

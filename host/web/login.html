@@ -8,12 +8,13 @@
     <link rel="shortcut icon" href="web/assets/icon.ico" type="image/x-icon">
     <style>
         .login-label, .login-title {
+            top: 15px;
             color: #fff !important;
         }
         .login-btn {
             width: 270px;
             height: 48px;
-            border-radius: 32px;
+            border-radius: 16px;
             background: linear-gradient(93deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.08) 100%);
             box-shadow: 0 6px 24px 0 rgba(60,67,71,0.13);
             color: #fff;
@@ -124,7 +125,7 @@
                 document.getElementById('loginWindow').classList.add('show');
             }, 60);
         });
-
+        const baseURL = window.location.origin;
         document.querySelector('.login-btn').addEventListener('click', async function () {
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
@@ -136,7 +137,7 @@
                 return;
             }
             try {
-                const res = await fetch('http://localhost:6969/api/user/login', {
+                const res = await fetch(`${baseURL}/api/user/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
@@ -150,7 +151,7 @@
                     localStorage.setItem('api_key_expiry', expiry);
 
                     try {
-                        const res = await fetch('http://localhost:6969/api/user/get_self', {
+                        const res = await fetch(`${baseURL}/api/user/get_self`, {
                             headers: { 'X-API-KEY': apiKey }
                         });
                         if (!res.ok) throw new Error('Failed to load background');
