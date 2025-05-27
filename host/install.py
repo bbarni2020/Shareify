@@ -2,12 +2,17 @@ import sqlite3
 import os
 import requests
 import json
-from flask import Flask, render_template, request, redirect, url_for
+import subprocess
+import sys
+from flask import Flask, render_template, request, redirect, url_for, jsonify
+import time
+import threading
 
-app = Flask(__name__, template_folder='web')
+app = Flask(__name__, template_folder='web', static_folder='web', static_url_path='/web')
 
 path = ""
 password = ""
+sudo_password = ""
 api_key = "ABC"
 db_dir = os.path.join(os.path.dirname(__file__), 'db')
 if not os.path.exists(db_dir):
@@ -85,6 +90,7 @@ def create_jsons():
             settings.raise_for_status()
             settings_json = settings.json()
             settings_json['path'] = path
+            settings_json['com_password'] = sudo_password
             with open(settings_path, 'w') as f:
                 json.dump(settings_json, f, indent=4)
         except Exception as e:
@@ -110,9 +116,17 @@ def set_path():
     global path
     path = request.form.get('path')
     if path:
-        create_jsons()
         return redirect(url_for('install_page'))
     return "Path not provided", 400
+
+@app.route('/set_sudo_password', methods=['POST'])
+def set_sudo_password():
+    global sudo_password
+    sudo_password = request.form.get('sudo_password')
+    if sudo_password:
+        create_jsons()
+        return redirect(url_for('install_page'))
+    return "Sudo password not provided", 400
 
 @app.route('/set_password', methods=['POST'])
 def set_password():
@@ -121,8 +135,26 @@ def set_password():
     if password:
         initialize_logs_db()
         initialize_users_db()
-        return redirect(url_for('install_page'))
-    return "Password not provided", 400
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'error': 'Password not provided'}), 400
+
+@app.route('/complete_installation', methods=['POST'])
+def complete_installation():
+    try:
+        launcher_path = os.path.join(os.path.dirname(__file__), 'launcher.py')
+        if os.path.exists(launcher_path):
+            subprocess.Popen([sys.executable, launcher_path])
+            def shutdown_installer():
+                time.sleep(2)
+                os._exit(0)
+            
+            threading.Thread(target=shutdown_installer, daemon=True).start()
+            
+            return jsonify({'success': True, 'message': 'Installation complete! Starting Shareify...'})
+        else:
+            return jsonify({'success': False, 'error': 'Launcher not found'}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=6969, debug=True)
