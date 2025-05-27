@@ -263,6 +263,10 @@
         <div class="sections_container">
             <div class="section_content resource-section-content">
                 <div id="resource-meters">
+                    <div class="system-control-buttons">
+                        <button class="system-btn shutdown" id="shutdown-btn"></button>
+                        <button class="system-btn restart" id="restart-btn"></button>
+                    </div>
                     <div class="resource-meter">
                         <svg id="cpu-meter" width="120" height="120"></svg>
                         <div class="meter-label">CPU</div>
@@ -616,6 +620,7 @@
                 return 'file-docx';
             case 'xls':
             case 'xlsx':
+            case 'csv':
                 return 'file-xlsx';
             case 'ppt':
             case 'pptx':
@@ -1019,7 +1024,13 @@
                     });
                 } catch (e) {
                 }
-                const bodyChildren = Array.from(document.body.children);
+                fullScreenIcon();
+            }
+        });
+    });
+
+    function fullScreenIcon() {
+        const bodyChildren = Array.from(document.body.children);
                 bodyChildren.forEach(el => {
                     if (el.id !== 'bg-fade-overlay' && el.tagName !== 'SCRIPT' && !el.classList.contains('icon')) {
                         el.classList.add('fade-out');
@@ -1050,9 +1061,7 @@
                         }, 10000);
                     }, 20000);
                 }, 600);
-            }
-        });
-    });
+    }
 
     function updateIconVisibility() {
         const iconSelect = document.getElementById('icon-select');
@@ -1939,6 +1948,19 @@
                 }
             }, 500);
         }
+    document.addEventListener('click', (e) => {
+        const restart = document.getElementById('restart-btn');
+        if (restart && e.target === restart) {
+            fullScreenIcon();
+        }
+    });
+    document.addEventListener('click', (e) => {
+        const shutdown = document.getElementById('shutdown-btn');
+        if (shutdown && e.target === shutdown) {
+            fullScreenIcon();
+        }
+    });
+
     });
 </script>
 </html>
