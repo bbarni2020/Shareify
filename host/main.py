@@ -42,7 +42,7 @@ def relaunch_as_admin():
 
 if not is_admin():
     print("main.py is not running as administrator/root. Trying to relaunch as admin/root...")
-    relaunch_as_admin()
+    #relaunch_as_admin()
 
 # Initialize packages
 init(autoreset=True)
