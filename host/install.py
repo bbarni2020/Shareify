@@ -1,19 +1,113 @@
-import sqlite3
-import os
-import requests
-import json
 import subprocess
 import sys
+import os
+import platform
+
+def install_pip():
+    try:
+        import pip
+        print("pip is already installed.")
+    except ImportError:
+        print("pip not found. Installing pip...")
+        try:
+            subprocess.check_call([sys.executable, "-m", "ensurepip", "--upgrade"])
+            print("pip installed successfully.")
+        except Exception as e:
+            print(f"Failed to install pip: {e}")
+            return False
+    return True
+
+def upgrade_pip():
+    try:
+        print("Upgrading pip...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgarde", "pip"])
+        print("pip upgraded successfully.")
+    except Exception as e:
+        print(f"Falied to upgrade pip: {e}")
+
+def install_requirements():
+    print("Installing requirements...")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    requirements_path = os.path.join(script_dir, 'requirements.txt')
+
+    if not os.path.exists(requirements_path):
+        print(f"Error: requirements.txt not found at {requirements_path}")
+        return False
+    
+    try:
+        print("Installing required packages...")
+
+        with open(requirements_path, 'r') as f:
+            packages = f.read().strip().split('\n')
+            packages = [pkg.strip() for pkg in packages if pkg.strip()]
+        
+        print(f"Found {len(packages)} packages to install.")
+
+        for pkg in packages:
+            print(F"    - {pkg}")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", requirements_path, "--upgrade"])
+        print("\n✓ All packages installed successfully.")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"\n✗ Failed to install packages: {e}")
+        return False
+    except Exception as e:
+        print(f"\n✗ Error occurred: {e}")
+        return False
+
+def check_administrator_privileges():
+    current_os = platform.system().lower()
+    if current_os == "windows":
+        try:
+            import ctypes
+            return ctypes.windll.shell32.IsUserAnAdmin()
+        except ImportError:
+            return False
+    else:
+        return os.geteuid() == 0
+
+def main():
+    print("=" * 50)
+    print("Shareify Installation Script")
+    print("=" * 50)
+
+    if not check_administrator_privileges():
+        print("Warning: Not running with administrator privileges.")
+        print("Some packages might require elevated permissions to install")
+        print()
+    
+    if not install_pip():
+        print("Failed to install pip. Exciting installation...")
+        sys.exit(1)
+    
+    upgrade_pip()
+    print()
+
+    if install_requirements():
+        print("\nInstallation completed successfully!")
+        print("Starting the online setup...")
+        return
+    else:
+       print("\nInstallation failed!")
+       print("Please check the error messages above and try again.")
+       sys.exit(1)
+        
+main()
+
+import sqlite3
+import requests
+import json
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 import time
 import threading
+import secrets
 
 app = Flask(__name__, template_folder='web', static_folder='web', static_url_path='/web')
 
 path = ""
 password = ""
 sudo_password = ""
-api_key = "ABC"
+api_key = secrets.token_hex(32)
 db_dir = os.path.join(os.path.dirname(__file__), 'db')
 if not os.path.exists(db_dir):
     os.makedirs(db_dir)
@@ -157,4 +251,7 @@ def complete_installation():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=6969, debug=True)
+    host = '0.0.0.0'
+    port = 6969
+    print(f"Starting installation server at http://{host}:{port}")
+    app.run(host=host, port=port, debug=True)
