@@ -298,12 +298,6 @@
                                 <line x1="14" y1="20" x2="26" y2="20" stroke="white" stroke-width="2" stroke-linecap="round"/>
                             </svg>
                         </button>
-                        <button class="user-action-btn remove-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
-                                <circle cx="20" cy="20" r="20" fill="#DC2626"/>
-                                <line x1="14" y1="20" x2="26" y2="20" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                        </button>
                     </div>
                     <div class="users-section-content" id="users-content">
                     </div>
@@ -567,13 +561,10 @@
                     <label for="user-name">Full name:</label>
                     <input type="text" name="user-name" id="user-name" class="textbox" placeholder="Enter full name">
                 </div>
-                <div class="horizontal-align">
-                    <label for="user-role">Role:</label>
-                    <select id="user-role" name="user-role">
-                        <option value="admin">Admin</option>
-                        <option value="user">User</option>
-                        <option value="guest">Guest</option>
-                    </select>
+                <div class="user-endpoints-section">
+                    <label class="endpoints-label">Endpoint Access:</label>
+                    <div class="endpoints-grid" id="user-endpoints-grid">
+                    </div>
                 </div>
                 <div class="horizontal-align">
                     <label for="user-paths">Accessible paths:</label>
@@ -582,25 +573,6 @@
                 <div class="horizontal-align">
                     <label for="user-paths-write">Writable paths:</label>
                     <input type="text" name="user-paths-write" id="user-paths-write" class="textbox" placeholder="JSON format (optional)">
-                </div>
-                
-                <div class="user-form-divider"></div>
-                <div class="user-form-subtitle">FTP Access</div>
-                
-                <div class="horizontal-align">
-                    <label for="user-ftp-enabled">FTP Access:</label>
-                    <select id="user-ftp-enabled" name="user-ftp-enabled">
-                        <option value="false">Disabled</option>
-                        <option value="true">Enabled</option>
-                    </select>
-                </div>
-                <div class="horizontal-align">
-                    <label for="user-ftp-path">FTP Home Directory:</label>
-                    <input type="text" name="user-ftp-path" id="user-ftp-path" class="textbox" placeholder="FTP home directory (optional)">
-                </div>
-                <div class="horizontal-align">
-                    <label for="user-ftp-permissions">FTP Permissions:</label>
-                    <input type="text" name="user-ftp-permissions" id="user-ftp-permissions" class="textbox" placeholder="e.g., read,write,delete">
                 </div>
                 
                 <div class="horizontal-align" style="margin-top: 20px;">
@@ -627,20 +599,17 @@
                     <input type="text" name="edit-user-username" id="edit-user-username" class="textbox" placeholder="Enter username">
                 </div>
                 <div class="horizontal-align">
-                    <label for="edit-user-password">Password:</label>
-                    <input type="password" name="edit-user-password" id="edit-user-password" class="textbox" placeholder="Enter password">
+                    <label for="edit-user-password">New Password:</label>
+                    <input type="password" name="edit-user-password" id="edit-user-password" class="textbox" placeholder="Enter new password (leave empty to keep current)">
                 </div>
                 <div class="horizontal-align">
                     <label for="edit-user-name">Full name:</label>
                     <input type="text" name="edit-user-name" id="edit-user-name" class="textbox" placeholder="Enter full name">
                 </div>
-                <div class="horizontal-align">
-                    <label for="edit-user-role">Role:</label>
-                    <select id="edit-user-role" name="edit-user-role">
-                        <option value="admin">Admin</option>
-                        <option value="user">User</option>
-                        <option value="guest">Guest</option>
-                    </select>
+                <div class="user-endpoints-section">
+                    <label class="endpoints-label">Endpoint Access:</label>
+                    <div class="endpoints-grid" id="edit-user-endpoints-grid">
+                    </div>
                 </div>
                 <div class="horizontal-align">
                     <label for="edit-user-paths">Accessible paths:</label>
@@ -649,27 +618,7 @@
                 <div class="horizontal-align">
                     <label for="edit-user-paths-write">Writable paths:</label>
                     <input type="text" name="edit-user-paths-write" id="edit-user-paths-write" class="textbox" placeholder="JSON format (optional)">
-                </div>
-                
-                <div class="user-form-divider"></div>
-                <div class="user-form-subtitle">FTP Access</div>
-                
-                <div class="horizontal-align">
-                    <label for="edit-user-ftp-enabled">FTP Access:</label>
-                    <select id="edit-user-ftp-enabled" name="edit-user-ftp-enabled">
-                        <option value="false">Disabled</option>
-                        <option value="true">Enabled</option>
-                    </select>
-                </div>
-                <div class="horizontal-align">
-                    <label for="edit-user-ftp-path">FTP Home Directory:</label>
-                    <input type="text" name="edit-user-ftp-path" id="edit-user-ftp-path" class="textbox" placeholder="FTP home directory (optional)">
-                </div>
-                <div class="horizontal-align">
-                    <label for="edit-user-ftp-permissions">FTP Permissions:</label>
-                    <input type="text" name="edit-user-ftp-permissions" id="edit-user-ftp-permissions" class="textbox" placeholder="e.g., read,write,delete">
-                </div>
-                
+                </div>  
                 <div class="user-form-divider"></div>
                 <div class="user-form-subtitle" data-text="Connected FTP Users">Connected FTP Users</div>
                 
@@ -746,7 +695,7 @@
     
     async function fetchResourceData() {
         try {
-            const response = await fetch(`${baseURL}/api/resource`, {
+            const response = await fetch(`${baseURL}/api/resources`, {
                 method: 'GET',
                 headers: {
                     'X-API-KEY': apiKey
@@ -2245,9 +2194,9 @@
             document.getElementById('user-username').value = '';
             document.getElementById('user-password').value = '';
             document.getElementById('user-name').value = '';
-            document.getElementById('user-role').value = 'user';
             document.getElementById('user-paths').value = '';
             document.getElementById('user-paths-write').value = '';
+            loadRoles();
         }
     }
 
@@ -2260,9 +2209,8 @@
             document.getElementById('edit-user-username').value = userData.username || '';
             document.getElementById('edit-user-password').value = '';
             document.getElementById('edit-user-name').value = userData.name || '';
-            document.getElementById('edit-user-role').value = userData.role || 'user';
             document.getElementById('edit-user-paths').value = userData.paths ? JSON.stringify(userData.paths) : '';
-            document.getElementById('edit-user-paths-write').value = userData.write_paths ? JSON.stringify(userData.write_paths) : '';
+            document.getElementById('edit-user-paths-write').value = userData.paths_write ? JSON.stringify(userData.paths_write) : '';
             
             document.getElementById('edit-user-ftp-enabled').value = userData.ftp_enabled ? 'true' : 'false';
             document.getElementById('edit-user-ftp-path').value = userData.ftp_path || '';
@@ -2270,8 +2218,11 @@
             
             windowElement.dataset.userId = userData.id || '';
             
-            // Load connected FTP users for this user
             loadConnectedFTPUsers(userData.username);
+            
+            loadRoles().then(() => {
+                populateUserEndpointCheckboxes(userData.role || '');
+            });
         }
     }
 
@@ -2286,8 +2237,6 @@
 
             if (response.ok) {
                 const allFTPUsers = await response.json();
-                // Filter FTP users that belong to this user (this would need backend support)
-                // For now, we'll show all FTP users as a demo
                 displayConnectedFTPUsers(allFTPUsers, username);
             }
         } catch (error) {
@@ -2301,11 +2250,8 @@
         
         if (!ftpUsersList) return;
 
-        // Clear existing content
         ftpUsersList.innerHTML = '';
 
-        // Filter FTP users that might be connected to this user
-        // For demo purposes, we'll show FTP users that contain the username in their name
         const connectedUsers = ftpUsers.filter(ftpUser => 
             ftpUser.username.toLowerCase().includes(currentUsername.toLowerCase()) ||
             ftpUser.path?.includes(currentUsername)
@@ -2345,7 +2291,6 @@
         }
 
         try {
-            // Get available FTP users
             const response = await fetch(`${baseURL}/api/ftp/get_users`, {
                 method: 'GET',
                 headers: {
@@ -2361,13 +2306,10 @@
                     return;
                 }
 
-                // Create a selection dialog
                 const ftpUsersList = allFTPUsers.map(user => user.username).join('\n');
                 const selectedFTPUser = prompt(`Select an FTP user to connect:\n\n${ftpUsersList}\n\nEnter the FTP username:`);
                 
                 if (selectedFTPUser && allFTPUsers.some(user => user.username === selectedFTPUser)) {
-                    // Here you would implement the actual connection logic
-                    // For now, we'll just refresh the display
                     alert(`FTP user "${selectedFTPUser}" connected to user "${currentUsername}"`);
                     loadConnectedFTPUsers(currentUsername);
                 } else if (selectedFTPUser) {
@@ -2386,8 +2328,6 @@
         }
 
         try {
-            // Here you would implement the actual disconnection logic
-            // For now, we'll just refresh the display
             alert(`FTP user "${ftpUsername}" disconnected from user "${username}"`);
             loadConnectedFTPUsers(username);
         } catch (error) {
@@ -2400,7 +2340,15 @@
         const username = document.getElementById('user-username').value.trim();
         const password = document.getElementById('user-password').value;
         const name = document.getElementById('user-name').value.trim();
-        const role = document.getElementById('user-role').value;
+        
+        const selectedEndpoints = [];
+        const checkboxes = document.querySelectorAll('#user-endpoints-grid .endpoint-checkbox:checked');
+        checkboxes.forEach(checkbox => {
+            selectedEndpoints.push(checkbox.value);
+        });
+        
+        const role = selectedEndpoints.length > 0 ? selectedEndpoints.join(',') : 'user';
+        
         const pathsText = document.getElementById('user-paths').value.trim();
         const writePathsText = document.getElementById('user-paths-write').value.trim();
         
@@ -2483,16 +2431,20 @@
         const username = document.getElementById('edit-user-username').value.trim();
         const password = document.getElementById('edit-user-password').value;
         const name = document.getElementById('edit-user-name').value.trim();
-        const role = document.getElementById('edit-user-role').value;
+        
+        const selectedEndpoints = [];
+        const checkboxes = document.querySelectorAll('#edit-user-endpoints-grid .endpoint-checkbox:checked');
+        checkboxes.forEach(checkbox => {
+            selectedEndpoints.push(checkbox.value);
+        });
+        
+        const role = selectedEndpoints.length > 0 ? selectedEndpoints.join(',') : 'user';
+        
         const pathsText = document.getElementById('edit-user-paths').value.trim();
         const writePathsText = document.getElementById('edit-user-paths-write').value.trim();
-        
-        const ftpEnabled = document.getElementById('edit-user-ftp-enabled').value === 'true';
-        const ftpPath = document.getElementById('edit-user-ftp-path').value.trim();
-        const ftpPermissions = document.getElementById('edit-user-ftp-permissions').value.trim();
 
-        if (!username) {
-            alert('Username is required');
+        if (!username || !name) {
+            alert('Username and name are required');
             return;
         }
 
@@ -2515,11 +2467,9 @@
             username: username,
             name: name,
             role: role,
-            paths: paths,
-            write_paths: writePaths,
-            ftp_enabled: ftpEnabled,
-            ftp_path: ftpPath,
-            ftp_permissions: ftpPermissions
+            paths: JSON.stringify(paths),
+            paths_write: JSON.stringify(writePaths),
+            id: userId
         };
 
         if (password) {
@@ -2527,8 +2477,8 @@
         }
 
         try {
-            const response = await fetch(`${baseURL}/api/user/${userId}`, {
-                method: 'PUT',
+            const response = await fetch(`${baseURL}/api/user/edit`, {
+                method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-API-KEY': apiKey
@@ -2586,7 +2536,7 @@
 
     async function loadUsersData() {
         try {
-            const response = await fetch(`${baseURL}/api/users`, {
+            const response = await fetch(`${baseURL}/api/user/get_all`, {
                 method: 'GET',
                 headers: {
                     'X-API-KEY': apiKey
@@ -2864,11 +2814,15 @@
             if (response.ok) {
                 const roles = await response.json();
                 displayRoles(roles);
+                updateEndpointCheckboxes(roles);
+                return roles;
             } else {
                 console.error('Failed to load roles data');
+                return null;
             }
         } catch (error) {
             console.error('Error loading roles data:', error);
+            return null;
         }
     }
 
@@ -2878,17 +2832,72 @@
 
         rolesContent.innerHTML = '';
 
-        Object.entries(roles).forEach(([roleName, permissions]) => {
+        Object.entries(roles).forEach(([endpoint, allowedRoles]) => {
             const roleItem = document.createElement('div');
             roleItem.className = 'users-list-item';
             roleItem.innerHTML = `
                 <div class="user-info">
-                    <div class="user-name">${roleName}</div>
-                    <div class="user-details">Permissions: ${Object.keys(permissions).filter(p => permissions[p]).join(', ') || 'None'}</div>
+                    <div class="user-name">${endpoint}</div>
+                    <div class="user-details">Allowed roles: ${allowedRoles.join(', ')}</div>
                 </div>
             `;
             rolesContent.appendChild(roleItem);
         });
+    }
+
+    function updateEndpointCheckboxes(roles) {
+        const createGrid = document.getElementById('user-endpoints-grid');
+        const editGrid = document.getElementById('edit-user-endpoints-grid');
+        
+        if (createGrid) {
+            createGrid.innerHTML = '';
+            Object.keys(roles).forEach(endpoint => {
+                const checkboxItem = document.createElement('div');
+                checkboxItem.className = 'endpoint-checkbox-item';
+                checkboxItem.innerHTML = `
+                    <input type="checkbox" class="endpoint-checkbox" id="create-${endpoint.replace(/[^a-zA-Z0-9]/g, '-')}" value="${endpoint}">
+                    <label class="endpoint-label" for="create-${endpoint.replace(/[^a-zA-Z0-9]/g, '-')}">${endpoint}</label>
+                `;
+                createGrid.appendChild(checkboxItem);
+            });
+        }
+        
+        if (editGrid) {
+            editGrid.innerHTML = '';
+            Object.keys(roles).forEach(endpoint => {
+                const checkboxItem = document.createElement('div');
+                checkboxItem.className = 'endpoint-checkbox-item';
+                checkboxItem.innerHTML = `
+                    <input type="checkbox" class="endpoint-checkbox" id="edit-${endpoint.replace(/[^a-zA-Z0-9]/g, '-')}" value="${endpoint}">
+                    <label class="endpoint-label" for="edit-${endpoint.replace(/[^a-zA-Z0-9]/g, '-')}">${endpoint}</label>
+                `;
+                editGrid.appendChild(checkboxItem);
+            });
+        }
+    }
+
+    function populateUserEndpointCheckboxes(userRole) {
+        const allCheckboxes = document.querySelectorAll('#edit-user-endpoints-grid .endpoint-checkbox');
+        allCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        let userEndpoints = [];
+        
+        if (userRole === 'admin') {
+            allCheckboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        } else if (userRole && userRole.includes('/api/')) {
+            userEndpoints = userRole.split(',').map(endpoint => endpoint.trim());
+            
+            userEndpoints.forEach(endpoint => {
+                const checkbox = document.querySelector(`#edit-user-endpoints-grid .endpoint-checkbox[value="${endpoint}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+        }
     }
 
     function editRoles() {

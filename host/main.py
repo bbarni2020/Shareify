@@ -57,6 +57,18 @@ class CustomAuthorizer(DummyAuthorizer):
             self.user_table[username]['home'] = homedir
         if perm:
             self.user_table[username]['perm'] = perm
+    
+    def get_user_list(self):
+        """Return a list of all FTP users with their details."""
+        user_list = []
+        for username, user_data in self.user_table.items():
+            user_list.append([
+                username,
+                user_data.get('pwd', ''),
+                user_data.get('home', ''),
+                user_data.get('perm', '')
+            ])
+        return user_list
 
 authorizer = CustomAuthorizer()
 logs_db_path = os.path.join(os.path.dirname(__file__), 'db/logs.db')
@@ -748,6 +760,7 @@ def get_ftp_users():
         log("FPT users retrived", request.remote_addr)
         return jsonify(users), 200
     except Exception as e:
+        print("Error retrieving FTP users:", str(e))
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/ftp/edit_user', methods=['POST'])
