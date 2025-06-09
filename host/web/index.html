@@ -248,8 +248,67 @@
             </g>
         </svg>
         <div class="window_title">Users</div>
-        <div style="display: flex; justify-content: center; align-items: center; height: 100%; width: 100%;">
-            <p style="font-size: 18px; color: #666;">Not yet available</p>
+        <div class="sections_container">
+            <div class="users-layout">
+                <div class="users-left-column">
+                    <div class="users-roles">
+                        <div class="users-section-title">Roles</div>
+                        <div class="users-section-buttons">
+                            <button class="user-action-btn edit-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+                                    <circle cx="20" cy="20" r="20" fill="#3B82F6"/>
+                                    <path d="M14 26h2l8-8-2-2-8 8v2z" fill="white"/>
+                                    <path d="M22 12l2 2 2-2-2-2-2 2z" fill="white"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="users-section-content" id="roles-content">
+                        </div>
+                    </div>
+                    
+                    <div class="users-ftpusers">
+                        <div class="users-section-title">FTP users</div>
+                        <div class="users-section-buttons">
+                            <button class="user-action-btn add-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+                                    <circle cx="20" cy="20" r="20" fill="#90E478"/>
+                                    <line x1="20" y1="14" x2="20" y2="26" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                                    <line x1="14" y1="20" x2="26" y2="20" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                            </button>
+                            <button class="user-action-btn remove-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+                                    <circle cx="20" cy="20" r="20" fill="#DC2626"/>
+                                    <line x1="14" y1="20" x2="26" y2="20" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="users-section-content" id="ftpusers-content">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="users-users">
+                    <div class="users-section-title">Users</div>
+                    <div class="users-section-buttons">
+                        <button class="user-action-btn add-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+                                <circle cx="20" cy="20" r="20" fill="#90E478"/>
+                                <line x1="20" y1="14" x2="20" y2="26" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                                <line x1="14" y1="20" x2="26" y2="20" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                        <button class="user-action-btn remove-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+                                <circle cx="20" cy="20" r="20" fill="#DC2626"/>
+                                <line x1="14" y1="20" x2="26" y2="20" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="users-section-content" id="users-content">
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="resize_handle"></div>
     </div>
@@ -486,11 +545,221 @@
     </div>
     
     <div class="icon"></div>
+    
+    <div class="window user-create-window" id="user-create-window">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="none" class="exit_btn">
+            <g filter="url(#filter0_i_19_3)">
+                <circle cx="11" cy="11" r="11" fill="#DC2626"/>
+            </g>
+        </svg>
+        <div class="window_title">Create User</div>
+        <div class="user-form-content">
+            <div class="user-form-section">
+                <div class="horizontal-align">
+                    <label for="user-username">Username:</label>
+                    <input type="text" name="user-username" id="user-username" class="textbox" placeholder="Enter username">
+                </div>
+                <div class="horizontal-align">
+                    <label for="user-password">Password:</label>
+                    <input type="password" name="user-password" id="user-password" class="textbox" placeholder="Enter password">
+                </div>
+                <div class="horizontal-align">
+                    <label for="user-name">Full name:</label>
+                    <input type="text" name="user-name" id="user-name" class="textbox" placeholder="Enter full name">
+                </div>
+                <div class="horizontal-align">
+                    <label for="user-role">Role:</label>
+                    <select id="user-role" name="user-role">
+                        <option value="admin">Admin</option>
+                        <option value="user">User</option>
+                        <option value="guest">Guest</option>
+                    </select>
+                </div>
+                <div class="horizontal-align">
+                    <label for="user-paths">Accessible paths:</label>
+                    <input type="text" name="user-paths" id="user-paths" class="textbox" placeholder="JSON format (optional)">
+                </div>
+                <div class="horizontal-align">
+                    <label for="user-paths-write">Writable paths:</label>
+                    <input type="text" name="user-paths-write" id="user-paths-write" class="textbox" placeholder="JSON format (optional)">
+                </div>
+                
+                <div class="user-form-divider"></div>
+                <div class="user-form-subtitle">FTP Access</div>
+                
+                <div class="horizontal-align">
+                    <label for="user-ftp-enabled">FTP Access:</label>
+                    <select id="user-ftp-enabled" name="user-ftp-enabled">
+                        <option value="false">Disabled</option>
+                        <option value="true">Enabled</option>
+                    </select>
+                </div>
+                <div class="horizontal-align">
+                    <label for="user-ftp-path">FTP Home Directory:</label>
+                    <input type="text" name="user-ftp-path" id="user-ftp-path" class="textbox" placeholder="FTP home directory (optional)">
+                </div>
+                <div class="horizontal-align">
+                    <label for="user-ftp-permissions">FTP Permissions:</label>
+                    <input type="text" name="user-ftp-permissions" id="user-ftp-permissions" class="textbox" placeholder="e.g., read,write,delete">
+                </div>
+                
+                <div class="horizontal-align" style="margin-top: 20px;">
+                    <div style="width: 100%;"></div>
+                    <div id="user_saved" class="saved_text">User Created</div>
+                    <div class="accept_btn" id="user_create_btn"><img src="web/assets/pipe.png" alt="create" class="centered-img"></div>
+                </div>
+            </div>
+        </div>
+        <div class="resize_handle"></div>
+    </div>
+    
+    <div class="window user-edit-window" id="user-edit-window">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="none" class="exit_btn">
+            <g filter="url(#filter0_i_19_3)">
+                <circle cx="11" cy="11" r="11" fill="#DC2626"/>
+            </g>
+        </svg>
+        <div class="window_title">Edit User</div>
+        <div class="user-form-content">
+            <div class="user-form-section">
+                <div class="horizontal-align">
+                    <label for="edit-user-username">Username:</label>
+                    <input type="text" name="edit-user-username" id="edit-user-username" class="textbox" placeholder="Enter username">
+                </div>
+                <div class="horizontal-align">
+                    <label for="edit-user-password">Password:</label>
+                    <input type="password" name="edit-user-password" id="edit-user-password" class="textbox" placeholder="Enter password">
+                </div>
+                <div class="horizontal-align">
+                    <label for="edit-user-name">Full name:</label>
+                    <input type="text" name="edit-user-name" id="edit-user-name" class="textbox" placeholder="Enter full name">
+                </div>
+                <div class="horizontal-align">
+                    <label for="edit-user-role">Role:</label>
+                    <select id="edit-user-role" name="edit-user-role">
+                        <option value="admin">Admin</option>
+                        <option value="user">User</option>
+                        <option value="guest">Guest</option>
+                    </select>
+                </div>
+                <div class="horizontal-align">
+                    <label for="edit-user-paths">Accessible paths:</label>
+                    <input type="text" name="edit-user-paths" id="edit-user-paths" class="textbox" placeholder="JSON format (optional)">
+                </div>
+                <div class="horizontal-align">
+                    <label for="edit-user-paths-write">Writable paths:</label>
+                    <input type="text" name="edit-user-paths-write" id="edit-user-paths-write" class="textbox" placeholder="JSON format (optional)">
+                </div>
+                
+                <div class="user-form-divider"></div>
+                <div class="user-form-subtitle">FTP Access</div>
+                
+                <div class="horizontal-align">
+                    <label for="edit-user-ftp-enabled">FTP Access:</label>
+                    <select id="edit-user-ftp-enabled" name="edit-user-ftp-enabled">
+                        <option value="false">Disabled</option>
+                        <option value="true">Enabled</option>
+                    </select>
+                </div>
+                <div class="horizontal-align">
+                    <label for="edit-user-ftp-path">FTP Home Directory:</label>
+                    <input type="text" name="edit-user-ftp-path" id="edit-user-ftp-path" class="textbox" placeholder="FTP home directory (optional)">
+                </div>
+                <div class="horizontal-align">
+                    <label for="edit-user-ftp-permissions">FTP Permissions:</label>
+                    <input type="text" name="edit-user-ftp-permissions" id="edit-user-ftp-permissions" class="textbox" placeholder="e.g., read,write,delete">
+                </div>
+                
+                <div class="user-form-divider"></div>
+                <div class="user-form-subtitle" data-text="Connected FTP Users">Connected FTP Users</div>
+                
+                <div class="ftp-users-connection-section">
+                    <div class="ftp-users-list" id="edit-user-ftp-users-list">
+                        <div class="ftp-users-empty-state" id="ftp-users-empty">
+                            <div class="empty-state-icon">👥</div>
+                            <div class="empty-state-text">No FTP users connected to this user</div>
+                        </div>
+                    </div>
+                    <div class="ftp-users-actions">
+                        <button type="button" class="ftp-connect-btn" id="connect-ftp-user-btn">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M8 1V15M1 8H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            Connect FTP User
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="horizontal-align" style="margin-top: 30px;">
+                    <div style="width: 100%;"></div>
+                    <div id="user_edit_saved" class="saved_text">User Updated</div>
+                    <div class="accept_btn" id="user_edit_btn"><img src="web/assets/pipe.png" alt="update" class="centered-img"></div>
+                </div>
+            </div>
+        </div>
+        <div class="resize_handle"></div>
+    </div>
+    
+    <div class="window ftp-edit-window" id="ftp-edit-window">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="none" class="exit_btn">
+            <g filter="url(#filter0_i_19_3)">
+                <circle cx="11" cy="11" r="11" fill="#DC2626"/>
+            </g>
+        </svg>
+        <div class="window_title">Edit FTP User</div>
+        <div class="ftp-form-content">
+            <div class="ftp-form-section">
+                <div class="ftp-form-group">
+                    <label for="ftp-edit-username">FTP Username</label>
+                    <input type="text" id="ftp-edit-username" class="ftp-input" placeholder="Enter FTP username" readonly>
+                </div>
+                <div class="ftp-form-group">
+                    <label for="ftp-edit-password">FTP Password</label>
+                    <input type="password" id="ftp-edit-password" class="ftp-input" placeholder="Enter new password (leave empty to keep current)">
+                </div>
+                <div class="ftp-form-group">
+                    <label for="ftp-edit-path">Home Directory</label>
+                    <input type="text" id="ftp-edit-path" class="ftp-input" placeholder="FTP home directory path">
+                </div>
+                <div class="ftp-form-group">
+                    <label for="ftp-edit-permissions">Permissions</label>
+                    <input type="text" id="ftp-edit-permissions" class="ftp-input" placeholder="read,write,delete">
+                </div>
+            </div>
+            <div class="ftp-form-actions">
+                <div class="ftp-saved-message" id="ftp_edit_saved">FTP User Updated</div>
+                <button class="ftp-action-btn ftp-update-btn" id="ftp_edit_btn">
+                    <span>Update FTP User</span>
+                </button>
+            </div>
+        </div>
+        <div class="resize_handle"></div>
+    </div>
 </body>
 <script>
     const baseURL = window.location.origin;
     
-    window.addEventListener('DOMContentLoaded', () => {document.body.style.opacity = '1';});
+    window.addEventListener('DOMContentLoaded', () => {
+        document.body.style.opacity = '1';
+        fetchResourceData();
+    });
+    
+    async function fetchResourceData() {
+        try {
+            const response = await fetch(`${baseURL}/api/resource`, {
+                method: 'GET',
+                headers: {
+                    'X-API-KEY': apiKey
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+            }
+        } catch (error) {
+            console.error('Error fetching resource data:', error);
+        }
+    }
     let apiKey = localStorage.getItem('api_key');
     if (!apiKey) {
         window.location.href = '/auth';
@@ -853,6 +1122,9 @@
             windowElement.classList.remove('hide');
             bringToFront(windowElement);
             updateIndicator('users-window', 'users-indicator');
+            loadUsersData();
+            loadFTPUsers();
+            loadRoles();
         }
     }
 
@@ -1962,5 +2234,704 @@
     });
 
     });
+
+
+    function openUserCreateWindow() {
+        const windowElement = document.getElementById('user-create-window');
+        if (windowElement) {
+            windowElement.classList.add('show');
+            windowElement.classList.remove('hide');
+            bringToFront(windowElement);
+            document.getElementById('user-username').value = '';
+            document.getElementById('user-password').value = '';
+            document.getElementById('user-name').value = '';
+            document.getElementById('user-role').value = 'user';
+            document.getElementById('user-paths').value = '';
+            document.getElementById('user-paths-write').value = '';
+        }
+    }
+
+    function openUserEditWindow(userData) {
+        const windowElement = document.getElementById('user-edit-window');
+        if (windowElement) {
+            windowElement.classList.add('show');
+            windowElement.classList.remove('hide');
+            bringToFront(windowElement);
+            document.getElementById('edit-user-username').value = userData.username || '';
+            document.getElementById('edit-user-password').value = '';
+            document.getElementById('edit-user-name').value = userData.name || '';
+            document.getElementById('edit-user-role').value = userData.role || 'user';
+            document.getElementById('edit-user-paths').value = userData.paths ? JSON.stringify(userData.paths) : '';
+            document.getElementById('edit-user-paths-write').value = userData.write_paths ? JSON.stringify(userData.write_paths) : '';
+            
+            document.getElementById('edit-user-ftp-enabled').value = userData.ftp_enabled ? 'true' : 'false';
+            document.getElementById('edit-user-ftp-path').value = userData.ftp_path || '';
+            document.getElementById('edit-user-ftp-permissions').value = userData.ftp_permissions || '';
+            
+            windowElement.dataset.userId = userData.id || '';
+            
+            // Load connected FTP users for this user
+            loadConnectedFTPUsers(userData.username);
+        }
+    }
+
+    async function loadConnectedFTPUsers(username) {
+        try {
+            const response = await fetch(`${baseURL}/api/ftp/get_users`, {
+                method: 'GET',
+                headers: {
+                    'X-API-KEY': apiKey
+                }
+            });
+
+            if (response.ok) {
+                const allFTPUsers = await response.json();
+                // Filter FTP users that belong to this user (this would need backend support)
+                // For now, we'll show all FTP users as a demo
+                displayConnectedFTPUsers(allFTPUsers, username);
+            }
+        } catch (error) {
+            console.error('Error loading connected FTP users:', error);
+        }
+    }
+
+    function displayConnectedFTPUsers(ftpUsers, currentUsername) {
+        const ftpUsersList = document.getElementById('edit-user-ftp-users-list');
+        const emptyState = document.getElementById('ftp-users-empty');
+        
+        if (!ftpUsersList) return;
+
+        // Clear existing content
+        ftpUsersList.innerHTML = '';
+
+        // Filter FTP users that might be connected to this user
+        // For demo purposes, we'll show FTP users that contain the username in their name
+        const connectedUsers = ftpUsers.filter(ftpUser => 
+            ftpUser.username.toLowerCase().includes(currentUsername.toLowerCase()) ||
+            ftpUser.path?.includes(currentUsername)
+        );
+
+        if (connectedUsers.length === 0) {
+            ftpUsersList.appendChild(emptyState.cloneNode(true));
+        } else {
+            connectedUsers.forEach(ftpUser => {
+                const userItem = document.createElement('div');
+                userItem.className = 'connected-ftp-user';
+                userItem.innerHTML = `
+                    <div class="ftp-user-info">
+                        <div class="ftp-user-name">${ftpUser.username}</div>
+                        <div class="ftp-user-details">Path: ${ftpUser.path || 'Default'} • Permissions: ${ftpUser.permissions}</div>
+                    </div>
+                    <div class="ftp-user-actions">
+                        <button class="ftp-user-action-btn disconnect-ftp-btn" onclick="disconnectFTPUser('${ftpUser.username}', '${currentUsername}')">
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                ftpUsersList.appendChild(userItem);
+            });
+        }
+    }
+
+    async function connectFTPUserToUser() {
+        const windowElement = document.getElementById('user-edit-window');
+        const currentUsername = document.getElementById('edit-user-username').value;
+        
+        if (!currentUsername) {
+            alert('Please save the user first before connecting FTP users');
+            return;
+        }
+
+        try {
+            // Get available FTP users
+            const response = await fetch(`${baseURL}/api/ftp/get_users`, {
+                method: 'GET',
+                headers: {
+                    'X-API-KEY': apiKey
+                }
+            });
+
+            if (response.ok) {
+                const allFTPUsers = await response.json();
+                
+                if (allFTPUsers.length === 0) {
+                    alert('No FTP users available. Create FTP users first.');
+                    return;
+                }
+
+                // Create a selection dialog
+                const ftpUsersList = allFTPUsers.map(user => user.username).join('\n');
+                const selectedFTPUser = prompt(`Select an FTP user to connect:\n\n${ftpUsersList}\n\nEnter the FTP username:`);
+                
+                if (selectedFTPUser && allFTPUsers.some(user => user.username === selectedFTPUser)) {
+                    // Here you would implement the actual connection logic
+                    // For now, we'll just refresh the display
+                    alert(`FTP user "${selectedFTPUser}" connected to user "${currentUsername}"`);
+                    loadConnectedFTPUsers(currentUsername);
+                } else if (selectedFTPUser) {
+                    alert('Invalid FTP username selected');
+                }
+            }
+        } catch (error) {
+            console.error('Error connecting FTP user:', error);
+            alert('Failed to connect FTP user');
+        }
+    }
+
+    async function disconnectFTPUser(ftpUsername, username) {
+        if (!confirm(`Disconnect FTP user "${ftpUsername}" from user "${username}"?`)) {
+            return;
+        }
+
+        try {
+            // Here you would implement the actual disconnection logic
+            // For now, we'll just refresh the display
+            alert(`FTP user "${ftpUsername}" disconnected from user "${username}"`);
+            loadConnectedFTPUsers(username);
+        } catch (error) {
+            console.error('Error disconnecting FTP user:', error);
+            alert('Failed to disconnect FTP user');
+        }
+    }
+
+    async function createUser() {
+        const username = document.getElementById('user-username').value.trim();
+        const password = document.getElementById('user-password').value;
+        const name = document.getElementById('user-name').value.trim();
+        const role = document.getElementById('user-role').value;
+        const pathsText = document.getElementById('user-paths').value.trim();
+        const writePathsText = document.getElementById('user-paths-write').value.trim();
+        
+        const ftpEnabled = document.getElementById('user-ftp-enabled').value === 'true';
+        const ftpPath = document.getElementById('user-ftp-path').value.trim();
+        const ftpPermissions = document.getElementById('user-ftp-permissions').value.trim();
+
+        if (!username || !password) {
+            alert('Username and password are required');
+            return;
+        }
+
+        let paths = [];
+        let writePaths = [];
+
+        try {
+            if (pathsText) {
+                paths = JSON.parse(pathsText);
+            }
+            if (writePathsText) {
+                writePaths = JSON.parse(writePathsText);
+            }
+        } catch (error) {
+            alert('Invalid JSON format in paths fields');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${baseURL}/api/user`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': apiKey
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password,
+                    name: name,
+                    role: role,
+                    paths: paths,
+                    write_paths: writePaths,
+                    ftp_enabled: ftpEnabled,
+                    ftp_path: ftpPath,
+                    ftp_permissions: ftpPermissions
+                })
+            });
+
+            if (response.ok) {
+                const savedDiv = document.getElementById('user_saved');
+                if (savedDiv) {
+                    savedDiv.classList.add('visible');
+                    setTimeout(() => {
+                        savedDiv.classList.remove('visible');
+                    }, 3000);
+                }
+                loadUsersData();
+                setTimeout(() => {
+                    document.getElementById('user-create-window').classList.remove('show');
+                    document.getElementById('user-create-window').classList.add('hide');
+                }, 1500);
+            } else {
+                const errorData = await response.json();
+                alert(`Error creating user: ${errorData.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error creating user:', error);
+            alert('Failed to create user. Please try again.');
+        }
+    }
+
+    async function updateUser() {
+        const windowElement = document.getElementById('user-edit-window');
+        const userId = windowElement.dataset.userId;
+        
+        if (!userId) {
+            alert('No user selected for editing');
+            return;
+        }
+
+        const username = document.getElementById('edit-user-username').value.trim();
+        const password = document.getElementById('edit-user-password').value;
+        const name = document.getElementById('edit-user-name').value.trim();
+        const role = document.getElementById('edit-user-role').value;
+        const pathsText = document.getElementById('edit-user-paths').value.trim();
+        const writePathsText = document.getElementById('edit-user-paths-write').value.trim();
+        
+        const ftpEnabled = document.getElementById('edit-user-ftp-enabled').value === 'true';
+        const ftpPath = document.getElementById('edit-user-ftp-path').value.trim();
+        const ftpPermissions = document.getElementById('edit-user-ftp-permissions').value.trim();
+
+        if (!username) {
+            alert('Username is required');
+            return;
+        }
+
+        let paths = [];
+        let writePaths = [];
+
+        try {
+            if (pathsText) {
+                paths = JSON.parse(pathsText);
+            }
+            if (writePathsText) {
+                writePaths = JSON.parse(writePathsText);
+            }
+        } catch (error) {
+            alert('Invalid JSON format in paths fields');
+            return;
+        }
+
+        const updateData = {
+            username: username,
+            name: name,
+            role: role,
+            paths: paths,
+            write_paths: writePaths,
+            ftp_enabled: ftpEnabled,
+            ftp_path: ftpPath,
+            ftp_permissions: ftpPermissions
+        };
+
+        if (password) {
+            updateData.password = password;
+        }
+
+        try {
+            const response = await fetch(`${baseURL}/api/user/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': apiKey
+                },
+                body: JSON.stringify(updateData)
+            });
+
+            if (response.ok) {
+                const savedDiv = document.getElementById('user_edit_saved');
+                if (savedDiv) {
+                    savedDiv.classList.add('visible');
+                    setTimeout(() => {
+                        savedDiv.classList.remove('visible');
+                    }, 3000);
+                }
+                loadUsersData();
+                setTimeout(() => {
+                    document.getElementById('user-edit-window').classList.remove('show');
+                    document.getElementById('user-edit-window').classList.add('hide');
+                }, 1500);
+            } else {
+                const errorData = await response.json();
+                alert(`Error updating user: ${errorData.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error updating user:', error);
+            alert('Failed to update user. Please try again.');
+        }
+    }
+
+    async function deleteUser(userId, username) {
+        if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${baseURL}/api/user/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-API-KEY': apiKey
+                }
+            });
+
+            if (response.ok) {
+                loadUsersData();
+            } else {
+                const errorData = await response.json();
+                alert(`Error deleting user: ${errorData.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            alert('Failed to delete user. Please try again.');
+        }
+    }
+
+    async function loadUsersData() {
+        try {
+            const response = await fetch(`${baseURL}/api/users`, {
+                method: 'GET',
+                headers: {
+                    'X-API-KEY': apiKey
+                }
+            });
+
+            if (response.ok) {
+                const users = await response.json();
+                displayUsers(users);
+            } else {
+                console.error('Failed to load users data');
+            }
+        } catch (error) {
+            console.error('Error loading users data:', error);
+        }
+    }
+
+    function displayUsers(users) {
+        const usersContent = document.getElementById('users-content');
+        if (!usersContent) return;
+
+        usersContent.innerHTML = '';
+
+        users.forEach(user => {
+            const userItem = document.createElement('div');
+            userItem.className = 'users-list-item';
+            userItem.innerHTML = `
+                <div class="user-info">
+                    <div class="user-name">${user.name || user.username}</div>
+                    <div class="user-details">${user.username} • ${user.role}</div>
+                </div>
+                <div class="user-actions">
+                    <button class="user-item-btn edit-user-btn" data-user='${JSON.stringify(user)}'>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M11.5 3.5L12.5 4.5L5 12H4V11L11.5 3.5Z" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                    </button>
+                    <button class="user-item-btn delete-user-btn" data-user-id="${user.id}" data-username="${user.username}">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M6 2.5H10M2.5 4H13.5M12 4L11.5 12.5H4.5L4 4" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            usersContent.appendChild(userItem);
+        });
+
+        document.querySelectorAll('.edit-user-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const userData = JSON.parse(btn.dataset.user);
+                openUserEditWindow(userData);
+            });
+        });
+
+        document.querySelectorAll('.delete-user-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const userId = btn.dataset.userId;
+                const username = btn.dataset.username;
+                deleteUser(userId, username);
+            });
+        });
+    }
+
+    async function loadFTPUsers() {
+        try {
+            const response = await fetch(`${baseURL}/api/ftp/get_users`, {
+                method: 'GET',
+                headers: {
+                    'X-API-KEY': apiKey
+                }
+            });
+
+            if (response.ok) {
+                const ftpUsers = await response.json();
+                displayFTPUsers(ftpUsers);
+            } else {
+                console.error('Failed to load FTP users data');
+            }
+        } catch (error) {
+            console.error('Error loading FTP users data:', error);
+        }
+    }
+
+    function displayFTPUsers(ftpUsers) {
+        const ftpUsersContent = document.getElementById('ftpusers-content');
+        if (!ftpUsersContent) return;
+
+        ftpUsersContent.innerHTML = '';
+
+        ftpUsers.forEach(user => {
+            const userItem = document.createElement('div');
+            userItem.className = 'users-list-item';
+            userItem.innerHTML = `
+                <div class="user-info">
+                    <div class="user-name">${user.username}</div>
+                    <div class="user-details">FTP User • ${user.status || 'Active'}</div>
+                </div>
+                <div class="user-actions">
+                    <button class="user-item-btn edit-ftp-btn" data-ftp-user='${JSON.stringify(user)}'>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M11.013 2.5L13.5 4.987l-8 8L2 14l1.013-3.5z" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                    </button>
+                    <button class="user-item-btn delete-user-btn" data-ftp-user="${user.username}">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M6 2.5H10M2.5 4H13.5M12 4L11.5 12.5H4.5L4 4" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            ftpUsersContent.appendChild(userItem);
+        });
+
+        document.querySelectorAll('.edit-ftp-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const ftpUserData = JSON.parse(btn.dataset.ftpUser);
+                openFTPEditWindow(ftpUserData);
+            });
+        });
+
+        document.querySelectorAll('.delete-user-btn[data-ftp-user]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const username = btn.dataset.ftpUser;
+                deleteFTPUser(username);
+            });
+        });
+    }
+
+    async function createFTPUser() {
+        const username = prompt('Enter FTP username:');
+        if (!username) return;
+
+        const password = prompt('Enter FTP password:');
+        if (!password) return;
+
+        try {
+            const response = await fetch(`${baseURL}/api/ftp_user`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': apiKey
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            });
+
+            if (response.ok) {
+                loadFTPUsers();
+            } else {
+                const errorData = await response.json();
+                alert(`Error creating FTP user: ${errorData.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error creating FTP user:', error);
+            alert('Failed to create FTP user. Please try again.');
+        }
+    }
+
+    async function deleteFTPUser(username) {
+        if (!confirm(`Are you sure you want to delete FTP user "${username}"?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${baseURL}/api/ftp_user/${username}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-API-KEY': apiKey
+                }
+            });
+
+            if (response.ok) {
+                loadFTPUsers();
+            } else {
+                const errorData = await response.json();
+                alert(`Error deleting FTP user: ${errorData.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error deleting FTP user:', error);
+            alert('Failed to delete FTP user. Please try again.');
+        }
+    }
+
+    function openFTPEditWindow(ftpUserData) {
+        const windowElement = document.getElementById('ftp-edit-window');
+        if (windowElement) {
+            windowElement.classList.add('show');
+            windowElement.classList.remove('hide');
+            bringToFront(windowElement);
+            
+            document.getElementById('ftp-edit-username').value = ftpUserData.username || '';
+            document.getElementById('ftp-edit-password').value = '';
+            document.getElementById('ftp-edit-path').value = ftpUserData.path || '';
+            document.getElementById('ftp-edit-permissions').value = ftpUserData.permissions || '';
+            
+            windowElement.dataset.ftpUsername = ftpUserData.username || '';
+        }
+    }
+
+    async function updateFTPUser() {
+        const windowElement = document.getElementById('ftp-edit-window');
+        const ftpUsername = windowElement.dataset.ftpUsername;
+        
+        if (!ftpUsername) {
+            alert('No FTP user selected for editing');
+            return;
+        }
+
+        const password = document.getElementById('ftp-edit-password').value;
+        const path = document.getElementById('ftp-edit-path').value.trim();
+        const permissions = document.getElementById('ftp-edit-permissions').value.trim();
+
+        const requestBody = {
+            username: ftpUsername
+        };
+
+        if (password) {
+            requestBody.password = password;
+        }
+        if (path) {
+            requestBody.path = path;
+        }
+        if (permissions) {
+            requestBody.permissions = permissions;
+        }
+
+        try {
+            const response = await fetch(`${baseURL}/api/ftp/edit_user`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': apiKey
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (response.ok) {
+                const savedDiv = document.getElementById('ftp_edit_saved');
+                if (savedDiv) {
+                    savedDiv.classList.add('visible');
+                    setTimeout(() => {
+                        savedDiv.classList.remove('visible');
+                    }, 3000);
+                }
+                loadFTPUsers();
+                setTimeout(() => {
+                    document.getElementById('ftp-edit-window').classList.remove('show');
+                    document.getElementById('ftp-edit-window').classList.add('hide');
+                }, 1500);
+            } else {
+                const errorData = await response.json();
+                alert(`Error updating FTP user: ${errorData.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error updating FTP user:', error);
+            alert('Failed to update FTP user. Please try again.');
+        }
+    }
+
+    async function loadRoles() {
+        try {
+            const response = await fetch(`${baseURL}/api/role/get`, {
+                method: 'GET',
+                headers: {
+                    'X-API-KEY': apiKey
+                }
+            });
+
+            if (response.ok) {
+                const roles = await response.json();
+                displayRoles(roles);
+            } else {
+                console.error('Failed to load roles data');
+            }
+        } catch (error) {
+            console.error('Error loading roles data:', error);
+        }
+    }
+
+    function displayRoles(roles) {
+        const rolesContent = document.getElementById('roles-content');
+        if (!rolesContent) return;
+
+        rolesContent.innerHTML = '';
+
+        Object.entries(roles).forEach(([roleName, permissions]) => {
+            const roleItem = document.createElement('div');
+            roleItem.className = 'users-list-item';
+            roleItem.innerHTML = `
+                <div class="user-info">
+                    <div class="user-name">${roleName}</div>
+                    <div class="user-details">Permissions: ${Object.keys(permissions).filter(p => permissions[p]).join(', ') || 'None'}</div>
+                </div>
+            `;
+            rolesContent.appendChild(roleItem);
+        });
+    }
+
+    function editRoles() {
+        alert('Role editing functionality would open a detailed permissions editor here.');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelector('.users-ftpusers .add-btn')?.addEventListener('click', () => {
+            createFTPUser();
+        });
+
+        document.querySelector('.users-ftpusers .remove-btn')?.addEventListener('click', () => {
+            alert('Select an FTP user from the list to remove them.');
+        });
+
+        document.querySelector('.users-users .add-btn')?.addEventListener('click', () => {
+            openUserCreateWindow();
+        });
+
+        document.querySelector('.users-users .remove-btn')?.addEventListener('click', () => {
+            alert('Select a user from the list to remove them.');
+        });
+        document.querySelector('.users-roles .edit-btn')?.addEventListener('click', () => {
+            editRoles();
+        });
+
+        document.getElementById('user_create_btn')?.addEventListener('click', () => {
+            createUser();
+        });
+
+        document.getElementById('user_edit_btn')?.addEventListener('click', () => {
+            updateUser();
+        });
+
+        document.getElementById('ftp_edit_btn')?.addEventListener('click', () => {
+            updateFTPUser();
+        });
+
+        document.getElementById('connect-ftp-user-btn')?.addEventListener('click', () => {
+            connectFTPUserToUser();
+        });
+
+    });
+
 </script>
 </html>

@@ -360,15 +360,64 @@ def finder():
             log("Finder error: " + str(e), request.remote_addr)
             return jsonify({"error": str(e)}), 500
 
+current_command_dir = None
+
+def get_command_dir():
+    global current_command_dir
+    if current_command_dir is None:
+        current_command_dir = settings['path']
+    return current_command_dir
+
+def set_command_dir(new_dir):
+    global current_command_dir
+    current_command_dir = new_dir
+
 @app.route('/api/command', methods=['POST'])
 def command():
     command = request.json.get('command')
     if command:
         try:
-            stream = os.popen(command)
-            output = stream.read()
-            log("Command executed: " + command, request.remote_addr)
-            return jsonify({"status": "Command executed", "output": output})
+            command = command.strip()
+            
+            if command.startswith('cd '):
+                target_dir = command[3:].strip()
+                if target_dir == '~' or target_dir == '':
+                    new_dir = settings['path']
+                elif target_dir.startswith('/'):
+                    new_dir = target_dir
+                elif target_dir == '..':
+                    current_dir = get_command_dir()
+                    new_dir = os.path.dirname(current_dir)
+                else:
+                    current_dir = get_command_dir()
+                    new_dir = os.path.join(current_dir, target_dir)
+                
+                new_dir = os.path.abspath(new_dir)
+                
+                if os.path.exists(new_dir) and os.path.isdir(new_dir):
+                    set_command_dir(new_dir)
+                    log("Command executed: " + command, request.remote_addr)
+                    return jsonify({"status": "Command executed", "output": f"Changed directory to: {target_dir}"})
+                else:
+                    return jsonify({"status": "Command executed", "output": f"cd: {target_dir}: No such file or directory"})
+            
+            elif command == 'pwd':
+                current_dir = get_command_dir()
+                log("Command executed: " + command, request.remote_addr)
+                return jsonify({"status": "Command executed", "output": current_dir})
+            
+            else:
+                current_dir = get_command_dir()
+                if os.name == 'nt':
+                    full_command = f'cd /d "{current_dir}" && {command}'
+                else:
+                    full_command = f'cd "{current_dir}" && {command}'
+                
+                stream = os.popen(full_command)
+                output = stream.read()
+                log("Command executed: " + command, request.remote_addr)
+                return jsonify({"status": "Command executed", "output": output})
+                
         except Exception as e:
             log("Command execution error: " + str(e), request.remote_addr)
             return jsonify({"error": str(e)}), 500
@@ -807,6 +856,7 @@ def edit_user():
     name = request.json.get('name')
     role = request.json.get('role')
     paths = request.json.get('paths')
+    paths_write = request.json.get('paths_write')
     id = request.json.get('id')
     if username and password and name and role and paths and id:
         try:
@@ -814,9 +864,9 @@ def edit_user():
             cursor = conn.cursor()
             cursor.execute('''
                            UPDATE users
-                           SET username = ?, password = ?, name = ?, role = ?, paths = ?
+                           SET username = ?, password = ?, name = ?, role = ?, paths = ?, paths_write = ?
                            WHERE id = ?
-                           '''), (username, password, name, role, paths, id)
+                           '''), (username, password, name, role, paths, paths_write,id)
             log("User edited: " + username, request.remote_addr)
             conn.commit()
             conn.close()

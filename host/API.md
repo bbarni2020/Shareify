@@ -259,7 +259,8 @@ This document provides an overview of all the API endpoints available in the `ma
 - `name` (string): Full name.
 - `role` (string): User role.
 - `paths` (string): Accessible paths.
-- `id` (string): User ID.  
+- `paths_write` (string): Writable paths.  
+- `id` (string): User ID.
 **Response:**
 - `200 OK`: `{ "status": "User edited" }`
 - `400 Bad Request`: `{ "error": "No username, password, name, role or paths provided" }`
