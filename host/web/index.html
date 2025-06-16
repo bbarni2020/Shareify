@@ -798,10 +798,12 @@
     function updateIndicator(windowId, indicatorId) {
         const windowElement = document.getElementById(windowId);
         const indicatorElement = document.getElementById(indicatorId);
-        if (windowElement.classList.contains('show')) {
-            indicatorElement.classList.add('active');
-        } else {
-            indicatorElement.classList.remove('active');
+        if (windowElement && indicatorElement) {
+            if (windowElement.classList.contains('show')) {
+                indicatorElement.classList.add('active');
+            } else {
+                indicatorElement.classList.remove('active');
+            }
         }
     }
     function getFileTypeClass(fileName) {
@@ -2201,21 +2203,34 @@
     }
 
     function openUserEditWindow(userData) {
+        console.log('openUserEditWindow called with:', userData);
         const windowElement = document.getElementById('user-edit-window');
         if (windowElement) {
             windowElement.classList.add('show');
             windowElement.classList.remove('hide');
             bringToFront(windowElement);
-            document.getElementById('edit-user-username').value = userData.username || '';
-            document.getElementById('edit-user-password').value = '';
-            document.getElementById('edit-user-name').value = userData.name || '';
-            document.getElementById('edit-user-paths').value = userData.paths ? JSON.stringify(userData.paths) : '';
-            document.getElementById('edit-user-paths-write').value = userData.paths_write ? JSON.stringify(userData.paths_write) : '';
             
-            document.getElementById('edit-user-ftp-enabled').value = userData.ftp_enabled ? 'true' : 'false';
-            document.getElementById('edit-user-ftp-path').value = userData.ftp_path || '';
-            document.getElementById('edit-user-ftp-permissions').value = userData.ftp_permissions || '';
+            const usernameEl = document.getElementById('edit-user-username');
+            const passwordEl = document.getElementById('edit-user-password');
+            const nameEl = document.getElementById('edit-user-name');
+            const pathsEl = document.getElementById('edit-user-paths');
+            const writePathsEl = document.getElementById('edit-user-paths-write');
             
+            if (usernameEl) usernameEl.value = userData.username || '';
+            if (passwordEl) passwordEl.value = '';
+            if (nameEl) nameEl.value = userData.name || '';
+            if (pathsEl) pathsEl.value = userData.paths ? JSON.stringify(userData.paths) : '';
+            if (writePathsEl) writePathsEl.value = userData.paths_write ? JSON.stringify(userData.paths_write) : '';
+            
+            const ftpEnabledEl = document.getElementById('edit-user-ftp-enabled');
+            const ftpPathEl = document.getElementById('edit-user-ftp-path');
+            const ftpPermissionsEl = document.getElementById('edit-user-ftp-permissions');
+            
+            if (ftpEnabledEl) ftpEnabledEl.value = userData.ftp_enabled ? 'true' : 'false';
+            if (ftpPathEl) ftpPathEl.value = userData.ftp_path || '';
+            if (ftpPermissionsEl) ftpPermissionsEl.value = userData.ftp_permissions || '';
+            
+            console.log('Setting userId to:', userData.id);
             windowElement.dataset.userId = userData.id || '';
             
             loadConnectedFTPUsers(userData.username);
@@ -2347,14 +2362,8 @@
             selectedEndpoints.push(checkbox.value);
         });
         
-        const role = selectedEndpoints.length > 0 ? selectedEndpoints.join(',') : 'user';
-        
         const pathsText = document.getElementById('user-paths').value.trim();
         const writePathsText = document.getElementById('user-paths-write').value.trim();
-        
-        const ftpEnabled = document.getElementById('user-ftp-enabled').value === 'true';
-        const ftpPath = document.getElementById('user-ftp-path').value.trim();
-        const ftpPermissions = document.getElementById('user-ftp-permissions').value.trim();
 
         if (!username || !password) {
             alert('Username and password are required');
@@ -2376,8 +2385,29 @@
             return;
         }
 
+        const baseRole = username.replace(/\s+/g, '').toLowerCase();
+        let roleId = baseRole;
+        let counter = 1;
+
         try {
-            const response = await fetch(`${baseURL}/api/user`, {
+            const usersResponse = await fetch(`${baseURL}/api/user/get_all`, {
+                method: 'GET',
+                headers: {
+                    'X-API-KEY': apiKey
+                }
+            });
+
+            if (usersResponse.ok) {
+                const existingUsers = await usersResponse.json();
+                const existingRoles = existingUsers.map(user => user.role);
+                
+                while (existingRoles.includes(roleId)) {
+                    roleId = `${baseRole}${counter}`;
+                    counter++;
+                }
+            }
+
+            const response = await fetch(`${baseURL}/api/user/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2387,16 +2417,48 @@
                     username: username,
                     password: password,
                     name: name,
-                    role: role,
-                    paths: paths,
-                    write_paths: writePaths,
-                    ftp_enabled: ftpEnabled,
-                    ftp_path: ftpPath,
-                    ftp_permissions: ftpPermissions
+                    role: roleId,
+                    paths: JSON.stringify(paths),
+                    paths_write: JSON.stringify(writePaths)
                 })
             });
 
             if (response.ok) {
+                if (selectedEndpoints.length > 0) {
+                    try {
+                        const rolesResponse = await fetch(`${baseURL}/api/role/get`, {
+                            method: 'GET',
+                            headers: {
+                                'X-API-KEY': apiKey
+                            }
+                        });
+                        
+                        if (rolesResponse.ok) {
+                            const currentRoles = await rolesResponse.json();
+                            
+                            selectedEndpoints.forEach(endpoint => {
+                                if (!currentRoles[endpoint]) {
+                                    currentRoles[endpoint] = [];
+                                }
+                                if (!currentRoles[endpoint].includes(roleId)) {
+                                    currentRoles[endpoint].push(roleId);
+                                }
+                            });
+                            
+                            await fetch(`${baseURL}/api/role/edit`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-API-KEY': apiKey
+                                },
+                                body: JSON.stringify(currentRoles)
+                            });
+                        }
+                    } catch (roleError) {
+                        console.error('Error updating roles:', roleError);
+                    }
+                }
+                
                 const savedDiv = document.getElementById('user_saved');
                 if (savedDiv) {
                     savedDiv.classList.add('visible');
@@ -2423,6 +2485,9 @@
         const windowElement = document.getElementById('user-edit-window');
         const userId = windowElement.dataset.userId;
         
+        console.log('updateUser called, userId:', userId);
+        console.log('windowElement.dataset:', windowElement.dataset);
+        
         if (!userId) {
             alert('No user selected for editing');
             return;
@@ -2438,7 +2503,21 @@
             selectedEndpoints.push(checkbox.value);
         });
         
-        const role = selectedEndpoints.length > 0 ? selectedEndpoints.join(',') : 'user';
+        const currentUserResponse = await fetch(`${baseURL}/api/user/get_all`, {
+            method: 'GET',
+            headers: {
+                'X-API-KEY': apiKey
+            }
+        });
+        
+        let currentRole = 'user';
+        if (currentUserResponse.ok) {
+            const users = await currentUserResponse.json();
+            const currentUser = users.find(user => user.id == userId);
+            if (currentUser) {
+                currentRole = currentUser.role;
+            }
+        }
         
         const pathsText = document.getElementById('edit-user-paths').value.trim();
         const writePathsText = document.getElementById('edit-user-paths-write').value.trim();
@@ -2465,20 +2544,17 @@
 
         const updateData = {
             username: username,
+            password: password || '',
             name: name,
-            role: role,
+            role: currentRole,
             paths: JSON.stringify(paths),
             paths_write: JSON.stringify(writePaths),
             id: userId
         };
 
-        if (password) {
-            updateData.password = password;
-        }
-
         try {
             const response = await fetch(`${baseURL}/api/user/edit`, {
-                method: 'GET',
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-API-KEY': apiKey
@@ -2487,6 +2563,51 @@
             });
 
             if (response.ok) {
+                if (selectedEndpoints.length > 0) {
+                    try {
+                        const rolesResponse = await fetch(`${baseURL}/api/role/get`, {
+                            method: 'GET',
+                            headers: {
+                                'X-API-KEY': apiKey
+                            }
+                        });
+                        
+                        if (rolesResponse.ok) {
+                            const currentRoles = await rolesResponse.json();
+                            
+                            Object.keys(currentRoles).forEach(endpoint => {
+                                if (currentRoles[endpoint].includes(currentRole)) {
+                                    const index = currentRoles[endpoint].indexOf(currentRole);
+                                    currentRoles[endpoint].splice(index, 1);
+                                    if (currentRoles[endpoint].length === 0) {
+                                        delete currentRoles[endpoint];
+                                    }
+                                }
+                            });
+                            
+                            selectedEndpoints.forEach(endpoint => {
+                                if (!currentRoles[endpoint]) {
+                                    currentRoles[endpoint] = [];
+                                }
+                                if (!currentRoles[endpoint].includes(currentRole)) {
+                                    currentRoles[endpoint].push(currentRole);
+                                }
+                            });
+                            
+                            await fetch(`${baseURL}/api/role/edit`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-API-KEY': apiKey
+                                },
+                                body: JSON.stringify(currentRoles)
+                            });
+                        }
+                    } catch (roleError) {
+                        console.error('Error updating roles:', roleError);
+                    }
+                }
+                
                 const savedDiv = document.getElementById('user_edit_saved');
                 if (savedDiv) {
                     savedDiv.classList.add('visible');
@@ -2515,14 +2636,67 @@
         }
 
         try {
-            const response = await fetch(`${baseURL}/api/user/${userId}`, {
-                method: 'DELETE',
+            const usersResponse = await fetch(`${baseURL}/api/user/get_all`, {
+                method: 'GET',
                 headers: {
                     'X-API-KEY': apiKey
                 }
             });
+            
+            let userRole = null;
+            if (usersResponse.ok) {
+                const users = await usersResponse.json();
+                const user = users.find(u => u.username === username);
+                if (user) {
+                    userRole = user.role;
+                }
+            }
+
+            const response = await fetch(`${baseURL}/api/user/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': apiKey
+                },
+                body: JSON.stringify({ username: username })
+            });
 
             if (response.ok) {
+                if (userRole && userRole !== 'admin') {
+                    try {
+                        const rolesResponse = await fetch(`${baseURL}/api/role/get`, {
+                            method: 'GET',
+                            headers: {
+                                'X-API-KEY': apiKey
+                            }
+                        });
+                        
+                        if (rolesResponse.ok) {
+                            const currentRoles = await rolesResponse.json();
+                            
+                            Object.keys(currentRoles).forEach(endpoint => {
+                                if (currentRoles[endpoint].includes(userRole)) {
+                                    const index = currentRoles[endpoint].indexOf(userRole);
+                                    currentRoles[endpoint].splice(index, 1);
+                                    if (currentRoles[endpoint].length === 0) {
+                                        delete currentRoles[endpoint];
+                                    }
+                                }
+                            });
+                            
+                            await fetch(`${baseURL}/api/role/edit`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-API-KEY': apiKey
+                                },
+                                body: JSON.stringify(currentRoles)
+                            });
+                        }
+                    } catch (roleError) {
+                        console.error('Error updating roles after user deletion:', roleError);
+                    }
+                }
                 loadUsersData();
             } else {
                 const errorData = await response.json();

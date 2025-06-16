@@ -250,7 +250,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ---
 
-### `/api/user/edit` [GET]
+### `/api/user/edit` [POST]
 **Description:** Edit a user's details.  
 **Authentication:** API key required  
 **Request Body:**

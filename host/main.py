@@ -238,11 +238,11 @@ def reload_jsons():
 
 def is_accessible(address):
     try:
-        list = roles.get('/api/role/get', [])
+        list = roles.get(address, [])
         for item in list:
             if item == g.role:
                 return True
-        log("Unauthorized access attempt", request.remote_addr)
+        log(str("Unauthorized access attempt" + (request.endpoint or "")), request.remote_addr)
         return False
     except Exception as e:
         print_status("Error: " + str(e), "error")
@@ -288,12 +288,14 @@ def require_api_key():
     result = cursor.fetchone()
     conn.close()
     if not result or not api_key:
-        log("Unauthorized access attempt", request.remote_addr)
+        log(str("Unauthorized access attempt (API key not  found)" + (request.endpoint or "")), request.remote_addr)
         return jsonify({"error": "Unauthorized"}), 401
     else:
         role = result[5]
         g.role = role
         g.result = result
+        if request.endpoint in ['get_user', 'self_edit_user']:
+            return
         if not is_accessible(request.path):
             return jsonify({"error": "Unauthorized"}), 401
 
@@ -352,7 +354,7 @@ def finder():
                 else:
                     return jsonify({"error": "Path does not exist"}), 404
             else:
-                log("Unauthorized access attempt", request.remote_addr)
+                log("Unauthorized access attempt in finder", request.remote_addr)
                 return jsonify({"error": "Unauthorized"}), 401
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -366,7 +368,7 @@ def finder():
                 else:
                     return jsonify({"error": "Path does not exist"}), 404
             else:
-                log("Unauthorized access attempt", request.remote_addr)
+                log("Unauthorized access attempt in finder", request.remote_addr)
                 return jsonify({"error": "Unauthorized"}), 401
         except Exception as e:
             log("Finder error: " + str(e), request.remote_addr)
@@ -450,7 +452,7 @@ def create_folder():
                 except Exception as e:
                     return jsonify({"error": str(e)}), 500
             else:
-                log("Unauthorized access attempt", request.remote_addr)
+                log("Unauthorized access attempt in creating folder", request.remote_addr)
                 return jsonify({"error": "Unauthorized"}), 401
         else:
             if has_write_access(""):
@@ -461,7 +463,7 @@ def create_folder():
                 except Exception as e:
                     return jsonify({"error": str(e)}), 500
             else:
-                log("Unauthorized access attempt", request.remote_addr)
+                log("Unauthorized access attempt in creating folder", request.remote_addr)
                 return jsonify({"error": "Unauthorized"}), 401
     else:
         return jsonify({"error": "No folder name provided"}), 400
@@ -481,7 +483,7 @@ def delete_folder():
             except Exception as e:
                     return jsonify({"error": str(e)}), 500
         else:
-            log("Unauthorized access attempt", request.remote_addr)
+            log("Unauthorized access attempt in deleting folder", request.remote_addr)
             return jsonify({"error": "Unauthorized"}), 401
     else:
         return jsonify({"error": "No path provided"}), 400
@@ -505,7 +507,7 @@ def rename_folder():
                 except Exception as e:
                     return jsonify({"error": str(e)}), 500
             else:
-                log("Unauthorized access attempt", request.remote_addr)
+                log("Unauthorized access attempt in renameing folder", request.remote_addr)
         else:
             if has_write_access(""):
                 try:
@@ -519,7 +521,7 @@ def rename_folder():
                 except Exception as e:
                     return jsonify({"error": str(e)}), 500
             else:
-                log("Unauthorized access attempt", request.remote_addr)
+                log("Unauthorized access attempt in renameing folder", request.remote_addr)
                 return jsonify({"error": "Unauthorized"}), 401
     else:
         return jsonify({"error": "No folder name provided"}), 400
@@ -569,7 +571,7 @@ def delete_file():
             except Exception as e:
                 return jsonify({"error": str(e)}), 500
         else:
-            log("Unauthorized access attempt", request.remote_addr)
+            log("Unauthorized access attempt in deleting file", request.remote_addr)
             return jsonify({"error": "Unauthorized"}), 401
     else:
         return jsonify({"error": "No path provided"}), 400
@@ -595,7 +597,7 @@ def rename_file():
             except Exception as e:
                 return jsonify({"error":str(e)}), 500
         else:
-            log("Unauthorized access attempt", request.remote_addr)
+            log("Unauthorized access attempt in reneaming file", request.remote_addr)
             return jsonify({"error": "Unauthorized"}), 401
     else:
         return jsonify({"error": "No file name provided"}), 400
@@ -622,7 +624,7 @@ def get_file():
             except Exception as e:
                 return jsonify({"error": str(e)}), 500
         else:
-            log("Unauthorized access attempt", request.remote_addr)
+            log("Unauthorized access attempt in getting file", request.remote_addr)
             return jsonify({"error": "Unauthorized"}), 401
     else:
         return jsonify({"error": "No file path provided"}), 400
@@ -757,10 +759,9 @@ def get_ftp_users():
                 "path": user[2],
                 "permissions": user[3]
             })
-        log("FPT users retrived", request.remote_addr)
+        log("FTP users retrived", request.remote_addr)
         return jsonify(users), 200
     except Exception as e:
-        print("Error retrieving FTP users:", str(e))
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/ftp/edit_user', methods=['POST'])
@@ -822,9 +823,9 @@ def create_user():
     ip = ""
     role = data.get('role')
     ftp_user = ""
-    paths = data.get('paths')
+    paths = data.get('paths', '[""]')
     settings_val = ""
-    paths_write = data.get('paths_write', "")
+    paths_write = data.get('paths_write', '[""]')
     if username and password and name and role:
         try:
             api_key = generate_unique_api_key()
@@ -852,34 +853,40 @@ def delete_user():
             cursor = conn.cursor()
             cursor.execute('''
                            DELETE FROM users WHERE username = ?
-                           ''', (username))
+                           ''', (username,))
             conn.commit()
             conn.close()
             log("User deleted: " + username, request.remote_addr)
             return jsonify({"status": "User deleted"}), 200
         except Exception as e:
             return jsonify ({"error": str(e)}), 500
-        else:
-            return jsonify({"error": "No username provided"}), 400
+    else:
+        return jsonify({"error": "No username provided"}), 400
     
-@app.route('/api/user/edit', methods=['GET'])
+@app.route('/api/user/edit', methods=['POST'])
 def edit_user():
     username = request.json.get('username')
     password = request.json.get('password')
     name = request.json.get('name')
-    role = request.json.get('role')
-    paths = request.json.get('paths')
-    paths_write = request.json.get('paths_write')
+    paths = request.json.get('paths', '[""]')
+    paths_write = request.json.get('paths_write', '[""]')
     id = request.json.get('id')
-    if username and password and name and role and paths and id:
+    if username and name and id:
         try:
             conn = get_users_db_connection()
             cursor = conn.cursor()
-            cursor.execute('''
-                           UPDATE users
-                           SET username = ?, password = ?, name = ?, role = ?, paths = ?, paths_write = ?
-                           WHERE id = ?
-                           '''), (username, password, name, role, paths, paths_write,id)
+            if password:
+                cursor.execute('''
+                               UPDATE users
+                               SET username = ?, password = ?, name = ?, paths = ?, paths_write = ?
+                               WHERE id = ?
+                               ''', (username, password, name, paths, paths_write, id))
+            else:
+                cursor.execute('''
+                               UPDATE users
+                               SET username = ?, name = ?, paths = ?, paths_write = ?
+                               WHERE id = ?
+                               ''', (username, name, paths, paths_write, id))
             log("User edited: " + username, request.remote_addr)
             conn.commit()
             conn.close()
@@ -887,7 +894,7 @@ def edit_user():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
     else:
-        return jsonify({"error": "No username, password, name, role or paths provided"}), 400
+        return jsonify({"error": "No username, name, role or id provided"}), 400
 
 @app.route('/api/user/login', methods=['POST'])
 def login():
@@ -942,6 +949,7 @@ def get_all_users():
         user_list = []
         for user in users:
             user_list.append({
+                "id": user[0],
                 "username": user[1],
                 "password": user[2],
                 "name": user[3],

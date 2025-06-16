@@ -5,7 +5,7 @@ from flask import Flask, render_template_string, request, abort
 app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-DB_DIR = os.path.join(BASE_DIR, 'host/db')  # All .db files are in /db
+DB_DIR = os.path.join(BASE_DIR, 'host/db')
 
 def safe_db_path(db_name):
     if '/' in db_name or '\\' in db_name or not db_name.endswith('.db'):
@@ -26,7 +26,10 @@ def get_db_tables(db_path):
 def get_table_data(db_path, table):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    cursor.execute(f"SELECT * FROM {table}")
+    if table == 'logs':
+        cursor.execute(f"SELECT * FROM {table} ORDER BY timestamp DESC")
+    else:
+        cursor.execute(f"SELECT * FROM {table}")
     rows = cursor.fetchall()
     columns = [description[0] for description in cursor.description]
     conn.close()
