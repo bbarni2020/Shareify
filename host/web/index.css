@@ -355,6 +355,25 @@ html {
     position: relative;
 }
 
+input[type="text"], input[type="password"], textarea {
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(200, 200, 200, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px 0 rgba(0,0,0,0.08), 0 1.5px 4px 0 rgba(0,0,0,0.04);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  color: #222;
+  font-size: 1.08rem;
+  padding: 0.7em 1.1em;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
+  outline: none;
+  border: 1.5px solid #007aff;
+  box-shadow: 0 0 0 2px rgba(0,122,255,0.12);
+  background: rgba(255,255,255,0.55);
+}
+
 .textbox:focus {
     border-color: rgba(101, 97, 146, 0.6);
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%);

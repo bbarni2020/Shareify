@@ -2235,8 +2235,8 @@
             
             loadConnectedFTPUsers(userData.username);
             
-            loadRoles().then(() => {
-                populateUserEndpointCheckboxes(userData.role || '');
+            loadRoles().then(async () => {
+                await populateUserEndpointCheckboxes(userData.role || '');
             });
         }
     }
@@ -3050,27 +3050,40 @@
         }
     }
 
-    function populateUserEndpointCheckboxes(userRole) {
+    async function populateUserEndpointCheckboxes(userRole) {
         const allCheckboxes = document.querySelectorAll('#edit-user-endpoints-grid .endpoint-checkbox');
         allCheckboxes.forEach(checkbox => {
             checkbox.checked = false;
         });
         
-        let userEndpoints = [];
-        
         if (userRole === 'admin') {
             allCheckboxes.forEach(checkbox => {
                 checkbox.checked = true;
             });
-        } else if (userRole && userRole.includes('/api/')) {
-            userEndpoints = userRole.split(',').map(endpoint => endpoint.trim());
-            
-            userEndpoints.forEach(endpoint => {
-                const checkbox = document.querySelector(`#edit-user-endpoints-grid .endpoint-checkbox[value="${endpoint}"]`);
-                if (checkbox) {
-                    checkbox.checked = true;
+        } else if (userRole) {
+            try {
+                const rolesResponse = await fetch(`${baseURL}/api/role/get`, {
+                    method: 'GET',
+                    headers: {
+                        'X-API-KEY': apiKey
+                    }
+                });
+                
+                if (rolesResponse.ok) {
+                    const roles = await rolesResponse.json();
+                    
+                    Object.keys(roles).forEach(endpoint => {
+                        if (roles[endpoint].includes(userRole)) {
+                            const checkbox = document.querySelector(`#edit-user-endpoints-grid .endpoint-checkbox[value="${endpoint}"]`);
+                            if (checkbox) {
+                                checkbox.checked = true;
+                            }
+                        }
+                    });
                 }
-            });
+            } catch (error) {
+                console.error('Error loading roles for user:', error);
+            }
         }
     }
 
