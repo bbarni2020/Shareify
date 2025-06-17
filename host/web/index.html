@@ -538,7 +538,7 @@
         <div class="resize_handle"></div>
     </div>
     
-    <div class="icon"></div>
+    <div class="icon hide"></div>
     
     <div class="window user-create-window" id="user-create-window">
         <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="none" class="exit_btn">
@@ -704,9 +704,22 @@
             
             if (response.ok) {
                 const data = await response.json();
+                drawMeter('cpu-meter', data.cpu || 0, 'cpu');
+                drawMeter('memory-meter', data.memory || 0, 'memory');
+                drawMeter('disk-meter', data.disk || 0, 'disk');
+                meterLastPercent['cpu-meter'] = data.cpu || 0;
+                meterLastPercent['memory-meter'] = data.memory || 0;
+                meterLastPercent['disk-meter'] = data.disk || 0;
+                lastResourceData = data;
             }
         } catch (error) {
             console.error('Error fetching resource data:', error);
+            drawMeter('cpu-meter', 0, 'cpu');
+            drawMeter('memory-meter', 0, 'memory');
+            drawMeter('disk-meter', 0, 'disk');
+            meterLastPercent['cpu-meter'] = 0;
+            meterLastPercent['memory-meter'] = 0;
+            meterLastPercent['disk-meter'] = 0;
         }
     }
     let apiKey = localStorage.getItem('api_key');
@@ -1300,7 +1313,6 @@
         const iconSelect = document.getElementById('icon-select');
         if (iconSelect) {
             iconSelect.addEventListener('change', updateIconVisibility);
-            updateIconVisibility();
         }
     });
 
@@ -1335,8 +1347,9 @@
 
             if (settings.iconVisible !== undefined) {
                 document.getElementById('icon-select').value = settings.iconVisible ? 'Visible' : 'Hidden';
-                updateIconVisibility();
             }
+            
+            updateIconVisibility();
         } catch (err) {
             alert(err);
         }
@@ -1652,13 +1665,6 @@
     });
     observer.observe(nasWindow, { attributes: true, attributeFilter: ['class'] });
 
-    drawMeter('cpu-meter', 0, 'cpu');
-    drawMeter('memory-meter', 0, 'memory');
-    drawMeter('disk-meter', 0, 'disk');
-    meterLastPercent['cpu-meter'] = 0;
-    meterLastPercent['memory-meter'] = 0;
-    meterLastPercent['disk-meter'] = 0;
-
     document.addEventListener('DOMContentLoaded', () => {
         const cliInput = document.getElementById('cli-input');
         const cliOutput = document.getElementById('cli-output');
@@ -1805,8 +1811,113 @@
         }
 
         document.getElementById('finder-rename-btn').addEventListener('click', () => {
-            //rename logic
-            alert('Rename action (implement logic)');
+            const selectedItems = document.querySelectorAll('.finder-item.selected');
+            if (selectedItems.length !== 1) return;
+            
+            const selectedItem = selectedItems[0];
+            const isFolder = selectedItem.classList.contains('file-folder');
+            const currentName = selectedItem.querySelector('.finder-label').textContent;
+            const itemPath = selectedItem.dataset.path;
+
+            const fileManager = document.querySelector('.finder-file-manager');
+            const existingRenaming = fileManager.querySelector('.finder-item.renaming');
+            if (existingRenaming) {
+                existingRenaming.remove();
+            }
+            
+            const renamingItem = selectedItem.cloneNode(true);
+            renamingItem.classList.remove('selected');
+            renamingItem.classList.add('renaming');
+            
+            const label = renamingItem.querySelector('.finder-label');
+            label.innerHTML = `
+                <input type="text" class="finder-rename-input" value="${currentName}" maxlength="100">
+                <button class="finder-confirm-btn"></button>
+            `;
+            
+            selectedItem.insertAdjacentElement('afterend', renamingItem);
+            selectedItem.style.display = 'none';
+            
+            const input = renamingItem.querySelector('.finder-rename-input');
+            const confirmBtn = renamingItem.querySelector('.finder-confirm-btn');
+            
+            input.focus();
+            input.select();
+            
+            async function performRename() {
+                const newName = input.value.trim();
+                if (!newName || newName === currentName) {
+                    renamingItem.remove();
+                    selectedItem.style.display = '';
+                    return;
+                }
+                
+                const apiKey = localStorage.getItem('api_key');
+                const currentPath = document.getElementById('finder-path').value;
+                const pathForAPI = currentPath.startsWith('/') ? currentPath.substring(1) : currentPath;
+                
+                try {
+                    const endpoint = isFolder ? 'rename_folder' : 'rename_file';
+                    const bodyKey = isFolder ? 'folder_name' : 'file_name';
+                    
+                    const response = await fetch(`${baseURL}/api/${endpoint}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-API-KEY': apiKey
+                        },
+                        body: JSON.stringify({
+                            [bodyKey]: currentName,
+                            new_name: newName,
+                            path: pathForAPI
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        renamingItem.remove();
+                        selectedItem.style.display = '';
+                        const cleanedPath = currentPath.startsWith('/') ? currentPath.substring(1) : currentPath;
+                        loadFolderContents(cleanedPath);
+                    } else {
+                        const errorData = await response.json();
+                        alert(`Failed to rename ${isFolder ? 'folder' : 'file'}: ${errorData.error || 'Unknown error'}`);
+                        renamingItem.remove();
+                        selectedItem.style.display = '';
+                    }
+                } catch (error) {
+                    console.error('Error renaming item:', error);
+                    alert(`Failed to rename ${isFolder ? 'folder' : 'file'}. Please try again.`);
+                    renamingItem.remove();
+                    selectedItem.style.display = '';
+                }
+            }
+            
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    performRename();
+                } else if (e.key === 'Escape') {
+                    renamingItem.remove();
+                    selectedItem.style.display = '';
+                }
+            });
+            
+            confirmBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                performRename();
+            });
+            
+            const handleOutsideClick = (e) => {
+                if (!renamingItem.contains(e.target)) {
+                    renamingItem.remove();
+                    selectedItem.style.display = '';
+                    document.removeEventListener('click', handleOutsideClick);
+                }
+            };
+            
+            setTimeout(() => {
+                document.addEventListener('click', handleOutsideClick);
+            }, 100);
         });
         document.getElementById('finder-move-btn').addEventListener('click', () => {
             //move logic
@@ -2641,6 +2752,27 @@
     }
 
     async function deleteUser(userId, username) {
+        try {
+            const currentUserResponse = await fetch(`${baseURL}/api/user/get_self`, {
+                method: 'GET',
+                headers: {
+                    'X-API-KEY': apiKey
+                }
+            });
+            
+            if (currentUserResponse.ok) {
+                const currentUser = await currentUserResponse.json();
+                if (currentUser.username === username) {
+                    alert('You cannot delete your own account.');
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error('Error checking current user:', error);
+            alert('Unable to verify user permissions. Please try again.');
+            return;
+        }
+
         if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
             return;
         }
@@ -2729,7 +2861,7 @@
 
             if (response.ok) {
                 const users = await response.json();
-                displayUsers(users);
+                await displayUsers(users);
             } else {
                 console.error('Failed to load users data');
             }
@@ -2738,31 +2870,54 @@
         }
     }
 
-    function displayUsers(users) {
+    async function displayUsers(users) {
         const usersContent = document.getElementById('users-content');
         if (!usersContent) return;
 
         usersContent.innerHTML = '';
 
+        let currentUsername = null;
+        try {
+            const currentUserResponse = await fetch(`${baseURL}/api/user/get_self`, {
+                method: 'GET',
+                headers: {
+                    'X-API-KEY': apiKey
+                }
+            });
+            
+            if (currentUserResponse.ok) {
+                const currentUser = await currentUserResponse.json();
+                currentUsername = currentUser.username;
+            }
+        } catch (error) {
+            console.error('Error getting current user:', error);
+        }
+
         users.forEach(user => {
+            const isCurrentUser = currentUsername === user.username;
             const userItem = document.createElement('div');
             userItem.className = 'users-list-item';
+            
+            const actionButtons = isCurrentUser ? '' : `
+                <button class="user-item-btn edit-user-btn" data-user='${JSON.stringify(user)}'>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M11.5 3.5L12.5 4.5L5 12H4V11L11.5 3.5Z" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                </button>
+                <button class="user-item-btn delete-user-btn" data-user-id="${user.id}" data-username="${user.username}">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M6 2.5H10M2.5 4H13.5M12 4L11.5 12.5H4.5L4 4" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                </button>
+            `;
+            
             userItem.innerHTML = `
                 <div class="user-info">
-                    <div class="user-name">${user.name || user.username}</div>
+                    <div class="user-name">${user.name || user.username}${isCurrentUser ? ' (You)' : ''}</div>
                     <div class="user-details">${user.username} • ${user.role}</div>
                 </div>
                 <div class="user-actions">
-                    <button class="user-item-btn edit-user-btn" data-user='${JSON.stringify(user)}'>
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M11.5 3.5L12.5 4.5L5 12H4V11L11.5 3.5Z" stroke="currentColor" stroke-width="1.5"/>
-                        </svg>
-                    </button>
-                    <button class="user-item-btn delete-user-btn" data-user-id="${user.id}" data-username="${user.username}">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M6 2.5H10M2.5 4H13.5M12 4L11.5 12.5H4.5L4 4" stroke="currentColor" stroke-width="1.5"/>
-                        </svg>
-                    </button>
+                    ${actionButtons}
                 </div>
             `;
             usersContent.appendChild(userItem);
