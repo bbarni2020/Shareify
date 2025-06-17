@@ -868,7 +868,7 @@
                 return;
             }
 
-            const response = await fetch(`${baseURL}/api/get_self`, {
+            const response = await fetch(`${baseURL}/api/user/get_self`, {
                 headers: {
                     'X-API-KEY': apiKey
                 }
@@ -2547,8 +2547,8 @@
             password: password || '',
             name: name,
             role: currentRole,
-            paths: JSON.stringify(paths),
-            paths_write: JSON.stringify(writePaths),
+            paths: paths,
+            paths_write: writePaths,
             id: userId
         };
 

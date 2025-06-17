@@ -288,7 +288,7 @@ def require_api_key():
     result = cursor.fetchone()
     conn.close()
     if not result or not api_key:
-        log(str("Unauthorized access attempt (API key not  found)" + (request.endpoint or "")), request.remote_addr)
+        log(str("Unauthorized access attempt (API key not  found) " + (request.endpoint or "")), request.remote_addr)
         return jsonify({"error": "Unauthorized"}), 401
     else:
         role = result[5]
