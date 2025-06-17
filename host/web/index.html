@@ -46,7 +46,7 @@
 
 .finder-path-input {
     flex: 1;
-    font-size: 16px;
+    font-size: 14px;
     color: #23232a;
     font-family: 'Kantumruy', sans-serif;
     font-weight: 600;
@@ -2171,21 +2171,31 @@
                 }
             }, 500);
         }
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', async (e) => {
         const restart = document.getElementById('restart-btn');
         if (restart && e.target === restart) {
+            const response = await fetch(`${baseURL}/api/restart`, {
+                        method: 'POST',
+                        headers: {
+                            'X-API-KEY': apiKey
+                        }
+                    });
             fullScreenIcon();
         }
     });
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', async (e) => {
         const shutdown = document.getElementById('shutdown-btn');
         if (shutdown && e.target === shutdown) {
+            const response = await fetch(`${baseURL}/api/shutdown`, {
+                        method: 'POST',
+                        headers: {
+                            'X-API-KEY': apiKey
+                        }
+                    });
             fullScreenIcon();
         }
+        });
     });
-
-    });
-
 
     function openUserCreateWindow() {
         const windowElement = document.getElementById('user-create-window');
@@ -3128,6 +3138,5 @@
         });
 
     });
-
 </script>
 </html>

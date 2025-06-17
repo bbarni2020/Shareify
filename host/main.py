@@ -123,7 +123,7 @@ def get_users_db_connection():
     return conn
 
 def start_ftp_server():
-    global ftp_server_instance
+    global ftp_server_instance, settings
     def run_ftp():
         try:
             handler = FTPHandler
@@ -203,7 +203,7 @@ def generate_unique_api_key():
             return api_key
 
 def stop_completely():
-    global ftp_server_instance
+    global ftp_server_instance, settings
     print_status("Initiating server shutdown...", "info")
     log("Initiating server shutdown", "-")
     
@@ -233,11 +233,13 @@ roles_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "settings/
 settings = load_settings(settings_file)
 roles = load_roles(roles_file)
 def reload_jsons():
+    global settings, roles
     settings = load_settings(settings_file)
     roles = load_roles(roles_file)
 
 def is_accessible(address):
     try:
+        global roles
         list = roles.get(address, [])
         for item in list:
             if item == g.role:
@@ -340,6 +342,7 @@ def restart():
 
 @app.route('/api/finder', methods=['GET'])
 def finder():
+    global settings
     try:
         path = request.args.get('path')
     except:
@@ -377,7 +380,7 @@ def finder():
 current_command_dir = None
 
 def get_command_dir():
-    global current_command_dir
+    global current_command_dir, settings
     if current_command_dir is None:
         current_command_dir = settings['path']
     return current_command_dir
@@ -388,6 +391,7 @@ def set_command_dir(new_dir):
 
 @app.route('/api/command', methods=['POST'])
 def command():
+    global settings
     command = request.json.get('command')
     if command:
         try:
@@ -410,14 +414,12 @@ def command():
                 
                 if os.path.exists(new_dir) and os.path.isdir(new_dir):
                     set_command_dir(new_dir)
-                    log("Command executed: " + command, request.remote_addr)
                     return jsonify({"status": "Command executed", "output": f"Changed directory to: {target_dir}"})
                 else:
                     return jsonify({"status": "Command executed", "output": f"cd: {target_dir}: No such file or directory"})
             
             elif command == 'pwd':
                 current_dir = get_command_dir()
-                log("Command executed: " + command, request.remote_addr)
                 return jsonify({"status": "Command executed", "output": current_dir})
             
             else:
@@ -440,6 +442,7 @@ def command():
     
 @app.route('/api/create_folder', methods=['POST'])
 def create_folder():
+    global settings
     folder_name = request.json.get('folder_name')
     path = request.json.get('path')
     if folder_name:
@@ -470,6 +473,7 @@ def create_folder():
     
 @app.route('/api/delete_folder', methods=['POST'])
 def delete_folder():
+    global settings
     path = request.json.get('path')
     if path:
         if has_write_access(path):
@@ -490,6 +494,7 @@ def delete_folder():
     
 @app.route('/api/rename_folder', methods=['POST'])
 def rename_folder():
+    global settings
     old_name = request.json.get('folder_name')
     new_name = request.json.get('new_name')
     path = request.json.get('path')
@@ -539,6 +544,7 @@ def resource():
     
 @app.route('/api/new_file', methods=['POST'])
 def new_file():
+    global settings
     file_name = request.json.get('file_name')
     path = request.json.get('path')
     file_content = request.json.get('file_content')
@@ -558,6 +564,7 @@ def new_file():
     
 @app.route('/api/delete_file', methods=['POST'])
 def delete_file():
+    global settings
     path = request.json.get('path')
     if path:
         if has_write_access(path):
@@ -576,8 +583,9 @@ def delete_file():
     else:
         return jsonify({"error": "No path provided"}), 400
 
-@app.route('/api/rename_file')
+@app.route('/api/rename_file', methods=['POST'])
 def rename_file():
+    global settings
     old_name = request.json.get('file_name')
     new_name = request.json.get('new_name')
     path = request.json.get('path')
@@ -604,6 +612,7 @@ def rename_file():
     
 @app.route('/api/get_file', methods=['GET'])
 def get_file():
+    global settings
     file = request.json.get('file_path')
     if file:
         if has_write_access(file):
@@ -631,6 +640,7 @@ def get_file():
     
 @app.route('/api/edit_file', methods=['POST'])
 def edit_file():
+    global settings
     path = request.json.get('path')
     file_content = request.json.get('file_content')
     if not file_content:
@@ -696,6 +706,7 @@ def update_settings():
 
 @app.route('/api/get_version', methods=['GET'])
 def get_version():
+    global settings
     version = settings['version']
     return jsonify ({"version": version})
 
@@ -715,6 +726,7 @@ def update_server():
 
 @app.route('/api/ftp/create_user', methods=['POST'])
 def create_ftp_user():
+    global settings
     data = request.json
     username = data.get('username')
     password = data.get('password')
@@ -766,6 +778,7 @@ def get_ftp_users():
 
 @app.route('/api/ftp/edit_user', methods=['POST'])
 def edit_ftp_user():
+    global settings
     username = request.json.get('username')
     password = request.json.get('password')
     path = request.json.get('path')
@@ -1061,6 +1074,7 @@ def serve_assets(filename):
 
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
+    global settings
     file = request.files.get('file')
     path = request.form.get('path', '')
     if not file:
@@ -1082,6 +1096,7 @@ def upload_file():
     
 @app.route('/api/download', methods=['GET'])
 def download_file():
+    global settings
     file_path = request.args.get('file_path')
     if not file_path:
         return jsonify({"error": "No file path provided"}), 400
