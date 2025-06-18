@@ -550,3 +550,44 @@ All endpoints return consistent error responses:
 ---
 
 For more details, refer to the source code in `main.py`.
+
+---
+
+### GET `/api/role/self`
+
+**Description:** Get the current user's role permissions for all endpoints
+
+**Headers:**
+- `X-API-KEY`: User's API key (required)
+
+**Response:**
+- **200 OK**: Returns permissions object with endpoint access status
+  ```json
+  {
+    "/api/command": true,
+    "/api/finder": true,
+    "/api/create_folder": false,
+    "/api/delete_file": false,
+    "/api/user/create": true
+  }
+  ```
+
+- **404 Not Found**: Role not found
+  ```json
+  {
+    "error": "Role not found"
+  }
+  ```
+
+- **500 Internal Server Error**: Server error
+  ```json
+  {
+    "error": "Error message"
+  }
+  ```
+
+**Notes:**
+- Returns a boolean value for each endpoint indicating whether the user's role has access
+- `true` means the user can access the endpoint
+- `false` means the user cannot access the endpoint
+- Only includes endpoints that exist in the roles configuration

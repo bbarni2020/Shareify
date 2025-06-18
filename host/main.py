@@ -296,7 +296,7 @@ def require_api_key():
         role = result[5]
         g.role = role
         g.result = result
-        if request.endpoint in ['get_user', 'self_edit_user']:
+        if request.endpoint in ['get_user', 'self_edit_user', 'get_self_role']:
             return
         if not is_accessible(request.path):
             return jsonify({"error": "Unauthorized"}), 401
@@ -1083,6 +1083,22 @@ def edit_roles():
             return jsonify ({"error": str(e)}), 500
     else:
         return jsonify ({"error": "No roles provided"}), 400
+
+@app.route('/api/role/self', methods=['GET'])
+def get_self_role():
+    role = g.role
+    if role:
+        try:
+            with open(roles_file, 'r') as file:
+                roles = json.load(file)
+                permissions = {}
+                for endpoint in roles:
+                    permissions[endpoint] = role in roles[endpoint]
+                return jsonify(permissions)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"error": "Role not found"}), 404
 
 @app.route('/', methods=['GET'])
 def root():
