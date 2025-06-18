@@ -1490,6 +1490,51 @@ select option {
     height: 16px;
 }
 
+.role-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(101, 97, 146, 0.2);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.role-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(101, 97, 146, 0.3);
+    transform: translateY(-1px);
+}
+
+.role-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.role-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #23232a;
+    margin-bottom: 4px;
+}
+
+.role-users {
+    font-size: 13px;
+    color: rgba(35, 35, 42, 0.7);
+    font-weight: 500;
+}
+
+.no-items {
+    text-align: center;
+    padding: 20px;
+    color: rgba(35, 35, 42, 0.5);
+    font-style: italic;
+}
+
 .user-create-window,
 .user-edit-window {
     width: 520px;
@@ -1594,6 +1639,11 @@ select option {
     height: 500px;
 }
 
+.ftp-create-window {
+    width: 500px;
+    height: 500px;
+}
+
 .ftp-form-content {
     padding: 30px;
     height: calc(100% - 80px);
@@ -1627,34 +1677,49 @@ select option {
     border: 2px solid rgba(60,67,71,0.15);
     border-radius: 12px;
     font-size: 15px;
-    background: rgba(255,255,255,0.8);
-    color: #23232a;
-    transition: all 0.2s ease;
+    background: rgba(255,255,255,0.9);
+    color: #2A2D35;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .ftp-input:focus {
     outline: none;
-    border-color: rgba(65, 137, 230, 0.5);
-    box-shadow: 0 0 0 4px rgba(65, 137, 230, 0.15);
-    background: rgba(255,255,255,0.95);
-}
-
-.ftp-input:readonly {
-    background: rgba(240,240,240,0.8);
-    color: rgba(35, 35, 42, 0.7);
-    cursor: not-allowed;
+    border-color: rgba(101, 97, 146, 0.6);
+    box-shadow: 0 0 0 4px rgba(101, 97, 146, 0.12);
+    background: rgba(255,255,255,0.98);
 }
 
 .ftp-form-actions {
     display: flex;
     align-items: center;
-    gap: 20px;
     justify-content: flex-end;
+    gap: 20px;
+    margin-top: auto;
+}
+
+.ftp-form-actions .saved_text {
+    opacity: 0;
+    transition: opacity 0.4s cubic-bezier(.4,0,.2,1);
+    will-change: opacity;
+    transform: translateY(8px);
+    transition-property: opacity, transform;
+    transition-duration: 0.4s, 0.4s;
+    transition-timing-function: cubic-bezier(.4,0,.2,1), cubic-bezier(.4,0,.2,1);
+    pointer-events: none;
+    font-size: 18px;
+    color: #65dc50;
+    font-weight: bold;
+    margin-left: 10px;
+}
+
+.ftp-form-actions .saved_text.visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .ftp-saved-message {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
     transition: all 0.3s ease;
     color: #10B981;
     font-weight: 600;
@@ -1688,6 +1753,18 @@ select option {
 .ftp-update-btn:hover {
     background: rgba(65, 137, 230, 0.2);
     border-color: rgba(65, 137, 230, 0.4);
+    transform: translateY(-2px);
+}
+
+.ftp-create-btn {
+    background: rgba(144, 228, 120, 0.12);
+    color: #90E478;
+    border: 2px solid rgba(144, 228, 120, 0.2);
+}
+
+.ftp-create-btn:hover {
+    background: rgba(144, 228, 120, 0.2);
+    border-color: rgba(144, 228, 120, 0.4);
     transform: translateY(-2px);
 }
 
@@ -1884,4 +1961,259 @@ select option {
 
 .endpoint-checkbox-item:has(.endpoint-checkbox:checked) .endpoint-label {
     color: rgba(255, 255, 255, 0.95);
+}
+
+.ftp-permissions-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.ftp-permission-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ftp-permission-checkbox {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(60,67,71,0.25);
+    border-radius: 4px;
+    background: rgba(255,255,255,0.9);
+    cursor: pointer;
+    appearance: none;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.ftp-permission-checkbox:checked {
+    background: #4189E6;
+    border-color: #4189E6;
+}
+
+.ftp-permission-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.ftp-permission-checkbox:hover {
+    border-color: rgba(65, 137, 230, 0.5);
+    box-shadow: 0 0 0 2px rgba(65, 137, 230, 0.1);
+}
+
+.ftp-permission-item label {
+    font-size: 15px;
+    font-weight: 500;
+    color: #2A2D35;
+    cursor: pointer;
+    margin: 0;
+}
+
+.role-details-window {
+    width: 600px;
+    height: 500px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.role-details-content {
+    padding: 25px 30px;
+    padding-top: 60px;
+    max-height: calc(100% - 80px);
+    overflow-y: auto;
+}
+
+.role-details-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid rgba(60,67,71,0.12);
+    padding-right: 40px;
+}
+
+.role-endpoint-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #23232a;
+    font-family: 'Kantumruy', sans-serif;
+}
+
+.role-endpoint-method {
+    padding: 4px 12px;
+    background: rgba(65, 137, 230, 0.15);
+    color: #23232a;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.role-details-description h3,
+.role-details-auth h3,
+.role-details-users h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #23232a;
+    margin: 0 0 8px 0;
+    font-family: 'Kantumruy', sans-serif;
+}
+
+.role-details-description,
+.role-details-auth,
+.role-details-users {
+    margin-bottom: 20px;
+}
+
+.role-details-description p,
+.role-details-auth p {
+    font-size: 14px;
+    color: #555;
+    line-height: 1.5;
+    margin: 0;
+    font-family: 'Kantumruy', sans-serif;
+}
+
+.role-users-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.role-user-badge {
+    padding: 6px 12px;
+    background: rgba(144, 228, 120, 0.15);
+    color: #23232a;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Kantumruy', sans-serif;
+}
+
+.role-details-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.role-details-content::-webkit-scrollbar-thumb {
+    background: rgba(101, 97, 146, 0.18);
+    border-radius: 6px;
+}
+
+.role-details-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.role-user-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(144, 228, 120, 0.08);
+    border-radius: 8px;
+    margin-bottom: 6px;
+}
+
+.role-user-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #23232a;
+    font-family: 'Kantumruy', sans-serif;
+}
+
+.role-user-remove {
+    background: rgba(220, 38, 38, 0.1);
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    color: #dc2626;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.role-user-remove:hover {
+    background: rgba(220, 38, 38, 0.2);
+}
+
+.no-users {
+    text-align: center;
+    padding: 20px;
+    color: rgba(35, 35, 42, 0.5);
+    font-style: italic;
+    font-size: 14px;
+}
+
+.role-users-actions {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.role-add-user-btn {
+    padding: 8px 16px;
+    background: rgba(65, 137, 230, 0.15);
+    border: none;
+    border-radius: 8px;
+    color: #23232a;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-family: 'Kantumruy', sans-serif;
+}
+
+.role-add-user-btn:hover {
+    background: rgba(65, 137, 230, 0.25);
+}
+
+.role-user-selector {
+    position: relative;
+    display: inline-block;
+}
+
+.role-user-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 2px solid rgba(60,67,71,0.15);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    min-width: 180px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.role-user-dropdown.show {
+    display: block;
+}
+
+.role-user-option {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #23232a;
+    font-family: 'Kantumruy', sans-serif;
+    border-bottom: 1px solid rgba(60,67,71,0.08);
+}
+
+.role-user-option:hover {
+    background: rgba(65, 137, 230, 0.08);
+}
+
+.role-user-option:last-child {
+    border-bottom: none;
 }

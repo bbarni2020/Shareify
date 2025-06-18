@@ -254,7 +254,7 @@
                     <div class="users-roles">
                         <div class="users-section-title">Roles</div>
                         <div class="users-section-buttons">
-                            <button class="user-action-btn edit-btn">
+                            <button class="user-action-btn edit-btn" style="display: none;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
                                     <circle cx="20" cy="20" r="20" fill="#3B82F6"/>
                                     <path d="M14 26h2l8-8-2-2-8 8v2z" fill="white"/>
@@ -273,12 +273,6 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
                                     <circle cx="20" cy="20" r="20" fill="#90E478"/>
                                     <line x1="20" y1="14" x2="20" y2="26" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                                    <line x1="14" y1="20" x2="26" y2="20" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                                </svg>
-                            </button>
-                            <button class="user-action-btn remove-btn">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
-                                    <circle cx="20" cy="20" r="20" fill="#DC2626"/>
                                     <line x1="14" y1="20" x2="26" y2="20" stroke="white" stroke-width="2" stroke-linecap="round"/>
                                 </svg>
                             </button>
@@ -662,7 +656,7 @@
                 <circle cx="11" cy="11" r="11" fill="#DC2626"/>
             </g>
         </svg>
-        <div class="window_title">Edit FTP User</div>
+        <div class="window_title">Edit FTP</div>
         <div class="ftp-form-content">
             <div class="ftp-form-section">
                 <div class="ftp-form-group">
@@ -678,15 +672,109 @@
                     <input type="text" id="ftp-edit-path" class="ftp-input" placeholder="FTP home directory path">
                 </div>
                 <div class="ftp-form-group">
-                    <label for="ftp-edit-permissions">Permissions</label>
-                    <input type="text" id="ftp-edit-permissions" class="ftp-input" placeholder="read,write,delete">
+                    <label>Permissions</label>
+                    <div class="ftp-permissions-group">
+                        <div class="ftp-permission-item">
+                            <input type="checkbox" id="ftp-edit-read" class="ftp-permission-checkbox" checked>
+                            <label for="ftp-edit-read">Read</label>
+                        </div>
+                        <div class="ftp-permission-item">
+                            <input type="checkbox" id="ftp-edit-write" class="ftp-permission-checkbox">
+                            <label for="ftp-edit-write">Write</label>
+                        </div>
+                        <div class="ftp-permission-item">
+                            <input type="checkbox" id="ftp-edit-delete" class="ftp-permission-checkbox">
+                            <label for="ftp-edit-delete">Delete</label>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="ftp-form-actions">
-                <div class="ftp-saved-message" id="ftp_edit_saved">FTP User Updated</div>
-                <button class="ftp-action-btn ftp-update-btn" id="ftp_edit_btn">
-                    <span>Update FTP User</span>
-                </button>
+                <div style="width: 100%;"></div>
+                <div id="ftp_edit_saved" class="saved_text">Updated</div>
+                <div class="accept_btn" id="ftp_edit_btn"><img src="web/assets/pipe.png" alt="update" class="centered-img"></div>
+            </div>
+        </div>
+        <div class="resize_handle"></div>
+    </div>
+    
+    <div class="window ftp-create-window" id="ftp-create-window">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="none" class="exit_btn">
+            <g filter="url(#filter0_i_19_3)">
+                <circle cx="11" cy="11" r="11" fill="#DC2626"/>
+            </g>
+        </svg>
+        <div class="window_title">Create FTP</div>
+        <div class="ftp-form-content">
+            <div class="ftp-form-section">
+                <div class="ftp-form-group">
+                    <label for="ftp-create-username">FTP Username</label>
+                    <input type="text" id="ftp-create-username" class="ftp-input" placeholder="Enter FTP username">
+                </div>
+                <div class="ftp-form-group">
+                    <label for="ftp-create-password">FTP Password</label>
+                    <input type="password" id="ftp-create-password" class="ftp-input" placeholder="Enter FTP password">
+                </div>
+                <div class="ftp-form-group">
+                    <label for="ftp-create-path">Home Directory</label>
+                    <input type="text" id="ftp-create-path" class="ftp-input" placeholder="FTP home directory path (optional)">
+                </div>
+                <div class="ftp-form-group">
+                    <label>Permissions</label>
+                    <div class="ftp-permissions-group">
+                        <div class="ftp-permission-item">
+                            <input type="checkbox" id="ftp-create-read" class="ftp-permission-checkbox" checked>
+                            <label for="ftp-create-read">Read</label>
+                        </div>
+                        <div class="ftp-permission-item">
+                            <input type="checkbox" id="ftp-create-write" class="ftp-permission-checkbox">
+                            <label for="ftp-create-write">Write</label>
+                        </div>
+                        <div class="ftp-permission-item">
+                            <input type="checkbox" id="ftp-create-delete" class="ftp-permission-checkbox">
+                            <label for="ftp-create-delete">Delete</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="ftp-form-actions">
+                <div style="width: 100%;"></div>
+                <div id="ftp_create_saved" class="saved_text">Created</div>
+                <div class="accept_btn" id="ftp_create_btn"><img src="web/assets/pipe.png" alt="create" class="centered-img"></div>
+            </div>
+        </div>
+        <div class="resize_handle"></div>
+    </div>
+    
+    <div class="window role-details-window" id="role-details-window">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="none" class="exit_btn">
+            <g filter="url(#filter0_i_19_3)">
+                <circle cx="11" cy="11" r="11" fill="#DC2626"/>
+            </g>
+        </svg>
+        <div class="window_title">Role Details</div>
+        <div class="role-details-content">
+            <div class="role-details-header">
+                <div class="role-endpoint-name" id="role-endpoint-name"></div>
+                <div class="role-endpoint-method" id="role-endpoint-method"></div>
+            </div>
+            <div class="role-details-description">
+                <h3>Description</h3>
+                <p id="role-endpoint-description"></p>
+            </div>
+            <div class="role-details-auth" style="display: none;">
+                <h3>Authentication</h3>
+                <p id="role-endpoint-auth"></p>
+            </div>
+            <div class="role-details-users">
+                <h3>Users with Access</h3>
+                <div class="role-users-list" id="role-users-list"></div>
+                <div class="role-users-actions">
+                    <div class="role-user-selector">
+                        <button class="role-add-user-btn" id="role-add-user-btn">Add User</button>
+                        <div class="role-user-dropdown" id="role-user-dropdown"></div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="resize_handle"></div>
@@ -1701,7 +1789,7 @@
                             cliOutput.innerHTML += output.replace(/</g, "&lt;").replace(/>/g, "&gt;") + '<br>';
                         }
                     } catch (err) {
-                        cliOutput.innerHTML += '<span style="color:#dc2626;">[Error]</span> Could not execute command.<br>';
+                        cliOutput.innerHTML += '<span style="color="#dc2626;">[Error]</span> Could not execute command.<br>';
                     }
                     cliOutput.scrollTop = cliOutput.scrollHeight;
                 }
@@ -1774,7 +1862,7 @@
                             cliOutput.innerHTML += output.replace(/</g, "&lt;").replace(/>/g, "&gt;") + '<br>';
                         }
                     } catch (err) {
-                        cliOutput.innerHTML += '<span style="color:#dc2626;">[Error]</span> Could not execute command.<br>';
+                        cliOutput.innerHTML += '<span style="color="#dc2626;">[Error]</span> Could not execute command.<br>';
                     }
                     cliOutput.scrollTop = cliOutput.scrollHeight;
                 }
@@ -2414,7 +2502,7 @@
                     <div class="ftp-user-actions">
                         <button class="ftp-user-action-btn disconnect-ftp-btn" onclick="disconnectFTPUser('${ftpUser.username}', '${currentUsername}')">
                             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                                <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M8 1V15M1 8H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             </svg>
                         </button>
                     </div>
@@ -2471,8 +2559,21 @@
         }
 
         try {
-            alert(`FTP user "${ftpUsername}" disconnected from user "${username}"`);
-            loadConnectedFTPUsers(username);
+            const response = await fetch(`${baseURL}/api/ftp/delete_user`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': apiKey
+                },
+                body: JSON.stringify({ username: ftpUsername })
+            });
+
+            if (response.ok) {
+                loadConnectedFTPUsers(username);
+            } else {
+                const errorData = await response.json();
+                alert('Failed to disconnect user: ' + (errorData.error || 'Unknown error'));
+            }
         } catch (error) {
             console.error('Error disconnecting FTP user:', error);
             alert('Failed to disconnect FTP user');
@@ -2641,7 +2742,7 @@
         let currentRole = 'user';
         if (currentUserResponse.ok) {
             const users = await currentUserResponse.json();
-            const currentUser = users.find(user => user.id == userId);
+            const currentUser = users.find(u => u.id == userId);
             if (currentUser) {
                 currentRole = currentUser.role;
             }
@@ -2843,7 +2944,7 @@
                             });
                         }
                     } catch (roleError) {
-                        console.error('Error updating roles after user deletion:', roleError);
+                        console.error('Error updating roles:', roleError);
                     }
                 }
                 loadUsersData();
@@ -3015,49 +3116,19 @@
         });
     }
 
-    async function createFTPUser() {
-        const username = prompt('Enter FTP username:');
-        if (!username) return;
-
-        const password = prompt('Enter FTP password:');
-        if (!password) return;
-
-        try {
-            const response = await fetch(`${baseURL}/api/ftp_user`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-KEY': apiKey
-                },
-                body: JSON.stringify({
-                    username: username,
-                    password: password
-                })
-            });
-
-            if (response.ok) {
-                loadFTPUsers();
-            } else {
-                const errorData = await response.json();
-                alert(`Error creating FTP user: ${errorData.error || 'Unknown error'}`);
-            }
-        } catch (error) {
-            console.error('Error creating FTP user:', error);
-            alert('Failed to create FTP user. Please try again.');
-        }
-    }
-
     async function deleteFTPUser(username) {
         if (!confirm(`Are you sure you want to delete FTP user "${username}"?`)) {
             return;
         }
 
         try {
-            const response = await fetch(`${baseURL}/api/ftp_user/${username}`, {
-                method: 'DELETE',
+            const response = await fetch(`${baseURL}/api/ftp/delete_user`, {
+                method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     'X-API-KEY': apiKey
-                }
+                },
+                body: JSON.stringify({ username: username })
             });
 
             if (response.ok) {
@@ -3082,7 +3153,9 @@
             document.getElementById('ftp-edit-username').value = ftpUserData.username || '';
             document.getElementById('ftp-edit-password').value = '';
             document.getElementById('ftp-edit-path').value = ftpUserData.path || '';
-            document.getElementById('ftp-edit-permissions').value = ftpUserData.permissions || '';
+            
+            setPermissionsToCheckboxes('edit', ftpUserData.permissions || '');
+            setupPermissionValidation('edit');
             
             windowElement.dataset.ftpUsername = ftpUserData.username || '';
         }
@@ -3099,7 +3172,7 @@
 
         const password = document.getElementById('ftp-edit-password').value;
         const path = document.getElementById('ftp-edit-path').value.trim();
-        const permissions = document.getElementById('ftp-edit-permissions').value.trim();
+        const permissions = getPermissionsFromCheckboxes('edit');
 
         const requestBody = {
             username: ftpUsername
@@ -3148,47 +3221,201 @@
         }
     }
 
-    async function loadRoles() {
+    async function createRole() {
+        const roleName = document.getElementById('role-name').value.trim();
+        const selectedEndpoints = [];
+        const checkboxes = document.querySelectorAll('#role-endpoints-grid .endpoint-checkbox:checked');
+        checkboxes.forEach(checkbox => {
+            selectedEndpoints.push(checkbox.value);
+        });
+        
+        if (!roleName) {
+            alert('Role name is required');
+            return;
+        }
+
         try {
-            const response = await fetch(`${baseURL}/api/role/get`, {
-                method: 'GET',
+            const response = await fetch(`${baseURL}/api/role/create`, {
+                method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     'X-API-KEY': apiKey
-                }
+                },
+                body: JSON.stringify({
+                    role_name: roleName,
+                    endpoints: selectedEndpoints
+                })
             });
 
             if (response.ok) {
-                const roles = await response.json();
-                displayRoles(roles);
-                updateEndpointCheckboxes(roles);
-                return roles;
+                alert('Role created successfully');
+                loadRoles();
+                document.getElementById('role-name').value = '';
             } else {
-                console.error('Failed to load roles data');
-                return null;
+                const errorData = await response.json();
+                alert(`Error creating role: ${errorData.error || 'Unknown error'}`);
             }
         } catch (error) {
-            console.error('Error loading roles data:', error);
-            return null;
+            console.error('Error creating role:', error);
+            alert('Failed to create role. Please try again.');
         }
     }
 
-    function displayRoles(roles) {
-        const rolesContent = document.getElementById('roles-content');
-        if (!rolesContent) return;
-
-        rolesContent.innerHTML = '';
-
-        Object.entries(roles).forEach(([endpoint, allowedRoles]) => {
-            const roleItem = document.createElement('div');
-            roleItem.className = 'users-list-item';
-            roleItem.innerHTML = `
-                <div class="user-info">
-                    <div class="user-name">${endpoint}</div>
-                    <div class="user-details">Allowed roles: ${allowedRoles.join(', ')}</div>
-                </div>
-            `;
-            rolesContent.appendChild(roleItem);
+    async function updateRole() {
+        const windowElement = document.getElementById('role-details-window');
+        const roleName = document.getElementById('role-endpoint-name').textContent;
+        const endpoint = windowElement.dataset.endpoint;
+        
+        const selectedUsers = [];
+        const userBadges = document.querySelectorAll('#role-users-list .role-user-badge');
+        userBadges.forEach(badge => {
+            selectedUsers.push(badge.textContent.split(' (')[0]);
         });
+        
+        if (!endpoint) {
+            alert('No endpoint selected');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${baseURL}/api/role/edit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': apiKey
+                },
+                body: JSON.stringify({
+                    endpoint: endpoint,
+                    role_name: roleName,
+                    users: selectedUsers
+                })
+            });
+
+            if (response.ok) {
+                alert('Role updated successfully');
+                loadRoles();
+                const currentRoles = await loadRoles();
+                if (currentRoles && currentRoles[endpoint]) {
+                    openRoleDetailsWindow(endpoint, currentRoles[endpoint]);
+                }
+            } else {
+                const errorData = await response.json();
+                alert('Failed to update role: ' + (errorData.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error updating role:', error);
+            alert('Failed to update role. Please try again.');
+        }
+    }
+
+    function setupRoleUserDropdown(endpoint, allowedRoles, allUsers) {
+        const addButton = document.getElementById('role-add-user-btn');
+        const dropdown = document.getElementById('role-user-dropdown');
+        
+        const availableUsers = allUsers.filter(user => 
+            !allowedRoles.includes(user.role)
+        );
+        
+        dropdown.innerHTML = '';
+        if (availableUsers.length === 0) {
+            dropdown.innerHTML = '<div class="role-user-option">No users available to add</div>';
+        } else {
+            availableUsers.forEach(user => {
+                const option = document.createElement('div');
+                option.className = 'role-user-option';
+                option.textContent = `${user.name || user.username} (${user.role})`;
+                option.onclick = () => addUserToRole(endpoint, user.role);
+                dropdown.appendChild(option);
+            });
+        }
+        
+        addButton.onclick = () => {
+            dropdown.classList.toggle('show');
+        };
+        
+        document.addEventListener('click', (e) => {
+            if (!addButton.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+    }
+
+    async function addUserToRole(endpoint, role) {
+        try {
+            const currentRoles = await loadRoles();
+            if (!currentRoles) {
+                alert('Failed to load current roles');
+                return;
+            }
+            
+            if (!currentRoles[endpoint]) {
+                currentRoles[endpoint] = [];
+            }
+            
+            if (!currentRoles[endpoint].includes(role)) {
+                currentRoles[endpoint].push(role);
+                
+                const response = await fetch(`${baseURL}/api/role/edit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-KEY': apiKey
+                    },
+                    body: JSON.stringify(currentRoles)
+                });
+
+                if (response.ok) {
+                    openRoleDetailsWindow(endpoint, currentRoles[endpoint]);
+                } else {
+                    const errorData = await response.json();
+                    alert('Failed to add user: ' + (errorData.error || 'Unknown error'));
+                }
+            }
+        } catch (error) {
+            console.error('Error adding user to role:', error);
+            alert('Failed to add user. Please try again.');
+        }
+    }
+
+    async function removeUserFromRole(endpoint, role) {
+        if (!confirm(`Remove role "${role}" from endpoint "${endpoint}"?`)) {
+            return;
+        }
+        
+        try {
+            const currentRoles = await loadRoles();
+            if (!currentRoles) {
+                alert('Failed to load current roles');
+                return;
+            }
+            
+            if (currentRoles[endpoint]) {
+                currentRoles[endpoint] = currentRoles[endpoint].filter(r => r !== role);
+                
+                if (currentRoles[endpoint].length === 0) {
+                    delete currentRoles[endpoint];
+                }
+                
+                const response = await fetch(`${baseURL}/api/role/edit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-KEY': apiKey
+                    },
+                    body: JSON.stringify(currentRoles)
+                });
+
+                if (response.ok) {
+                    openRoleDetailsWindow(endpoint, currentRoles[endpoint] || []);
+                } else {
+                    const errorData = await response.json();
+                    alert('Failed to remove user: ' + (errorData.error || 'Unknown error'));
+                }
+            }
+        } catch (error) {
+            console.error('Error removing user from role:', error);
+            alert('Failed to remove user. Please try again.');
+        }
     }
 
     function updateEndpointCheckboxes(roles) {
@@ -3263,9 +3490,272 @@
         alert('Role editing functionality would open a detailed permissions editor here.');
     }
 
+    function openFTPCreateWindow() {
+        const windowElement = document.getElementById('ftp-create-window');
+        if (windowElement) {
+            windowElement.classList.add('show');
+            windowElement.classList.remove('hide');
+            bringToFront(windowElement);
+            
+            document.getElementById('ftp-create-username').value = '';
+            document.getElementById('ftp-create-password').value = '';
+            document.getElementById('ftp-create-path').value = '';
+            
+            document.getElementById('ftp-create-read').checked = true;
+            document.getElementById('ftp-create-write').checked = false;
+            document.getElementById('ftp-create-delete').checked = false;
+            
+            setupPermissionValidation('create');
+        }
+    }
+
+    function setupPermissionValidation(mode) {
+        const readCheckbox = document.getElementById(`ftp-${mode}-read`);
+        const writeCheckbox = document.getElementById(`ftp-${mode}-write`);
+        const deleteCheckbox = document.getElementById(`ftp-${mode}-delete`);
+        
+        function validatePermissions() {
+            if (writeCheckbox.checked && !readCheckbox.checked) {
+                readCheckbox.checked = true;
+            }
+            
+            if (deleteCheckbox.checked && !writeCheckbox.checked) {
+                writeCheckbox.checked = true;
+                readCheckbox.checked = true;
+            }
+        }
+        
+        writeCheckbox.addEventListener('change', () => {
+            if (writeCheckbox.checked && !readCheckbox.checked) {
+                readCheckbox.checked = true;
+            }
+        });
+        
+        deleteCheckbox.addEventListener('change', () => {
+            if (deleteCheckbox.checked) {
+                if (!writeCheckbox.checked) writeCheckbox.checked = true;
+                if (!readCheckbox.checked) readCheckbox.checked = true;
+            }
+        });
+        
+        readCheckbox.addEventListener('change', () => {
+            if (!readCheckbox.checked) {
+                writeCheckbox.checked = false;
+                deleteCheckbox.checked = false;
+            }
+        });
+    }
+
+    function getPermissionsFromCheckboxes(mode) {
+        let permissions = '';
+        if (document.getElementById(`ftp-${mode}-read`).checked) {
+            permissions += 'elr';
+        }
+        if (document.getElementById(`ftp-${mode}-write`).checked) {
+            permissions += 'wamfMT';
+        }
+        if (document.getElementById(`ftp-${mode}-delete`).checked) {
+            permissions += 'd';
+        }
+        return permissions;
+    }
+
+    function setPermissionsToCheckboxes(mode, permissionsString) {
+        const permissions = permissionsString || '';
+        
+        const hasRead = permissions.includes('e') || permissions.includes('l') || permissions.includes('r');
+        document.getElementById(`ftp-${mode}-read`).checked = hasRead;
+        
+        const hasWrite = permissions.includes('w') || permissions.includes('a') || permissions.includes('m') || 
+                        permissions.includes('f') || permissions.includes('M') || permissions.includes('T');
+        document.getElementById(`ftp-${mode}-write`).checked = hasWrite;
+
+        const hasDelete = permissions.includes('d');
+        document.getElementById(`ftp-${mode}-delete`).checked = hasDelete;
+    }
+
+    async function createFTPUserFromWindow() {
+        const username = document.getElementById('ftp-create-username').value.trim();
+        const password = document.getElementById('ftp-create-password').value;
+        const path = document.getElementById('ftp-create-path').value.trim();
+        const permissions = getPermissionsFromCheckboxes('create');
+
+        if (!username || !password || !permissions) {
+            alert('Please fill in username, password, and select at least one permission.');
+            return;
+        }
+
+        const requestBody = {
+            username: username,
+            password: password,
+            permissions: permissions
+        };
+
+        if (path) {
+            requestBody.path = path;
+        }
+
+        try {
+            const response = await fetch(`${baseURL}/api/ftp/create_user`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': apiKey
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (response.ok) {
+                const savedDiv = document.getElementById('ftp_create_saved');
+                if (savedDiv) {
+                    savedDiv.classList.add('visible');
+                    setTimeout(() => {
+                        savedDiv.classList.remove('visible');
+                    }, 3000);
+                }
+                loadFTPUsers();
+                setTimeout(() => {
+                    document.getElementById('ftp-create-window').classList.remove('show');
+                    document.getElementById('ftp-create-window').classList.add('hide');
+                }, 1500);
+            } else {
+                const errorData = await response.json();
+                alert(`Error creating FTP user: ${errorData.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error creating FTP user:', error);
+            alert('Failed to create FTP user. Please try again.');
+        }
+    }
+    async function loadRoles() {
+        try {
+            const response = await fetch(`${baseURL}/api/role/get`, {
+                method: 'GET',
+                headers: {
+                    'X-API-KEY': apiKey
+                }
+            });
+
+            if (response.ok) {
+                const roles = await response.json();
+                displayRoles(roles);
+                updateEndpointCheckboxes(roles);
+                return roles;
+            } else {
+                console.error('Failed to load roles');
+                return null;
+            }
+        } catch (error) {
+            console.error('Error loading roles:', error);
+            return null;
+        }
+    }
+
+    async function displayRoles(roles) {
+        const rolesContent = document.getElementById('roles-content');
+        if (!rolesContent) return;
+
+        let endpointsInfo = {};
+        try {
+            const endpointsResponse = await fetch('/web/endpoints.json');
+            if (endpointsResponse.ok) {
+                endpointsInfo = await endpointsResponse.json();
+            }
+        } catch (error) {
+            console.error('Error loading endpoints info:', error);
+        }
+
+        rolesContent.innerHTML = '';
+
+        if (!roles || Object.keys(roles).length === 0) {
+            rolesContent.innerHTML = '<div class="no-items">No roles configured</div>';
+            return;
+        }
+
+        Object.keys(roles).forEach(endpoint => {
+            const roleItem = document.createElement('div');
+            roleItem.className = 'role-item';
+            
+            const endpointName = endpointsInfo[endpoint]?.name || endpoint;
+            const userCount = roles[endpoint].length;
+            
+            roleItem.innerHTML = `
+                <div class="role-info">
+                    <div class="role-name">${endpointName}</div>
+                    <div class="role-users">${userCount} user${userCount !== 1 ? 's' : ''}</div>
+                </div>
+            `;
+            
+            roleItem.addEventListener('click', () => {
+                openRoleDetailsWindow(endpoint, roles[endpoint]);
+            });
+            
+            rolesContent.appendChild(roleItem);
+        });
+    }
+
+    async function openRoleDetailsWindow(endpoint, allowedRoles) {
+        const windowElement = document.getElementById('role-details-window');
+        if (!windowElement) return;
+        let endpointsInfo = {};
+        try {
+            const endpointsResponse = await fetch('/web/endpoints.json');
+            if (endpointsResponse.ok) {
+                endpointsInfo = await endpointsResponse.json();
+            }
+        } catch (error) {
+            console.error('Error loading endpoints info:', error);
+        }
+        let allUsers = [];
+        try {
+            const usersResponse = await fetch(`${baseURL}/api/user/get_all`, {
+                method: 'GET',
+                headers: {
+                    'X-API-KEY': apiKey
+                }
+            });
+            if (usersResponse.ok) {
+                allUsers = await usersResponse.json();
+            }
+        } catch (error) {
+            console.error('Error loading users:', error);
+        }
+        const endpointInfo = endpointsInfo[endpoint] || {};
+        document.getElementById('role-endpoint-name').textContent = endpointInfo.name || endpoint;
+        document.getElementById('role-endpoint-method').textContent = endpointInfo.method || 'GET';
+        document.getElementById('role-endpoint-description').textContent = endpointInfo.description || 'No description available';
+        const authSection = document.querySelector('.role-details-auth');
+        if (authSection) {
+            authSection.style.display = 'none';
+        }
+        const usersList = document.getElementById('role-users-list');
+        if (usersList) {
+            usersList.innerHTML = '';
+            
+            if (allowedRoles && allowedRoles.length > 0) {
+                allowedRoles.forEach(role => {
+                    const userItem = document.createElement('div');
+                    userItem.className = 'role-user-item';
+                    userItem.innerHTML = `
+                        <span class="role-user-name">${role}</span>
+                        <button class="role-user-remove" onclick="removeUserFromRole('${endpoint}', '${role}')">×</button>
+                    `;
+                    usersList.appendChild(userItem);
+                });
+            } else {
+                usersList.innerHTML = '<div class="no-users">No users have access to this endpoint</div>';
+            }
+        }
+        setupRoleUserDropdown(endpoint, allowedRoles || [], allUsers);
+        windowElement.dataset.endpoint = endpoint;
+        windowElement.classList.add('show');
+        windowElement.classList.remove('hide');
+        bringToFront(windowElement);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('.users-ftpusers .add-btn')?.addEventListener('click', () => {
-            createFTPUser();
+            openFTPCreateWindow();
         });
 
         document.querySelector('.users-ftpusers .remove-btn')?.addEventListener('click', () => {
@@ -3293,6 +3783,10 @@
 
         document.getElementById('ftp_edit_btn')?.addEventListener('click', () => {
             updateFTPUser();
+        });
+
+        document.getElementById('ftp_create_btn')?.addEventListener('click', () => {
+            createFTPUserFromWindow();
         });
 
         document.getElementById('connect-ftp-user-btn')?.addEventListener('click', () => {
