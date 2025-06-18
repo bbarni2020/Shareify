@@ -1,0 +1,9 @@
+Shareify 0.9.0 Release
+We're excited to announce the first stable release of Shareify! This milestone version delivers a fully functional platform with comprehensive file sharing and user management capabilities.
+What's New in 1.0.0:
+Complete File Management System - A robust and reliable file manager that handles all your sharing needs with improved stability and performance.
+Full User Administration - Create, edit, and manage user accounts with granular permission controls. The user management system is now fully operational with all administrative functions working seamlessly.
+Comprehensive Settings Control - Every aspect of Shareify can now be configured through the settings panel, giving you complete control over your sharing environment.
+Enhanced User Operations - Add new users effortlessly and manage existing accounts with expanded tools for user administration and access control.
+Integrated FTP Server - Built-in FTP server functionality with complete management tools, enabling traditional file transfer protocols alongside modern sharing methods.
+This release represents a complete transformation from our initial 0.1.0 preview, delivering the stable, feature-complete platform you've been waiting for.
