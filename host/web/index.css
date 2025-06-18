@@ -253,7 +253,7 @@ html {
 }
 
 .section.expanded {
-    max-height: 670px;
+    max-height: 1000px;
     border-radius: 36px;
     padding: 15px;
 }

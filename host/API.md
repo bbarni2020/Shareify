@@ -239,7 +239,7 @@ This document provides an overview of all the API endpoints available in the `ma
 ---
 
 ### `/api/user/delete` [POST]
-**Description:** Delete a user.  
+**Description:** Delete a user and automatically remove their role from the roles configuration.  
 **Authentication:** API key required  
 **Request Body:**
 - `username` (string): Username to delete.  
@@ -247,6 +247,8 @@ This document provides an overview of all the API endpoints available in the `ma
 - `200 OK`: `{ "status": "User deleted" }`
 - `400 Bad Request`: `{ "error": "No username provided" }`
 - `500 Internal Server Error`: `{ "error": "..." }`
+
+**Note:** When a user is deleted, their role will be automatically removed from all endpoints in the roles configuration file (except for admin roles).
 
 ---
 

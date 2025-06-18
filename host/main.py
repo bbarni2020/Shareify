@@ -864,11 +864,39 @@ def delete_user():
         try:
             conn = get_users_db_connection()
             cursor = conn.cursor()
+            
+            cursor.execute('''
+                           SELECT role FROM users WHERE username = ?
+                           ''', (username,))
+            user_result = cursor.fetchone()
+            user_role = user_result[0] if user_result else None
+            
             cursor.execute('''
                            DELETE FROM users WHERE username = ?
                            ''', (username,))
             conn.commit()
             conn.close()
+
+            if user_role and user_role != 'admin':
+                try:
+                    with open(roles_file, 'r') as file:
+                        current_roles = json.load(file)
+
+                    modified = False
+                    for endpoint in current_roles:
+                        if user_role in current_roles[endpoint]:
+                            current_roles[endpoint].remove(user_role)
+                            modified = True
+
+                    if modified:
+                        with open(roles_file, 'w') as file:
+                            json.dump(current_roles, file)
+                        reload_jsons()
+                        log(f"Role '{user_role}' removed from roles file after user deletion", request.remote_addr)
+                
+                except Exception as role_error:
+                    log(f"Error updating roles file after user deletion: {str(role_error)}", request.remote_addr)
+            
             log("User deleted: " + username, request.remote_addr)
             return jsonify({"status": "User deleted"}), 200
         except Exception as e:
