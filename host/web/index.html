@@ -434,7 +434,7 @@
                     </div>
                 </div>
             </div>
-            <div class="section">
+            <div class="section" id="server-section">
                 <div class="section_title">
                     <p>Server settings</p>
                     <div class="dropdown_icon"></div>
@@ -469,7 +469,7 @@
                         <label id="current_version">Current version: loading...</label>
                     </div>
                     <div id="version" style="margin-top: 5px;">
-                        <div class="horizontal-align">
+                        <div class="horizontal-align" id="update-sec">
                             <h4 id="newest_version">Newest: loading...</h2>
                             <div style="width: 90%;"></div>
                             <h5>Update</h6>
@@ -479,7 +479,7 @@
                     </div>
                 </div>
             </div>
-            <div class="section">
+            <div class="section" id="ftp-section">
                 <div class="section_title">
                     <p>FTP settings</p>
                     <div class="dropdown_icon"></div>
@@ -766,7 +766,7 @@
                 <h3>Authentication</h3>
                 <p id="role-endpoint-auth"></p>
             </div>
-            <div class="role-details-users">
+            <div class="role-details-users" id="role-details-users">
                 <h3>Users with Access</h3>
                 <div class="role-users-list" id="role-users-list"></div>
                 <div class="role-users-actions">
@@ -843,6 +843,7 @@
             
             const data = await response.json();
             console.log('User permissions verified:', data);
+            userPermissions = data;
             const hasCommandAccess = data['/api/command'] === true;
 
             const cliSection = document.querySelector('.section').querySelector('.section_title p');
@@ -866,6 +867,30 @@
             isFunctionAvailable(data['/api/get_logs'], document.getElementById('log-section'));
             isFunctionAvailable(data['/api/command'] || data['/api/resources'] || data['/api/get_logs'], document.getElementById('nas-ontab'));
             isFunctionAvailable(data['/api/user/create'], document.getElementById('user-create-btn'));
+            isFunctionAvailable(data['/api/update'], document.getElementById('version_description'));
+            isFunctionAvailable(data['/api/update'], document.getElementById('update-sec'));
+            isFunctionAvailable(data['/api/get_version'], document.getElementById('current_version'));
+            isFunctionAvailable(data['/api/update_settings'], document.getElementById('server_accept'));
+            isFunctionAvailable(data['/api/update_settings'], document.getElementById('ftp_accept'));
+            if (!data['/api/update_settings']) {
+                document.getElementById('path').disabled = true;
+                document.getElementById('host').disabled = true;
+                document.getElementById('port').disabled = true;
+                document.getElementById('ftp-server').disabled = true;
+                document.getElementById('ftp-ip').disabled = true;
+                document.getElementById('ftp-port').disabled = true;
+                document.getElementById('ftp-timeout').disabled = true;
+            }
+            isFunctionAvailable(data['/api/get_settings'], document.getElementById('server-section'));
+            isFunctionAvailable(data['/api/get_settings'], document.getElementById('ftp-section'));
+            isFunctionAvailable(data['/api/role/edit'], document.getElementById('role-add-user-btn'));
+            isFunctionAvailable(data['/api/role/edit'], document.getElementById('role-details-users'));
+            document.querySelectorAll('.edit-ftp-btn').forEach(btn => {
+                isFunctionAvailable(data['/api/ftp/edit_user'] === true, btn);
+            });
+            if (!(data['/api/ftp/get_users'] && data['/api/user/get_all'] && data['/api/role/get'])) {
+                document.getElementById('users-ontab').style.display = 'none';
+            }
         } catch (error) {
             console.error('Error verifying user permissions:', error);
             localStorage.removeItem('api_key');
@@ -874,6 +899,7 @@
         }
     }
     let apiKey = localStorage.getItem('api_key');
+    let userPermissions = {};
     if (!apiKey) {
         window.location.href = '/auth';
     }
@@ -1043,7 +1069,15 @@
             }
 
             const data = await response.json();
-            const paths = data.paths || [];
+            let paths = [];
+            
+            if (data.paths) {
+                try {
+                    paths = JSON.parse(data.paths);
+                } catch (e) {
+                    paths = [];
+                }
+            }
             
             const fileManager = document.querySelector('.finder-file-manager');
             fileManager.innerHTML = '';
@@ -1164,7 +1198,13 @@
                 backElement.addEventListener('click', (e) => {
                     e.stopPropagation();
                     if (e.ctrlKey || e.metaKey) return;
-                    loadFolderContents(parentPath);
+                    
+                    if (parentPath === '' || parentPath === '/') {
+                        loadInitialPaths();
+                    } else {
+                        loadFolderContents(parentPath);
+                    }
+                });
                 });
                 fileManager.appendChild(backElement);
             }
@@ -1586,7 +1626,7 @@
                 if (versionDiv) versionDiv.style.display = "none";
             }
         } catch (err) {
-            alert('Could not load server settings.');
+            console.log('Could not load server settings.');
         }
     }
 
@@ -3062,18 +3102,26 @@
             const userItem = document.createElement('div');
             userItem.className = 'users-list-item';
             
-            const actionButtons = isCurrentUser ? '' : `
+            const hasEditPermission = userPermissions['/api/user/edit'] === true;
+            const hasDeletePermission = userPermissions['/api/user/delete'] === true;
+            
+            const editButton = hasEditPermission && !isCurrentUser ? `
                 <button class="user-item-btn edit-user-btn" data-user='${JSON.stringify(user)}'>
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                         <path d="M11.5 3.5L12.5 4.5L5 12H4V11L11.5 3.5Z" stroke="currentColor" stroke-width="1.5"/>
                     </svg>
                 </button>
+            ` : '';
+            
+            const deleteButton = hasDeletePermission && !isCurrentUser ? `
                 <button class="user-item-btn delete-user-btn" data-user-id="${user.id}" data-username="${user.username}">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                         <path d="M6 2.5H10M2.5 4H13.5M12 4L11.5 12.5H4.5L4 4" stroke="currentColor" stroke-width="1.5"/>
                     </svg>
                 </button>
-            `;
+            ` : '';
+            
+            const actionButtons = editButton + deleteButton;
             
             userItem.innerHTML = `
                 <div class="user-info">
@@ -3134,22 +3182,34 @@
         ftpUsers.forEach(user => {
             const userItem = document.createElement('div');
             userItem.className = 'users-list-item';
+            
+            const hasEditPermission = userPermissions['/api/ftp/edit_user'] === true;
+            const hasDeletePermission = userPermissions['/api/ftp/delete_user'] === true;
+            
+            const editButton = hasEditPermission ? `
+                <button class="user-item-btn edit-ftp-btn" data-ftp-user='${JSON.stringify(user)}'>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M11.013 2.5L13.5 4.987l-8 8L2 14l1.013-3.5z" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                </button>
+            ` : '';
+            
+            const deleteButton = hasDeletePermission ? `
+                <button class="user-item-btn delete-user-btn" data-ftp-user="${user.username}">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M6 2.5H10M2.5 4H13.5M12 4L11.5 12.5H4.5L4 4" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                </button>
+            ` : '';
+            
             userItem.innerHTML = `
                 <div class="user-info">
                     <div class="user-name">${user.username}</div>
                     <div class="user-details">FTP User • ${user.status || 'Active'}</div>
                 </div>
                 <div class="user-actions">
-                    <button class="user-item-btn edit-ftp-btn" data-ftp-user='${JSON.stringify(user)}'>
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M11.013 2.5L13.5 4.987l-8 8L2 14l1.013-3.5z" stroke="currentColor" stroke-width="1.5"/>
-                        </svg>
-                    </button>
-                    <button class="user-item-btn delete-user-btn" data-ftp-user="${user.username}">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M6 2.5H10M2.5 4H13.5M12 4L11.5 12.5H4.5L4 4" stroke="currentColor" stroke-width="1.5"/>
-                        </svg>
-                    </button>
+                    ${editButton}
+                    ${deleteButton}
                 </div>
             `;
             ftpUsersContent.appendChild(userItem);

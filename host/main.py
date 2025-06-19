@@ -244,7 +244,6 @@ def is_accessible(address):
         for item in list:
             if item == g.role:
                 return True
-        log(str("Unauthorized access attempt" + (request.endpoint or "")), request.remote_addr)
         return False
     except Exception as e:
         print_status("Error: " + str(e), "error")
