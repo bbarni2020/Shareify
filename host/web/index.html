@@ -213,7 +213,7 @@
         <div class="window_title">Finder</div>
         <div class="finder-toolbar">
             <div class="finder-path-container">
-                <input type="text" class="finder-path-input" id="finder-path" value="/home/user/Documents" placeholder="Enter path...">
+                <input type="text" class="finder-path-input" id="finder-path" value="/home" placeholder="Enter path..." disabled="true">
             </div>
             <div class="finder-actions">
                 <div class="finder-selection-count" id="finder-selection-count">0 items selected</div>
@@ -1087,6 +1087,11 @@
                 return;
             }
             
+            if (paths.length === 1 && paths[0] === '') {
+                loadFolderContents('');
+                return;
+            }
+            
             paths.forEach(path => {
                 const folderElement = document.createElement('div');
                 folderElement.className = 'finder-item file-folder';
@@ -1102,6 +1107,11 @@
                 });
                 fileManager.appendChild(folderElement);
             });
+
+            const pathInput = document.getElementById('finder-path');
+            if (pathInput) {
+                pathInput.value = '/';
+            }
 
             setupFileSelection();
         } catch (error) {
@@ -1195,16 +1205,34 @@
                     <div class="finder-icon"></div>
                     <div class="finder-label">..</div>
                 `;
-                backElement.addEventListener('click', (e) => {
+                backElement.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     if (e.ctrlKey || e.metaKey) return;
+                    
+                    const apiKey = localStorage.getItem('api_key');
+                    if (apiKey) {
+                        try {
+                            const response = await fetch(`${baseURL}/api/user/get_self`, {
+                                headers: { 'X-API-KEY': apiKey }
+                            });
+                            if (response.ok) {
+                                const data = await response.json();
+                                if (data.paths) {
+                                    const paths = JSON.parse(data.paths);
+                                    if (paths.includes(path)) {
+                                        loadInitialPaths();
+                                        return;
+                                    }
+                                }
+                            }
+                        } catch (e) {}
+                    }
                     
                     if (parentPath === '' || parentPath === '/') {
                         loadInitialPaths();
                     } else {
                         loadFolderContents(parentPath);
                     }
-                });
                 });
                 fileManager.appendChild(backElement);
             }
