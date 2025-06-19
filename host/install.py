@@ -136,6 +136,15 @@ def initialize_users_db():
     conn = sqlite3.connect(users_db_path)
     cursor = conn.cursor()
     cursor.execute('''
+        CREATE TABLE IF NOT EXISTS logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            action TEXT NOT NULL,
+            ip TEXT NOT NULL
+        )
+        )
+    ''')
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL UNIQUE,

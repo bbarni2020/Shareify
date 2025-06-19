@@ -1600,7 +1600,7 @@
             const res = await fetch(`${baseURL}/api/user/get_self`, {
                 headers: getAuthHeaders()
             });
-            if (!res.ok) throw new Error('Failed to fetch user data');
+            if (!res.ok) redirectToAuth();
             const user = await res.json();
 
             document.getElementById('name').value = user.name || '';

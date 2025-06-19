@@ -2,7 +2,7 @@
 
 This document provides an overview of all the API endpoints available in the `main.py` file, including their parameters and responses.
 
-**Authentication:** Most endpoints require an `X-API-KEY` header for authentication (except login, is_up, root, and static file endpoints).
+**Authentication:** Most endpoints require JWT authentication via the `Authorization: Bearer <token>` header (except login, is_up, root, and static file endpoints). Tokens are obtained via the `/api/user/login` endpoint and are valid for 24 hours.
 
 ---
 
@@ -18,7 +18,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/shutdown` [POST]
 **Description:** Shutdown the system (requires admin privileges).  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Response:**
 - `200 OK`: `{ "status": "Shutting down" }`
 
@@ -26,7 +26,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/restart` [POST]
 **Description:** Restart the system (requires admin privileges).  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Response:**
 - `200 OK`: `{ "status": "Restarting" }`
 
@@ -36,7 +36,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/finder` [GET]
 **Description:** List files and directories at a given path.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Parameters:**
 - `path` (query, optional): The directory path to list. If not provided, lists root directory.  
 **Response:**
@@ -49,7 +49,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/new_file` [POST]
 **Description:** Create a new file.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:**
 - `file_name` (string): Name of the file.
 - `path` (string, optional): Directory path.
@@ -63,7 +63,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/delete_file` [POST]
 **Description:** Delete a file.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:**
 - `path` (string): Path of the file to delete.  
 **Response:**
@@ -77,7 +77,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/edit_file` [POST]
 **Description:** Edit a file's content.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:**
 - `path` (string): Path of the file to edit.
 - `file_content` (string, optional): New content for the file. Defaults to empty string if not provided.  
@@ -91,7 +91,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/get_file` [GET]
 **Description:** Retrieve the content of a file.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:**
 - `file_path` (string): Path of the file to retrieve.  
 **Response:**
@@ -106,7 +106,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/rename_file` [GET]
 **Description:** Rename a file.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:**
 - `file_name` (string): Current name of the file.
 - `new_name` (string): New name for the file.
@@ -122,7 +122,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/upload` [POST]
 **Description:** Upload a file.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body (multipart/form-data):**
 - `file` (file): The file to upload.
 - `path` (string, optional): Directory path to upload to. Defaults to root if not provided.  
@@ -136,7 +136,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/download` [GET]
 **Description:** Download a file or folder (as zip).  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Parameters:**
 - `file_path` (query): Path of the file/folder to download.  
 **Response:**
@@ -152,7 +152,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/create_folder` [POST]
 **Description:** Create a new folder.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:**
 - `folder_name` (string): Name of the folder.
 - `path` (string, optional): Directory path.  
@@ -166,7 +166,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/delete_folder` [POST]
 **Description:** Delete a folder.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:**
 - `path` (string): Path of the folder to delete.  
 **Response:**
@@ -180,7 +180,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/rename_folder` [POST]
 **Description:** Rename a folder.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:**
 - `folder_name` (string): Current name of the folder.
 - `new_name` (string): New name for the folder.
@@ -198,7 +198,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/command` [POST]
 **Description:** Execute a system command.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:**
 - `command` (string): Command to execute.  
 **Response:**
@@ -212,7 +212,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/resources` [GET]
 **Description:** Get system resource usage (CPU, memory, disk).  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Response:**
 - `200 OK`: `{ "cpu": number, "memory": number, "disk": number }` - All values as percentages (integers)
 - `500 Internal Server Error`: `{ "error": "..." }`
@@ -223,7 +223,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/user/create` [POST]
 **Description:** Create a new user.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:**
 - `username` (string): Username.
 - `password` (string): Password.
@@ -240,7 +240,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/user/delete` [POST]
 **Description:** Delete a user and automatically remove their role from the roles configuration.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:**
 - `username` (string): Username to delete.  
 **Response:**
@@ -254,7 +254,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/user/edit` [POST]
 **Description:** Edit a user's details.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:**
 - `username` (string): Username.
 - `password` (string): Password.
@@ -271,22 +271,24 @@ This document provides an overview of all the API endpoints available in the `ma
 ---
 
 ### `/api/user/login` [POST]
-**Description:** Login a user.  
+**Description:** Login a user and receive a JWT token.  
 **Authentication:** None required  
 **Request Body:**
 - `username` (string): Username.
 - `password` (string): Password.  
 **Response:**
-- `200 OK`: `{ "API_KEY": "..." }`
+- `200 OK`: `{ "token": "..." }` - JWT token valid for 24 hours
 - `401 Unauthorized`: `{ "error": "Invalid username or password" }`
 - `400 Bad Request`: `{ "error": "No username or password provided" }`
 - `500 Internal Server Error`: `{ "error": "..." }`
+
+**Note:** The returned JWT token should be used in the `Authorization: Bearer <token>` header for subsequent API calls.
 
 ---
 
 ### `/api/user/get_self` [GET]
 **Description:** Retrieve the current user's details.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Response:**
 - `200 OK`: `{ "username": "...", "password": "...", "name": "...", "role": "...", "ftp_users": "...", "paths": "...", "settings": "...", "paths_write": "..." }`
 - `404 Not Found`: `{ "error": "User not found" }`
@@ -295,7 +297,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/user/get_all` [GET]
 **Description:** Retrieve all users.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Response:**
 - `200 OK`: `[ { "username": "...", "password": "...", "name": "...", "ip": "...", "role": "...", "ftp_users": "...", "paths": "...", "settings": "...", "API_KEY": "...", "paths_write": "..." }, ... ]`
 - `500 Internal Server Error`: `{ "error": "..." }`
@@ -304,7 +306,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/user/edit_self` [POST]
 **Description:** Edit the current user's details.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:** JSON object with optional fields to update:
 - `username` (string, optional): New username.
 - `password` (string, optional): New password.
@@ -324,7 +326,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/ftp/create_user` [POST]
 **Description:** Create an FTP user.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:**
 - `username` (string): FTP username.
 - `password` (string): FTP password.
@@ -340,7 +342,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/ftp/delete_user` [POST]
 **Description:** Delete an FTP user.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:**
 - `username` (string): FTP username to delete.  
 **Response:**
@@ -351,7 +353,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/ftp/get_users` [GET]
 **Description:** Retrieve all FTP users.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Response:**
 - `200 OK`: `[ { "username": "...", "password": "...", "path": "...", "permissions": "..." }, ... ]`
 - `500 Internal Server Error`: `{ "error": "..." }`
@@ -360,7 +362,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/ftp/edit_user` [POST]
 **Description:** Edit an FTP user's details.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:**
 - `username` (string): FTP username.
 - `password` (string, optional): New password.
@@ -376,7 +378,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/ftp/start` [POST]
 **Description:** Start the FTP server.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Response:**
 - `200 OK`: `{ "status": "FTP server started" }`
 - `500 Internal Server Error`: `{ "error": "..." }`
@@ -386,7 +388,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/ftp/stop` [POST]
 **Description:** Stop the FTP server.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Response:**
 - `200 OK`: `{ "status": "FTP server stopped" }`
 - `400 Bad Request`: `{ "error": "FTP server is not running" }`
@@ -398,7 +400,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/get_logs` [GET]
 **Description:** Retrieve server logs.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Response:**
 - `200 OK`: `[ { "id": number, "timestamp": "...", "action": "...", "ip": "..." }, ... ]` - Logs ordered by ID descending (newest first)
 
@@ -406,7 +408,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/get_settings` [GET]
 **Description:** Retrieve server settings.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Response:**
 - `200 OK`: `{ ...settings... }` - Complete settings object from settings.json
 - `500 Internal Server Error`: `{ "error": "..." }`
@@ -415,7 +417,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/update_settings` [POST]
 **Description:** Update server settings.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:** JSON object with updated settings.  
 **Response:**
 - `200 OK`: `{ "status": "Settings updated" }`
@@ -427,7 +429,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/get_version` [GET]
 **Description:** Get the server version.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Response:**
 - `200 OK`: `{ "version": "..." }`
 
@@ -435,7 +437,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/update` [POST]
 **Description:** Trigger a server update (runs update.py in background).  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Response:**
 - `200 OK`: `{ "status": "Update started" }`
 
@@ -443,7 +445,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/update_start_exit_program` [POST]
 **Description:** Exit program for update process (calls stop_completely()).  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Response:**
 - `200 OK`: `{ "status": "Update started" }`
 
@@ -451,7 +453,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/role/get` [GET]
 **Description:** Retrieve all roles from roles.json.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Response:**
 - `200 OK`: `{ ...roles... }` - Complete roles object from roles.json
 - `500 Internal Server Error`: `{ "error": "..." }`
@@ -460,7 +462,7 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/api/role/edit` [POST]
 **Description:** Edit roles configuration.  
-**Authentication:** API key required  
+**Authentication:** JWT token required  
 **Request Body:** JSON object with updated roles.  
 **Response:**
 - `200 OK`: `{ "status": "Roles updated" }`
@@ -501,18 +503,63 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ---
 
+## JWT Authentication
+
+The API uses JSON Web Tokens (JWT) for authentication. Here's how it works:
+
+### Getting a Token
+1. Send a POST request to `/api/user/login` with username and password
+2. Receive a JWT token that's valid for 24 hours
+3. Use this token in the `Authorization: Bearer <token>` header for all subsequent requests
+
+### Token Structure
+- **Algorithm:** HS256
+- **Expiration:** 24 hours from issuance
+- **Payload includes:** user_id, username, exp (expiration time)
+
+### Using the Token
+Include the token in the Authorization header:
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+### Token Validation
+The server validates tokens before processing requests:
+- Checks token signature and expiration
+- Verifies user still exists in database
+- Loads user role and permissions
+
+### Error Handling
+- **Missing token:** Returns 401 with "Unauthorized"
+- **Expired token:** Returns 401 with "Token expired" 
+- **Invalid token:** Returns 401 with "Invalid token"
+- **User not found:** Returns 401 with "Unauthorized"
+
+### Migration Notes
+- The system has migrated from API key authentication to JWT tokens
+- API keys are still stored in the user database for potential future use
+- All endpoints now require JWT authentication instead of `X-API-KEY` headers
+
+---
+
 ## Access Control
 
-The API implements a role-based access control system:
+The API implements a JWT-based role access control system:
 
-1. **Authentication:** Most endpoints require an `X-API-KEY` header
+1. **Authentication:** Most endpoints require JWT authentication via `Authorization: Bearer <token>` header
 2. **Path Access Control:** Users have specific read/write permissions for different paths
 3. **Role-based Permissions:** Different endpoints are accessible based on user roles defined in `roles.json`
+4. **Token Expiration:** JWT tokens are valid for 24 hours and must be refreshed via login
 
 ### Access Functions:
 - `has_access(path)`: Checks if user can read from a specific path
 - `has_write_access(path)`: Checks if user can write to a specific path  
 - `is_accessible(address)`: Checks if user role can access a specific endpoint
+
+### JWT Token Errors:
+- `401 Unauthorized` with `{"error": "Token expired"}`: Token has expired, re-login required
+- `401 Unauthorized` with `{"error": "Invalid token"}`: Token is malformed or invalid
+- `401 Unauthorized` with `{"error": "Unauthorized"}`: Missing token or user not found
 
 ---
 
@@ -558,7 +605,7 @@ For more details, refer to the source code in `main.py`.
 **Description:** Get the current user's role permissions for all endpoints
 
 **Headers:**
-- `X-API-KEY`: User's API key (required)
+- `Authorization: Bearer <token>`: JWT token (required)
 
 **Response:**
 - **200 OK**: Returns permissions object with endpoint access status
