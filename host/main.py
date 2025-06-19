@@ -110,6 +110,15 @@ def initialize_users_db():
             paths_write TEXT
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ftp_users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            homedir TEXT NOT NULL,
+            permissions TEXT NOT NULL
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -122,6 +131,37 @@ def get_users_db_connection():
     conn = sqlite3.connect(users_db_path, check_same_thread=False)
     conn.execute('PRAGMA journal_mode=WAL;')
     return conn
+
+def save_ftp_user_to_db(username, password, homedir, permissions):
+    conn = get_users_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR REPLACE INTO ftp_users (username, password, homedir, permissions)
+        VALUES (?, ?, ?, ?)
+    ''', (username, password, homedir, permissions))
+    conn.commit()
+    conn.close()
+
+def delete_ftp_user_from_db(username):
+    conn = get_users_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM ftp_users WHERE username = ?', (username,))
+    conn.commit()
+    conn.close()
+
+def load_ftp_users_from_db():
+    conn = get_users_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT username, password, homedir, permissions FROM ftp_users')
+    ftp_users = cursor.fetchall()
+    conn.close()
+    
+    for username, password, homedir, permissions in ftp_users:
+        try:
+            authorizer.add_user(username, password, homedir, permissions)
+            print_status(f"Loaded FTP user: {username}", "success")
+        except Exception as e:
+            print_status(f"Error loading FTP user {username}: {e}", "error")
 
 def start_ftp_server():
     global ftp_server_instance, settings
@@ -758,6 +798,7 @@ def create_ftp_user():
             if not os.path.exists(full_path):
                 return jsonify({"error": "Path does not exist"}), 404
             authorizer.add_user(username, password, full_path, permissions)
+            save_ftp_user_to_db(username, password, full_path, permissions)
             log("FTP user created: " + username, request.remote_addr)
             return jsonify({"status": "FTP user created"}), 200
         except Exception as e:
@@ -771,6 +812,7 @@ def delete_ftp_user():
     if username:
         try:
             authorizer.remove_user(username)
+            delete_ftp_user_from_db(username)
             log("FTP user deleted:" + username, request.remote_addr)
             return jsonify({"status": "FTP user deleted"}), 200
         except Exception as e:
@@ -806,6 +848,7 @@ def edit_ftp_user():
             if path and not os.path.exists(full_path):
                 return jsonify({"error": "Path does not exist"}), 404
             authorizer.edit_user(username, password, full_path, permissions)
+            save_ftp_user_to_db(username, password, full_path, permissions)
             log("FTP user edited: " + username, request.remote_addr)
             return jsonify({"status": "FTP user edited"}), 200
         except ValueError as ve:
@@ -1218,6 +1261,7 @@ if settings:
     print_status("Settings loaded successfully.", "success")
     initialize_logs_db()
     initialize_users_db()
+    load_ftp_users_from_db()
     try:
         update.kill_process_on_port(settings['port'])
         if settings['ftp']:
