@@ -185,16 +185,16 @@
 </head>
 <body style="opacity:0; transition: opacity 0.5s;">
     <div class="container">
-        <div class="app_icons" style="background: url(web/assets/finder.png) lightgray 50% / cover no-repeat;" onclick="finder_open()">
+        <div class="app_icons" style="background: url(web/assets/finder.png) lightgray 50% / cover no-repeat;" onclick="finder_open()" id="finder-ontab">
             <div class="indicator" id="finder-indicator"></div>
         </div>
-        <div class="app_icons" style="background: url(web/assets/user.png) lightgray 50% / cover no-repeat;" onclick="users_open()">
+        <div class="app_icons" style="background: url(web/assets/user.png) lightgray 50% / cover no-repeat;" onclick="users_open()" id="users-ontab">
             <div class="indicator" id="users-indicator"></div>
         </div>
-        <div class="app_icons" style="background: url(web/assets/nas.png) lightgray 50% / cover no-repeat;" onclick="nas_open()">
+        <div class="app_icons" style="background: url(web/assets/nas.png) lightgray 50% / cover no-repeat;" onclick="nas_open()" id="nas-ontab">
             <div class="indicator" id="nas-indicator"></div>
         </div>
-        <div class="app_icons" style="background: url(web/assets/settings.png) lightgray 50% / cover no-repeat;" onclick="settings_open()">
+        <div class="app_icons" style="background: url(web/assets/settings.png) lightgray 50% / cover no-repeat;" onclick="settings_open()" id="settings-ontab">
             <div class="indicator" id="settings-indicator"></div>
         </div>
     </div>
@@ -269,7 +269,7 @@
                     <div class="users-ftpusers">
                         <div class="users-section-title">FTP users</div>
                         <div class="users-section-buttons">
-                            <button class="user-action-btn add-btn">
+                            <button class="user-action-btn add-btn" id="ftp-create-btn">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
                                     <circle cx="20" cy="20" r="20" fill="#90E478"/>
                                     <line x1="20" y1="14" x2="20" y2="26" stroke="white" stroke-width="2" stroke-linecap="round"/>
@@ -285,7 +285,7 @@
                 <div class="users-users">
                     <div class="users-section-title">Users</div>
                     <div class="users-section-buttons">
-                        <button class="user-action-btn add-btn">
+                        <button class="user-action-btn add-btn" id="user-create-btn">
                             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
                                 <circle cx="20" cy="20" r="20" fill="#90E478"/>
                                 <line x1="20" y1="14" x2="20" y2="26" stroke="white" stroke-width="2" stroke-linecap="round"/>
@@ -308,7 +308,7 @@
         </svg>
         <div class="window_title">NAS</div>
         <div class="sections_container">
-            <div class="section_content resource-section-content">
+            <div class="section_content resource-section-content" id="resource-meterse">
                 <div id="resource-meters">
                     <div class="system-control-buttons">
                         <button class="system-btn shutdown" id="shutdown-btn"></button>
@@ -345,7 +345,7 @@
                 </div>
                 </div>
             </div>
-            <div class="section">
+            <div class="section" id="log-section">
                 <div class="section_title">
                     <p>Logs</p>
                     <div class="dropdown_icon"></div>
@@ -563,7 +563,7 @@
                     <input type="text" name="user-name" id="user-name" class="textbox" placeholder="Enter full name">
                 </div>
                 <div class="user-endpoints-section">
-                    <label class="endpoints-label">Endpoint Access:</label>
+                    <label class="endpoints-label">Permissions:</label>
                     <div class="endpoints-grid" id="user-endpoints-grid">
                     </div>
                 </div>
@@ -608,7 +608,7 @@
                     <input type="text" name="edit-user-name" id="edit-user-name" class="textbox" placeholder="Enter full name">
                 </div>
                 <div class="user-endpoints-section">
-                    <label class="endpoints-label">Endpoint Access:</label>
+                    <label class="endpoints-label">Permissions:</label>
                     <div class="endpoints-grid" id="edit-user-endpoints-grid">
                     </div>
                 </div>
@@ -785,9 +785,19 @@
     
     window.addEventListener('DOMContentLoaded', () => {
         document.body.style.opacity = '1';
+        selfRoles();
         fetchResourceData();
     });
     
+    function isFunctionAvailable(access, element) {
+        if (!element) return;
+        if (access == false || !access) {
+            element.style.display = 'none';
+        } else {
+            element.style.display = '';
+        }
+    }
+
     async function fetchResourceData() {
         try {
             const response = await fetch(`${baseURL}/api/resources`, {
@@ -815,6 +825,52 @@
             meterLastPercent['cpu-meter'] = 0;
             meterLastPercent['memory-meter'] = 0;
             meterLastPercent['disk-meter'] = 0;
+        }
+    }
+    
+    async function selfRoles() {
+        try {
+            const response = await fetch(`${baseURL}/api/role/self`, {
+                method: 'GET',
+                headers: {
+                    'X-API-KEY': apiKey
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: Failed to verify user permissions`);
+            }
+            
+            const data = await response.json();
+            console.log('User permissions verified:', data);
+            const hasCommandAccess = data['/api/command'] === true;
+
+            const cliSection = document.querySelector('.section').querySelector('.section_title p');
+            if (cliSection && cliSection.textContent === 'Command line') {
+                const section = cliSection.closest('.section');
+                if (!hasCommandAccess) {
+                    section.style.display = 'none';
+                } else {
+                    section.style.display = '';
+                }
+            }
+
+            isFunctionAvailable(data['/api/finder'], document.getElementById('finder-ontab'));
+            isFunctionAvailable(data['/api/create_folder'], document.getElementById('finder-addfolder-btn'));
+            isFunctionAvailable(data['/api/delete_folder'] || data['/api/delete_file'], document.getElementById('finder-delete-btn'));
+            isFunctionAvailable(data['/api/rename_folder'] || data['/api/rename_file'], document.getElementById('finder-rename-btn'));
+            isFunctionAvailable(data['/api/download'], document.getElementById('finder-dwonload-btn'));
+            isFunctionAvailable(data['/api/upload'], document.getElementById('finder-addfile-btn'));
+            isFunctionAvailable(data['/api/ftp/create_user'], document.getElementById('ftp-create-btn'));
+            isFunctionAvailable(data['/api/resources'], document.getElementById('resource-meterse'));
+            isFunctionAvailable(data['/api/get_logs'], document.getElementById('log-section'));
+            isFunctionAvailable(data['/api/command'] || data['/api/resources'] || data['/api/get_logs'], document.getElementById('nas-ontab'));
+            isFunctionAvailable(data['/api/user/create'], document.getElementById('user-create-btn'));
+        } catch (error) {
+            console.error('Error verifying user permissions:', error);
+            localStorage.removeItem('api_key');
+            localStorage.removeItem('api_key_expiry');
+            window.location.href = '/auth';
         }
     }
     let apiKey = localStorage.getItem('api_key');
@@ -3378,6 +3434,11 @@
     }
 
     async function removeUserFromRole(endpoint, role) {
+        if (role === 'admin') {
+            alert('Cannot remove admin from endpoint access');
+            return;
+        }
+        
         if (!confirm(`Remove role "${role}" from endpoint "${endpoint}"?`)) {
             return;
         }
@@ -3418,18 +3479,28 @@
         }
     }
 
-    function updateEndpointCheckboxes(roles) {
+    async function updateEndpointCheckboxes(roles) {
+        let endpointNames = {};
+        try {
+            const response = await fetch('web/endpoints.json');
+            const endpoints = await response.json();
+            endpointNames = endpoints;
+        } catch (error) {
+            console.error('Failed to load endpoints.json:', error);
+        }
+        
         const createGrid = document.getElementById('user-endpoints-grid');
         const editGrid = document.getElementById('edit-user-endpoints-grid');
         
         if (createGrid) {
             createGrid.innerHTML = '';
             Object.keys(roles).forEach(endpoint => {
+                const endpointName = endpointNames[endpoint]?.name || endpoint;
                 const checkboxItem = document.createElement('div');
                 checkboxItem.className = 'endpoint-checkbox-item';
                 checkboxItem.innerHTML = `
                     <input type="checkbox" class="endpoint-checkbox" id="create-${endpoint.replace(/[^a-zA-Z0-9]/g, '-')}" value="${endpoint}">
-                    <label class="endpoint-label" for="create-${endpoint.replace(/[^a-zA-Z0-9]/g, '-')}">${endpoint}</label>
+                    <label class="endpoint-label" for="create-${endpoint.replace(/[^a-zA-Z0-9]/g, '-')}">${endpointName}</label>
                 `;
                 createGrid.appendChild(checkboxItem);
             });
@@ -3438,11 +3509,12 @@
         if (editGrid) {
             editGrid.innerHTML = '';
             Object.keys(roles).forEach(endpoint => {
+                const endpointName = endpointNames[endpoint]?.name || endpoint;
                 const checkboxItem = document.createElement('div');
                 checkboxItem.className = 'endpoint-checkbox-item';
                 checkboxItem.innerHTML = `
                     <input type="checkbox" class="endpoint-checkbox" id="edit-${endpoint.replace(/[^a-zA-Z0-9]/g, '-')}" value="${endpoint}">
-                    <label class="endpoint-label" for="edit-${endpoint.replace(/[^a-zA-Z0-9]/g, '-')}">${endpoint}</label>
+                    <label class="endpoint-label" for="edit-${endpoint.replace(/[^a-zA-Z0-9]/g, '-')}">${endpointName}</label>
                 `;
                 editGrid.appendChild(checkboxItem);
             });
@@ -3639,7 +3711,7 @@
             if (response.ok) {
                 const roles = await response.json();
                 displayRoles(roles);
-                updateEndpointCheckboxes(roles);
+                await updateEndpointCheckboxes(roles);
                 return roles;
             } else {
                 console.error('Failed to load roles');
@@ -3674,15 +3746,15 @@
 
         Object.keys(roles).forEach(endpoint => {
             const roleItem = document.createElement('div');
-            roleItem.className = 'role-item';
+            roleItem.className = 'users-list-item';
             
             const endpointName = endpointsInfo[endpoint]?.name || endpoint;
             const userCount = roles[endpoint].length;
             
             roleItem.innerHTML = `
-                <div class="role-info">
-                    <div class="role-name">${endpointName}</div>
-                    <div class="role-users">${userCount} user${userCount !== 1 ? 's' : ''}</div>
+                <div class="user-info">
+                    <div class="user-name">${endpointName}</div>
+                    <div class="user-details">${endpoint} • ${userCount} user${userCount !== 1 ? 's' : ''}</div>
                 </div>
             `;
             
@@ -3733,15 +3805,36 @@
             usersList.innerHTML = '';
             
             if (allowedRoles && allowedRoles.length > 0) {
-                allowedRoles.forEach(role => {
-                    const userItem = document.createElement('div');
-                    userItem.className = 'role-user-item';
-                    userItem.innerHTML = `
-                        <span class="role-user-name">${role}</span>
-                        <button class="role-user-remove" onclick="removeUserFromRole('${endpoint}', '${role}')">×</button>
-                    `;
-                    usersList.appendChild(userItem);
-                });
+                const usersWithAccess = allUsers.filter(user => allowedRoles.includes(user.role));
+                
+                if (usersWithAccess.length > 0) {
+                    usersWithAccess.forEach(user => {
+                        const userItem = document.createElement('div');
+                        userItem.className = 'users-list-item';
+                        
+                        const isAdmin = user.role === 'admin';
+                        const deleteButton = !isAdmin ? `
+                            <button class="user-item-btn delete-user-btn" onclick="removeUserFromRole('${endpoint}', '${user.role}')">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                            </button>
+                        ` : '';
+                        
+                        userItem.innerHTML = `
+                            <div class="user-info">
+                                <div class="user-name">${user.name || user.username}</div>
+                                <div class="user-details">${user.username} • ${user.role}</div>
+                            </div>
+                            <div class="user-actions">
+                                ${deleteButton}
+                            </div>
+                        `;
+                        usersList.appendChild(userItem);
+                    });
+                } else {
+                    usersList.innerHTML = '<div class="no-users">No users have access to this endpoint</div>';
+                }
             } else {
                 usersList.innerHTML = '<div class="no-users">No users have access to this endpoint</div>';
             }

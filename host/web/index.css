@@ -1429,6 +1429,7 @@ select option {
     background: rgba(255, 255, 255, 0.15);
     border-color: rgba(255, 255, 255, 0.3);
     transform: translateY(-1px);
+    cursor: pointer;
 }
 
 .user-info {
@@ -1488,44 +1489,6 @@ select option {
 .user-item-btn svg {
     width: 16px;
     height: 16px;
-}
-
-.role-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    margin-bottom: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    border: 1px solid rgba(101, 97, 146, 0.2);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.role-item:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(101, 97, 146, 0.3);
-    transform: translateY(-1px);
-}
-
-.role-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.role-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: #23232a;
-    margin-bottom: 4px;
-}
-
-.role-users {
-    font-size: 13px;
-    color: rgba(35, 35, 42, 0.7);
-    font-weight: 500;
 }
 
 .no-items {
@@ -2113,37 +2076,23 @@ select option {
     background: transparent;
 }
 
-.role-user-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: rgba(144, 228, 120, 0.08);
-    border-radius: 8px;
-    margin-bottom: 6px;
+.role-users-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 15px;
 }
 
-.role-user-name {
-    font-size: 14px;
-    font-weight: 500;
-    color: #23232a;
-    font-family: 'Kantumruy', sans-serif;
+.role-users-list::-webkit-scrollbar {
+    width: 6px;
 }
 
-.role-user-remove {
-    background: rgba(220, 38, 38, 0.1);
-    border: none;
-    border-radius: 4px;
-    padding: 4px 8px;
-    color: #dc2626;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
+.role-users-list::-webkit-scrollbar-thumb {
+    background: rgba(101, 97, 146, 0.3);
+    border-radius: 6px;
 }
 
-.role-user-remove:hover {
-    background: rgba(220, 38, 38, 0.2);
+.role-users-list::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 .no-users {
