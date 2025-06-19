@@ -1246,32 +1246,30 @@ def download_file():
     
     return jsonify({"error": "File or folder does not exist"}), 404
 
-# Main
-print(r"""
- __ _                     __       
-/ _\ |__   __ _ _ __ ___ / _|_   _ 
-\ \| '_ \ / _` | '__/ _ \ |_| | | |
-_\ \ | | | (_| | | |  __/  _| |_| |
-\__/_| |_|\__,_|_|  \___|_|  \__, |
-                             |___/ 
-""")
+def create_app():
+    if settings:
+        print_status("Settings loaded successfully.", "success")
+        initialize_logs_db()
+        initialize_users_db()
+        load_ftp_users_from_db()
+        try:
+            if settings['ftp']:
+                start_ftp_server()
+        except Exception as e:
+            print_status(f"Error starting FTP: {e}", "error")
+    else:
+        print_status("Failed to load settings.", "error")
+    return app
 
-
-if settings:
-    print_status("Settings loaded successfully.", "success")
-    initialize_logs_db()
-    initialize_users_db()
-    load_ftp_users_from_db()
-    try:
-        update.kill_process_on_port(settings['port'])
-        if settings['ftp']:
-            start_ftp_server()
-        app.run(host=settings['host'], port=settings['port'], debug=False)
-    except Exception as e:
-        print_status(f"Error starting server: {e}", "error")
-        log("Server start error: " + str(e), "-")
+if __name__ == "__main__":
+    if settings:
+        try:
+            update.kill_process_on_port(settings['port'])
+            app.run(host=settings['host'], port=settings['port'], debug=False)
+        except Exception as e:
+            print_status(f"Error starting server: {e}", "error")
+            log("Server start error: " + str(e), "-")
+            exit(1)
+    else:
+        print_status("Please check the documentation for more.", "info")
         exit(1)
-else:
-    print_status("Failed to load settings. Exiting.", "error")
-    print_status("Please check the documentation for more.", "info")
-    exit(1)

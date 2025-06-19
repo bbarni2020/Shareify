@@ -19,10 +19,10 @@ def get_sudo_password():
 def main():
     try:
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        main_py_path = os.path.join(script_dir, 'main.py')
+        main_py_path = os.path.join(script_dir, 'wsgi.py')
 
         if not os.path.exists(main_py_path):
-            print(f"Error: main.py not found at {main_py_path}")
+            print(f"Error: wsgi.py not found at {main_py_path}")
             return
         
         print("Starting Shareify with administrator privileges...")
@@ -57,4 +57,12 @@ def main():
         print(f"Error starting Shareify: {e}")
 
 if __name__ == "__main__":
+    print(r"""
+ __ _                     __       
+/ _\ |__   __ _ _ __ ___ / _|_   _ 
+\ \| '_ \ / _` | '__/ _ \ |_| | | |
+_\ \ | | | (_| | | |  __/  _| |_| |
+\__/_| |_|\__,_|_|  \___|_|  \__, |
+                             |___/ 
+""")
     main()
