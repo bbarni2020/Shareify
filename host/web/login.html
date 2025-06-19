@@ -126,33 +126,28 @@
             setTimeout(() => {
                 document.getElementById('loginWindow').classList.add('show');
             }, 60);
-        });
+        });        async function checkExistingAuth() {
+            const token = localStorage.getItem('jwt_token');
+            const expiry = localStorage.getItem('jwt_expiry');
 
-        async function checkExistingAuth() {
-            const apiKey = localStorage.getItem('api_key');
-            const expiry = localStorage.getItem('api_key_expiry');
-            
-            if (apiKey && expiry && Date.now() < parseInt(expiry)) {
+            if (token && expiry && Date.now() < parseInt(expiry)) {
                 try {
                     const baseURL = window.location.origin;
                     const res = await fetch(`${baseURL}/api/user/get_self`, {
-                        headers: { 'X-API-KEY': apiKey }
+                        headers: { 'Authorization': `Bearer ${token}` }
                     });
                     
                     if (res.ok) {
-                        // Valid API key, redirect to home
                         window.location.href = '/';
                         return;
                     }
                 } catch (err) {
-                    // API call failed, continue with login
                 }
             }
             
-            // Clear invalid/expired keys
-            if (apiKey) {
-                localStorage.removeItem('api_key');
-                localStorage.removeItem('api_key_expiry');
+            if (token) {
+                localStorage.removeItem('jwt_token');
+                localStorage.removeItem('jwt_expiry');
             }
         }
 
@@ -175,15 +170,15 @@
                 });
                 if (!res.ok) throw new Error();
                 const data = await res.json();
-                if (data.API_KEY) {
-                    apiKey = data.API_KEY;
-                    localStorage.setItem('api_key', data.API_KEY);
-                    const expiry = Date.now() + 60 * 60 * 10000;
-                    localStorage.setItem('api_key_expiry', expiry);
+                if (data.token) {
+                    const token = data.token;
+                    localStorage.setItem('jwt_token', token);
+                    const expiry = Date.now() + 24 * 60 * 60 * 1000;
+                    localStorage.setItem('jwt_expiry', expiry);
 
                     try {
                         const res = await fetch(`${baseURL}/api/user/get_self`, {
-                            headers: { 'X-API-KEY': apiKey }
+                            headers: { 'Authorization': `Bearer ${token}` }
                         });
                         if (!res.ok) throw new Error('Failed to load background');
                         const user = await res.json();

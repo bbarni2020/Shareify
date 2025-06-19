@@ -22,6 +22,7 @@ from werkzeug.utils import secure_filename
 import zipfile
 import tempfile
 import shutil
+import jwt
 
 def is_admin():
     try:
@@ -275,42 +276,59 @@ def has_write_access(path):
 # Flask app
 app = Flask(__name__)
 CORS(app)
+app.config['JWT_SECRET_KEY'] = secrets.token_hex(32)
 
 @app.before_request
-def require_api_key():
+def require_jwt():
     if request.endpoint in ['login', 'is_up', 'root', 'serve_static', 'serve_assets', 'auth']:
         return
-    api_key = request.headers.get('X-API-KEY')
-    conn = get_users_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        SELECT * FROM users WHERE API_KEY = ?
-    ''', (api_key,))
-    result = cursor.fetchone()
-    conn.close()
-    if not result or not api_key:
-        log(str("Unauthorized access attempt (API key not  found) " + (request.endpoint or "")), request.remote_addr)
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        log(str("Unauthorized access attempt (JWT not found) " + (request.endpoint or "")), request.remote_addr)
         return jsonify({"error": "Unauthorized"}), 401
-    else:
+    
+    token = auth_header.split(' ')[1]
+    try:
+        payload = jwt.decode(token, app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
+        user_id = payload.get('user_id')
+        
+        conn = get_users_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+        result = cursor.fetchone()
+        conn.close()
+        
+        if not result:
+            log(str("Unauthorized access attempt (user not found) " + (request.endpoint or "")), request.remote_addr)
+            return jsonify({"error": "Unauthorized"}), 401
+        
         role = result[5]
         g.role = role
         g.result = result
+        g.user_id = user_id
+        
         if request.endpoint in ['get_user', 'self_edit_user', 'get_self_role']:
             return
         if not is_accessible(request.path):
             return jsonify({"error": "Unauthorized"}), 401
+    except jwt.ExpiredSignatureError:
+        log(str("Unauthorized access attempt (JWT expired) " + (request.endpoint or "")), request.remote_addr)
+        return jsonify({"error": "Token expired"}), 401
+    except jwt.InvalidTokenError:
+        log(str("Unauthorized access attempt (JWT invalid) " + (request.endpoint or "")), request.remote_addr)
+        return jsonify({"error": "Invalid token"}), 401
 
 @app.after_request
 def update_ip(response):
-    if response.status_code == 200:
+    if response.status_code == 200 and hasattr(g, 'user_id'):
         try:
             conn = get_users_db_connection()
             cursor = conn.cursor()
             cursor.execute('''
                 UPDATE users
                 SET ip = ?
-                WHERE API_KEY = ?
-            ''', (request.remote_addr, request.headers.get('X-API-KEY')))
+                WHERE id = ?
+            ''', (request.remote_addr, g.user_id))
             conn.commit()
             conn.close()
         except Exception as e:
@@ -951,7 +969,13 @@ def login():
             conn.close()
             if user:
                 log("User logged in: " + username, request.remote_addr)
-                return jsonify({"API_KEY": user[9]}), 200
+                payload = {
+                    'user_id': user[0],
+                    'username': user[1],
+                    'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+                }
+                token = jwt.encode(payload, app.config['JWT_SECRET_KEY'], algorithm='HS256')
+                return jsonify({"token": token}), 200
             else:
                 log("Invalid login attempt: " + username, request.remote_addr)
                 return jsonify({"error": "Invalid username or password"}), 401

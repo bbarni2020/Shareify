@@ -424,13 +424,11 @@
                         <div class="background-thumb" data-bg="assets/backgrounds/back12.png" style="background-image: url('web/assets/backgrounds/back12.png');"></div>
                         <div class="background-thumb" data-bg="assets/backgrounds/back13.png" style="background-image: url('web/assets/backgrounds/back13.png');"></div>
                         <div class="background-thumb" data-bg="assets/backgrounds/back14.png" style="background-image: url('web/assets/backgrounds/back14.png');"></div>
-                        <!-- Waiting until the next update
                         <div class="background-thumb" data-bg="assets/backgrounds/back15.png" style="background-image: url('web/assets/backgrounds/back15.png');"></div>
                         <div class="background-thumb" data-bg="assets/backgrounds/back16.png" style="background-image: url('web/assets/backgrounds/back16.png');"></div>
                         <div class="background-thumb" data-bg="assets/backgrounds/back17.png" style="background-image: url('web/assets/backgrounds/back17.png');"></div>
                         <div class="background-thumb" data-bg="assets/backgrounds/back18.png" style="background-image: url('web/assets/backgrounds/back18.png');"></div>
                         <div class="background-thumb" data-bg="assets/backgrounds/back19.png" style="background-image: url('web/assets/backgrounds/back19.png');"></div>
-                        -->
                     </div>
                 </div>
             </div>
@@ -800,14 +798,11 @@
 
     async function fetchResourceData() {
         try {
-            const response = await fetch(`${baseURL}/api/resources`, {
-                method: 'GET',
-                headers: {
-                    'X-API-KEY': apiKey
-                }
+            const response = await authenticatedFetch(`${baseURL}/api/resources`, {
+                method: 'GET'
             });
             
-            if (response.ok) {
+            if (response && response.ok) {
                 const data = await response.json();
                 drawMeter('cpu-meter', data.cpu || 0, 'cpu');
                 drawMeter('memory-meter', data.memory || 0, 'memory');
@@ -829,16 +824,19 @@
     }
     
     async function selfRoles() {
+        const jwtToken = localStorage.getItem('jwt_token');
+        if (!jwtToken) {
+            redirectToAuth();
+            return;
+        }
+
         try {
-            const response = await fetch(`${baseURL}/api/role/self`, {
-                method: 'GET',
-                headers: {
-                    'X-API-KEY': apiKey
-                }
+            const response = await authenticatedFetch(`${baseURL}/api/role/self`, {
+                method: 'GET'
             });
             
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: Failed to verify user permissions`);
+            if (!response || !response.ok) {
+                throw new Error(`HTTP ${response?.status || 'Unknown'}: Failed to verify user permissions`);
             }
             
             const data = await response.json();
@@ -893,15 +891,77 @@
             }
         } catch (error) {
             console.error('Error verifying user permissions:', error);
-            localStorage.removeItem('api_key');
-            localStorage.removeItem('api_key_expiry');
-            window.location.href = '/auth';
+            redirectToAuth();
         }
     }
-    let apiKey = localStorage.getItem('api_key');
+    let jwtToken = localStorage.getItem('jwt_token');
     let userPermissions = {};
-    if (!apiKey) {
+    
+    if (!jwtToken || isTokenExpired()) {
+        redirectToAuth();
+    }
+
+    function startTokenExpirationMonitor() {
+        setInterval(() => {
+            if (isTokenExpired()) {
+                console.log('Token expired, redirecting to login');
+                redirectToAuth();
+            }
+        }, 60000);
+    }
+
+    startTokenExpirationMonitor();
+
+    function isTokenExpired() {
+        const expiry = localStorage.getItem('jwt_expiry');
+        if (!expiry) return true;
+        return Date.now() >= parseInt(expiry);
+    }
+
+    function redirectToAuth() {
+        localStorage.removeItem('jwt_token');
+        localStorage.removeItem('jwt_expiry');
         window.location.href = '/auth';
+    }
+
+    function getAuthHeaders() {
+        const token = localStorage.getItem('jwt_token');
+        if (!token || isTokenExpired()) {
+            redirectToAuth();
+            return {};
+        }
+        return { 'Authorization': `Bearer ${token}` };
+    }
+
+    async function authenticatedFetch(url, options = {}) {
+        if (isTokenExpired()) {
+            redirectToAuth();
+            return;
+        }
+
+        const headers = {
+            ...getAuthHeaders(),
+            ...options.headers
+        };
+
+        try {
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            if (response.status === 401) {
+                const responseData = await response.json().catch(() => ({}));
+                if (responseData.error === 'Token expired' || responseData.error === 'Invalid token' || responseData.error === 'Unauthorized') {
+                    return;
+                }
+            }
+
+            return response;
+        } catch (error) {
+            console.error('Authenticated fetch error:', error);
+            throw error;
+        }
     }
 
     const windows = document.querySelectorAll('.window');
@@ -1052,16 +1112,14 @@
 
     async function loadInitialPaths() {
         try {
-            const apiKey = localStorage.getItem('api_key');
-            if (!apiKey) {
-                console.error('API key not found');
+            const jwtToken = localStorage.getItem('jwt_token');
+            if (!jwtToken) {
+                console.error('JWT token not found');
                 return;
             }
 
             const response = await fetch(`${baseURL}/api/user/get_self`, {
-                headers: {
-                    'X-API-KEY': apiKey
-                }
+                headers: getAuthHeaders()
             });
 
             if (!response.ok) {
@@ -1169,9 +1227,9 @@
 
     async function loadFolderContents(path) {
         try {
-            const apiKey = localStorage.getItem('api_key');
-            if (!apiKey) {
-                console.error('API key not found');
+            const jwtToken = localStorage.getItem('jwt_token');
+            if (!jwtToken) {
+                console.error('JWT token not found');
                 return;
             }
 
@@ -1181,9 +1239,7 @@
             }
 
             const response = await fetch(url, {
-                headers: {
-                    'X-API-KEY': apiKey
-                }
+                headers: getAuthHeaders()
             });
 
             if (!response.ok) {
@@ -1209,11 +1265,11 @@
                     e.stopPropagation();
                     if (e.ctrlKey || e.metaKey) return;
                     
-                    const apiKey = localStorage.getItem('api_key');
-                    if (apiKey) {
+                    const jwtToken = localStorage.getItem('jwt_token');
+                    if (jwtToken) {
                         try {
                             const response = await fetch(`${baseURL}/api/user/get_self`, {
-                                headers: { 'X-API-KEY': apiKey }
+                                headers: getAuthHeaders()
                             });
                             if (response.ok) {
                                 const data = await response.json();
@@ -1473,8 +1529,8 @@
                     await fetch(`${baseURL}/api/update`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'X-API-KEY': apiKey
+                            ...getAuthHeaders(),
+                            'Content-Type': 'application/json'
                         }
                     });
                 } catch (e) {
@@ -1536,10 +1592,11 @@
     });
 
     async function loadPersonalSettings() {
-        if (!apiKey) return;
+        const jwtToken = localStorage.getItem('jwt_token');
+        if (!jwtToken) return;
         try {
             const res = await fetch(`${baseURL}/api/user/get_self`, {
-                headers: { 'X-API-KEY': apiKey }
+                headers: getAuthHeaders()
             });
             if (!res.ok) throw new Error('Failed to fetch user data');
             const user = await res.json();
@@ -1575,7 +1632,8 @@
     }
 
     async function savePersonalSettings() {
-        if (!apiKey) return;
+        const jwtToken = localStorage.getItem('jwt_token');
+        if (!jwtToken) return;
         const name = document.getElementById('name').value;
         const username = document.getElementById('username').value;
         const password = document.getElementById('password_web').value;
@@ -1592,7 +1650,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-API-KEY': apiKey,
+                    ...getAuthHeaders()
                 },
                 body: JSON.stringify({
                     name,
@@ -1610,10 +1668,11 @@
     let currentServerSettings = null;
 
     async function loadServerSettings() {
-        if (!apiKey) return;
+        const jwtToken = localStorage.getItem('jwt_token');
+        if (!jwtToken) return;
         try {
             const res = await fetch(`${baseURL}/api/get_settings`, {
-                headers: { 'X-API-KEY': apiKey }
+                headers: getAuthHeaders()
             });
             if (!res.ok) throw new Error('Failed to fetch server settings');
             const settings = await res.json();
@@ -1672,14 +1731,15 @@
     }
 
     async function saveServerSettings() {
-        if (!apiKey) return;
+        const jwtToken = localStorage.getItem('jwt_token');
+        if (!jwtToken) return;
         const settings = gatherServerSettingsFromFields();
         try {
             const res = await fetch(`${baseURL}/api/update_settings`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-API-KEY': apiKey
+                    ...getAuthHeaders()
                 },
                 body: JSON.stringify(settings)
             });
@@ -1720,8 +1780,8 @@
             }
         });
         setTimeout(() => {
-            localStorage.removeItem('api_key');
-            localStorage.removeItem('api_key_expiry');
+            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('jwt_expiry');
             location.reload();
         }, 600);
     });
@@ -1738,9 +1798,9 @@
             }
             try {
                 const [cpuRes, memRes, diskRes] = await Promise.all([
-                    fetch(`${baseURL}/api/stats/cpu`, { headers: { 'X-API-KEY': apiKey } }),
-                    fetch(`${baseURL}/api/stats/memory`, { headers: { 'X-API-KEY': apiKey } }),
-                    fetch(`${baseURL}/api/stats/disk`, { headers: { 'X-API-KEY': apiKey } })
+                    fetch(`${baseURL}/api/stats/cpu`, { headers: getAuthHeaders() }),
+                    fetch(`${baseURL}/api/stats/memory`, { headers: getAuthHeaders() }),
+                    fetch(`${baseURL}/api/stats/disk`, { headers: getAuthHeaders() })
                 ]);
 
                 if (!cpuRes.ok || !memRes.ok || !diskRes.ok) throw new Error('Failed to fetch NAS stats');
@@ -1844,7 +1904,7 @@
     async function fetchAndDrawResources() {
         try {
             const res = await fetch(`${baseURL}/api/resources`, {
-                headers: { 'X-API-KEY': apiKey }
+                headers: getAuthHeaders()
             });
             if (!res.ok) throw new Error();
             const data = await res.json();
@@ -1900,8 +1960,8 @@
                         const response = await fetch(`${baseURL}/api/command`, {
                             method: 'POST',
                             headers: {
-                                'Content-Type': 'application/json',
-                                'X-API-KEY': apiKey
+                                ...getAuthHeaders(),
+                                'Content-Type': 'application/json'
                             },
                             body: JSON.stringify({ command })
                         });
@@ -1923,11 +1983,12 @@
 
     async function loadLogs() {
         const logTableBody = document.getElementById('log-table-body');
-        if (!logTableBody || !apiKey) return;
+        const jwtToken = localStorage.getItem('jwt_token');
+        if (!logTableBody || !jwtToken) return;
         logTableBody.innerHTML = '<tr><td colspan="3">Loading...</td></tr>';
         try {
             const res = await fetch(`${baseURL}/api/get_logs`, {
-                headers: { 'X-API-KEY': apiKey }
+                headers: getAuthHeaders()
             });
             if (!res.ok) throw new Error('Failed to fetch logs');
             const logs = await res.json();
@@ -1973,8 +2034,8 @@
                         const response = await fetch(`${baseURL}/api/command`, {
                             method: 'POST',
                             headers: {
-                                'Content-Type': 'application/json',
-                                'X-API-KEY': apiKey
+                                ...getAuthHeaders(),
+                                'Content-Type': 'application/json'
                             },
                             body: JSON.stringify({ command })
                         });
@@ -2071,7 +2132,7 @@
                     return;
                 }
                 
-                const apiKey = localStorage.getItem('api_key');
+                const jwtToken = localStorage.getItem('jwt_token');
                 const currentPath = document.getElementById('finder-path').value;
                 const pathForAPI = currentPath.startsWith('/') ? currentPath.substring(1) : currentPath;
                 
@@ -2082,8 +2143,8 @@
                     const response = await fetch(`${baseURL}/api/${endpoint}`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'X-API-KEY': apiKey
+                            ...getAuthHeaders(),
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
                             [bodyKey]: currentName,
@@ -2152,9 +2213,7 @@
                 
                 try {
                     const response = await fetch(`${baseURL}/api/download?file_path=${encodeURIComponent(itemPath)}`, {
-                        headers: {
-                            'X-API-KEY': apiKey
-                        }
+                        headers: getAuthHeaders()
                     });
                     
                     if (response.ok) {
@@ -2197,8 +2256,8 @@
                     const response = await fetch(`${baseURL}/api/${endpoint}`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'X-API-KEY': apiKey
+                            ...getAuthHeaders(),
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({ path: itemPath })
                     });
@@ -2272,8 +2331,8 @@
                     const response = await fetch(`${baseURL}/api/create_folder`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'X-API-KEY': apiKey
+                            ...getAuthHeaders(),
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
                             folder_name: folderName,
@@ -2400,7 +2459,15 @@
         }
 
         function handleFileSelection(files) {
-            selectedFiles = files;
+            const newFiles = Array.from(files);
+            const existingFileNames = selectedFiles.map(f => f.name);
+            
+            newFiles.forEach(file => {
+                if (!existingFileNames.includes(file.name)) {
+                    selectedFiles.push(file);
+                }
+            });
+            
             updateUploadUI();
         }
 
@@ -2425,12 +2492,20 @@
                     fileItem.className = 'upload-file-item';
                     fileItem.innerHTML = `
                         <span class="upload-file-name" title="${file.name}">${file.name}</span>
-                        <span class="upload-file-remove" onclick="removeFile(${index})">×</span>
+                        <span class="upload-file-remove" data-index="${index}">×</span>
                     `;
                     fileList.appendChild(fileItem);
                 });
                 
                 uploadDropZone.appendChild(fileList);
+                
+                fileList.querySelectorAll('.upload-file-remove').forEach(removeBtn => {
+                    removeBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const index = parseInt(removeBtn.dataset.index);
+                        removeFile(index);
+                    });
+                });
             } else {
                 uploadText.querySelector('h3').textContent = 'Drop files here or click to browse';
                 uploadText.querySelector('p').textContent = 'Select files to upload to the current directory';
@@ -2443,9 +2518,11 @@
             }
         }
 
-        window.removeFile = function(index) {
-            selectedFiles.splice(index, 1);
-            updateUploadUI();
+        function removeFile(index) {
+            if (index >= 0 && index < selectedFiles.length) {
+                selectedFiles.splice(index, 1);
+                updateUploadUI();
+            }
         }
 
         async function uploadFiles() {
@@ -2466,9 +2543,7 @@
                 try {
                     const response = await fetch(`${baseURL}/api/upload`, {
                         method: 'POST',
-                        headers: {
-                            'X-API-KEY': apiKey
-                        },
+                        headers: getAuthHeaders(),
                         body: formData
                     });
                     
@@ -2506,9 +2581,7 @@
         if (restart && e.target === restart) {
             const response = await fetch(`${baseURL}/api/restart`, {
                         method: 'POST',
-                        headers: {
-                            'X-API-KEY': apiKey
-                        }
+                        headers: getAuthHeaders()
                     });
             fullScreenIcon();
         }
@@ -2518,9 +2591,7 @@
         if (shutdown && e.target === shutdown) {
             const response = await fetch(`${baseURL}/api/shutdown`, {
                         method: 'POST',
-                        headers: {
-                            'X-API-KEY': apiKey
-                        }
+                        headers: getAuthHeaders()
                     });
             fullScreenIcon();
         }
@@ -2585,9 +2656,7 @@
         try {
             const response = await fetch(`${baseURL}/api/ftp/get_users`, {
                 method: 'GET',
-                headers: {
-                    'X-API-KEY': apiKey
-                }
+                headers: getAuthHeaders()
             });
 
             if (response.ok) {
@@ -2648,9 +2717,7 @@
         try {
             const response = await fetch(`${baseURL}/api/ftp/get_users`, {
                 method: 'GET',
-                headers: {
-                    'X-API-KEY': apiKey
-                }
+                headers: getAuthHeaders()
             });
 
             if (response.ok) {
@@ -2686,8 +2753,8 @@
             const response = await fetch(`${baseURL}/api/ftp/delete_user`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-KEY': apiKey
+                    ...getAuthHeaders(),
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ username: ftpUsername })
             });
@@ -2745,9 +2812,7 @@
         try {
             const usersResponse = await fetch(`${baseURL}/api/user/get_all`, {
                 method: 'GET',
-                headers: {
-                    'X-API-KEY': apiKey
-                }
+                headers: getAuthHeaders()
             });
 
             if (usersResponse.ok) {
@@ -2763,8 +2828,8 @@
             const response = await fetch(`${baseURL}/api/user/create`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-KEY': apiKey
+                    ...getAuthHeaders(),
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     username: username,
@@ -2781,9 +2846,7 @@
                     try {
                         const rolesResponse = await fetch(`${baseURL}/api/role/get`, {
                             method: 'GET',
-                            headers: {
-                                'X-API-KEY': apiKey
-                            }
+                            headers: getAuthHeaders()
                         });
                         
                         if (rolesResponse.ok) {
@@ -2801,8 +2864,8 @@
                             await fetch(`${baseURL}/api/role/edit`, {
                                 method: 'POST',
                                 headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-API-KEY': apiKey
+                                    ...getAuthHeaders(),
+                                    'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify(currentRoles)
                             });
@@ -2858,9 +2921,7 @@
         
         const currentUserResponse = await fetch(`${baseURL}/api/user/get_all`, {
             method: 'GET',
-            headers: {
-                'X-API-KEY': apiKey
-            }
+            headers: getAuthHeaders()
         });
         
         let currentRole = 'user';
@@ -2909,8 +2970,8 @@
             const response = await fetch(`${baseURL}/api/user/edit`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-KEY': apiKey
+                    ...getAuthHeaders(),
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(updateData)
             });
@@ -2920,9 +2981,7 @@
                     try {
                         const rolesResponse = await fetch(`${baseURL}/api/role/get`, {
                             method: 'GET',
-                            headers: {
-                                'X-API-KEY': apiKey
-                            }
+                            headers: getAuthHeaders()
                         });
                         
                         if (rolesResponse.ok) {
@@ -2950,8 +3009,8 @@
                             await fetch(`${baseURL}/api/role/edit`, {
                                 method: 'POST',
                                 headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-API-KEY': apiKey
+                                    ...getAuthHeaders(),
+                                    'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify(currentRoles)
                             });
@@ -2987,9 +3046,7 @@
         try {
             const currentUserResponse = await fetch(`${baseURL}/api/user/get_self`, {
                 method: 'GET',
-                headers: {
-                    'X-API-KEY': apiKey
-                }
+                headers: getAuthHeaders()
             });
             
             if (currentUserResponse.ok) {
@@ -3012,9 +3069,7 @@
         try {
             const usersResponse = await fetch(`${baseURL}/api/user/get_all`, {
                 method: 'GET',
-                headers: {
-                    'X-API-KEY': apiKey
-                }
+                headers: getAuthHeaders()
             });
             
             let userRole = null;
@@ -3029,8 +3084,8 @@
             const response = await fetch(`${baseURL}/api/user/delete`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-KEY': apiKey
+                    ...getAuthHeaders(),
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ username: username })
             });
@@ -3040,9 +3095,7 @@
                     try {
                         const rolesResponse = await fetch(`${baseURL}/api/role/get`, {
                             method: 'GET',
-                            headers: {
-                                'X-API-KEY': apiKey
-                            }
+                            headers: getAuthHeaders()
                         });
                         
                         if (rolesResponse.ok) {
@@ -3061,8 +3114,8 @@
                             await fetch(`${baseURL}/api/role/edit`, {
                                 method: 'POST',
                                 headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-API-KEY': apiKey
+                                    ...getAuthHeaders(),
+                                    'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify(currentRoles)
                             });
@@ -3086,9 +3139,7 @@
         try {
             const response = await fetch(`${baseURL}/api/user/get_all`, {
                 method: 'GET',
-                headers: {
-                    'X-API-KEY': apiKey
-                }
+                headers: getAuthHeaders()
             });
 
             if (response.ok) {
@@ -3112,9 +3163,7 @@
         try {
             const currentUserResponse = await fetch(`${baseURL}/api/user/get_self`, {
                 method: 'GET',
-                headers: {
-                    'X-API-KEY': apiKey
-                }
+                headers: getAuthHeaders()
             });
             
             if (currentUserResponse.ok) {
@@ -3185,9 +3234,7 @@
         try {
             const response = await fetch(`${baseURL}/api/ftp/get_users`, {
                 method: 'GET',
-                headers: {
-                    'X-API-KEY': apiKey
-                }
+                headers: getAuthHeaders()
             });
 
             if (response.ok) {
@@ -3269,8 +3316,8 @@
             const response = await fetch(`${baseURL}/api/ftp/delete_user`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-KEY': apiKey
+                    ...getAuthHeaders(),
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ username: username })
             });
@@ -3336,8 +3383,8 @@
             const response = await fetch(`${baseURL}/api/ftp/edit_user`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-KEY': apiKey
+                    ...getAuthHeaders(),
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(requestBody)
             });
@@ -3382,8 +3429,8 @@
             const response = await fetch(`${baseURL}/api/role/create`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-KEY': apiKey
+                    ...getAuthHeaders(),
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     role_name: roleName,
@@ -3425,8 +3472,8 @@
             const response = await fetch(`${baseURL}/api/role/edit`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-KEY': apiKey
+                    ...getAuthHeaders(),
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     endpoint: endpoint,
@@ -3502,8 +3549,8 @@
                 const response = await fetch(`${baseURL}/api/role/edit`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-API-KEY': apiKey
+                        ...getAuthHeaders(),
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(currentRoles)
                 });
@@ -3548,8 +3595,8 @@
                 const response = await fetch(`${baseURL}/api/role/edit`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-API-KEY': apiKey
+                        ...getAuthHeaders(),
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(currentRoles)
                 });
@@ -3623,9 +3670,7 @@
             try {
                 const rolesResponse = await fetch(`${baseURL}/api/role/get`, {
                     method: 'GET',
-                    headers: {
-                        'X-API-KEY': apiKey
-                    }
+                    headers: getAuthHeaders()
                 });
                 
                 if (rolesResponse.ok) {
@@ -3759,8 +3804,8 @@
             const response = await fetch(`${baseURL}/api/ftp/create_user`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-KEY': apiKey
+                    ...getAuthHeaders(),
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(requestBody)
             });
@@ -3791,9 +3836,7 @@
         try {
             const response = await fetch(`${baseURL}/api/role/get`, {
                 method: 'GET',
-                headers: {
-                    'X-API-KEY': apiKey
-                }
+                headers: getAuthHeaders()
             });
 
             if (response.ok) {
@@ -3870,9 +3913,7 @@
         try {
             const usersResponse = await fetch(`${baseURL}/api/user/get_all`, {
                 method: 'GET',
-                headers: {
-                    'X-API-KEY': apiKey
-                }
+                headers: getAuthHeaders()
             });
             if (usersResponse.ok) {
                 allUsers = await usersResponse.json();
