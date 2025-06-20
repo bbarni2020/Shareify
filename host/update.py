@@ -116,6 +116,14 @@ def update():
         with open(os.path.join(web_dir, "install.html"), 'w') as file:
             file.write(install_html)
             file.close()
+        endpoints_json = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/web/endpoints.json").text
+        with open(os.path.join(web_dir, "endpoints.json"), 'w') as file:
+            file.write(endpoints_json)
+            file.close()
+        install_py = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/web/install.py").text
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "install.py"), 'w') as file:
+            file.write(install_py)
+            file.close()
         index_css = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/web/index.css").text
         with open(os.path.join(web_dir, "index.css"), 'w') as file:
             file.write(index_css)

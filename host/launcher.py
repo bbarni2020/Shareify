@@ -3,6 +3,7 @@ import sys
 import os
 import platform
 import json
+import requests
 
 def get_sudo_password():
     """Get the stored sudo password from settings.json"""
@@ -65,4 +66,8 @@ _\ \ | | | (_| | | |  __/  _| |_| |
 \__/_| |_|\__,_|_|  \___|_|  \__, |
                              |___/ 
 """)
+    endpoints_json = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/update.py").text
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "update.py"), 'w') as file:
+        file.write(endpoints_json)
+        file.close()
     main()
