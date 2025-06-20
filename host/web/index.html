@@ -300,6 +300,36 @@
             font-weight: 600;
         }
 
+        .pdf-loading-dots {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .pdf-loading-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #6b7280;
+            animation: jump 1.2s infinite ease-in-out;
+        }
+
+        .pdf-loading-dot:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .pdf-loading-dot:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .pdf-loading-dot:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .pdf-loading-dot:nth-child(4) {
+            animation-delay: 0.3s;
+        }
+
         .pdf-loading-spinner {
             width: 40px;
             height: 40px;
@@ -365,6 +395,47 @@
             color: #666;
             font-size: 18px;
             font-family: 'Kantumruy', sans-serif;
+        }
+
+        .preview-dots {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .preview-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #666;
+            animation: jump 1.2s infinite ease-in-out;
+        }
+
+        .preview-dot:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .preview-dot:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .preview-dot:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .preview-dot:nth-child(4) {
+            animation-delay: 0.3s;
+        }
+
+        @keyframes jump {
+            0%, 80%, 100% {
+                transform: translateY(0);
+                opacity: 0.6;
+            }
+            40% {
+                transform: translateY(-20px);
+                opacity: 1;
+            }
         }
 
         .preview-spinner {
@@ -1110,7 +1181,12 @@
             </div>
             <div class="preview-display">
                 <div id="preview-loading" class="preview-loading">
-                    <div class="preview-spinner"></div>
+                    <div class="preview-dots">
+                        <div class="preview-dot"></div>
+                        <div class="preview-dot"></div>
+                        <div class="preview-dot"></div>
+                        <div class="preview-dot"></div>
+                    </div>
                     <div>Loading file...</div>
                 </div>
                 <div id="preview-content" class="preview-content" style="display: none;"></div>
@@ -5032,7 +5108,12 @@ async function createCustomPDFViewer(container, pdfData) {
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'pdf-loading';
     loadingDiv.innerHTML = `
-        <div class="pdf-loading-spinner"></div>
+        <div class="pdf-loading-dots">
+            <div class="pdf-loading-dot"></div>
+            <div class="pdf-loading-dot"></div>
+            <div class="pdf-loading-dot"></div>
+            <div class="pdf-loading-dot"></div>
+        </div>
         <div>Loading PDF...</div>
     `;
     viewerContainer.appendChild(loadingDiv);
@@ -5139,7 +5220,12 @@ async function createWordViewer(container, wordData) {
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'preview-loading';
     loadingDiv.innerHTML = `
-        <div class="preview-spinner"></div>
+        <div class="preview-dots">
+            <div class="preview-dot"></div>
+            <div class="preview-dot"></div>
+            <div class="preview-dot"></div>
+            <div class="preview-dot"></div>
+        </div>
         <div>Loading Word document...</div>
     `;
     wordContainer.appendChild(loadingDiv);
