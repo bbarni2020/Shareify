@@ -1399,7 +1399,7 @@
             setupFileSelection();
         } catch (error) {
             console.error('Error loading folder contents:', error);
-            alert('Failed to load folder contents. Please try again.');
+            showNotification('Failed to load folder contents. Please try again.', 'error');
         }
     }
 
@@ -1687,7 +1687,7 @@
             
             updateIconVisibility();
         } catch (err) {
-            alert(err);
+            showNotification(err, 'error');
         }
     }
 
@@ -1721,7 +1721,7 @@
             });
             if (!res.ok) throw new Error('Failed to save settings');
         } catch (err) {
-            alert('Could not save personal settings.');
+            showNotification('Could not save personal settings.', 'error');
         }
     }
 
@@ -1806,7 +1806,7 @@
             if (!res.ok) throw new Error('Failed to update server settings');
             currentServerSettings = settings;
         } catch (err) {
-            alert('Could not save server settings.');
+            showNotification('Could not save server settings.', 'error');
         }
     }
 
@@ -2220,13 +2220,13 @@
                         loadFolderContents(cleanedPath);
                     } else {
                         const errorData = await response.json();
-                        alert(`Failed to rename ${isFolder ? 'folder' : 'file'}: ${errorData.error || 'Unknown error'}`);
+                        showNotification(`Failed to rename ${isFolder ? 'folder' : 'file'}: ${errorData.error || 'Unknown error'}`, 'error');
                         renamingItem.remove();
                         selectedItem.style.display = '';
                     }
                 } catch (error) {
                     console.error('Error renaming item:', error);
-                    alert(`Failed to rename ${isFolder ? 'folder' : 'file'}. Please try again.`);
+                    showNotification(`Failed to rename ${isFolder ? 'folder' : 'file'}. Please try again.`, 'error');
                     renamingItem.remove();
                     selectedItem.style.display = '';
                 }
@@ -2296,7 +2296,7 @@
                     await new Promise(resolve => setTimeout(resolve, 100));
                 } catch (error) {
                     console.error(`Error downloading ${itemPath}:`, error);
-                    alert(`Failed to download ${itemPath.split('/').pop()}`);
+                    showNotification(`Failed to download ${itemPath.split('/').pop()}`, 'error');
                 }
             }
         });
@@ -2341,7 +2341,7 @@
             }
             
             if (failCount > 0) {
-                alert(`Failed to delete ${failCount} item(s). ${successCount} item(s) deleted successfully.`);
+                showNotification(`Failed to delete ${failCount} item(s). ${successCount} item(s) deleted successfully.`, 'error');
             }
         });
         document.getElementById('finder-addfile-btn').addEventListener('click', () => {
@@ -4041,7 +4041,7 @@
         });
 
         document.querySelector('.users-ftpusers .remove-btn')?.addEventListener('click', () => {
-            alert('Select an FTP user from the list to remove them.');
+            showNotification('Select an FTP user from the list to remove them.', 'info');
         });
 
         document.querySelector('.users-users .add-btn')?.addEventListener('click', () => {
@@ -4049,7 +4049,7 @@
         });
 
         document.querySelector('.users-users .remove-btn')?.addEventListener('click', () => {
-            alert('Select a user from the list to remove them.');
+            showNotification('Select a user from the list to remove them.', 'info');
         });
         document.querySelector('.users-roles .edit-btn')?.addEventListener('click', () => {
             editRoles();
