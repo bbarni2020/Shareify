@@ -1731,7 +1731,6 @@ select option {
     transform: translateY(-2px);
 }
 
-/* FTP Users Connection Section */
 .ftp-users-connection-section {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 100%);
     border: 1px solid rgba(101, 97, 146, 0.15);
@@ -2165,4 +2164,116 @@ select option {
 
 .role-user-option:last-child {
     border-bottom: none;
+}
+
+.notification-overlay {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 350px;
+    min-height: 80px;
+    max-height: 200px;
+    border-radius: 18px;
+    background: linear-gradient(93deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.25) 100%);
+    box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.2), 0px 4px 12px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(20px);
+    z-index: 10000;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-family: 'Kantumruy', sans-serif;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    overflow: hidden;
+}
+
+.notification-overlay.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.notification-overlay.hide {
+    opacity: 0;
+    transform: translateX(100%);
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.notification-title {
+    color: #333;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0;
+    flex: 1;
+    padding-right: 15px;
+}
+
+.notification-close {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    color: #666;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.notification-close:hover {
+    background: rgba(0, 0, 0, 0.2);
+    transform: scale(1.1);
+}
+
+.notification-close:active {
+    transform: scale(0.95);
+}
+
+.notification-content {
+    color: #555;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.4;
+    margin: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.notification-overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.6) 50%, transparent 100%);
+}
+
+.notification-overlay.success {
+    background: linear-gradient(93deg, rgba(76, 175, 80, 0.85) 0%, rgba(76, 175, 80, 0.25) 100%);
+}
+
+.notification-overlay.error {
+    background: linear-gradient(93deg, rgba(244, 67, 54, 0.85) 0%, rgba(244, 67, 54, 0.25) 100%);
+}
+
+.notification-overlay.warning {
+    background: linear-gradient(93deg, rgba(255, 193, 7, 0.85) 0%, rgba(255, 193, 7, 0.25) 100%);
+}
+
+.notification-overlay.info {
+    background: linear-gradient(93deg, rgba(33, 150, 243, 0.85) 0%, rgba(33, 150, 243, 0.25) 100%);
 }
