@@ -327,7 +327,7 @@ limiter = Limiter(
 
 @app.before_request
 def require_jwt():
-    if request.endpoint in ['login', 'is_up', 'root', 'serve_static', 'serve_assets', 'auth']:
+    if request.endpoint in ['login', 'is_up', 'root', 'serve_static', 'serve_assets', 'auth', 'preview']:
         return
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
@@ -699,9 +699,9 @@ def rename_file():
 @app.route('/api/get_file', methods=['GET'])
 def get_file():
     global settings
-    file = request.json.get('file_path')
+    file = request.args.get('file_path')
     if file:
-        if has_write_access(file):
+        if has_access(file):
             try:
                 full_path = os.path.join(settings['path'], file)
                 if os.path.exists(full_path):
@@ -709,11 +709,20 @@ def get_file():
                     if mime_type and (mime_type.startswith('video/') or mime_type.startswith('image/')):
                         with open(full_path, 'rb') as f:
                             content = f.read()
-                        return jsonify({"status": "File content retrieved", "content": content.decode('latin1')}), 200
+                        import base64
+                        encoded_content = base64.b64encode(content).decode('utf-8')
+                        return jsonify({"status": "File content retrieved", "content": encoded_content, "type": "binary"}), 200
                     else:
-                        with open(full_path, 'r') as f:
-                            content = f.read()
-                        return jsonify({"status": "File content retrieved", "content": content}), 200
+                        try:
+                            with open(full_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                            return jsonify({"status": "File content retrieved", "content": content, "type": "text"}), 200
+                        except UnicodeDecodeError:
+                            with open(full_path, 'rb') as f:
+                                content = f.read()
+                            import base64
+                            encoded_content = base64.b64encode(content).decode('utf-8')
+                            return jsonify({"status": "File content retrieved", "content": encoded_content, "type": "binary"}), 200
                 else:
                     return jsonify({"error": "Path does not exist"}), 404
             except Exception as e:
@@ -882,6 +891,13 @@ def edit_ftp_user():
             full_path = os.path.join(settings['path'], path) if path else settings['path']
             if path and not os.path.exists(full_path):
                 return jsonify({"error": "Path does not exist"}), 404
+            if password is None or password == "":
+                conn = get_users_db_connection()
+                cursor = conn.cursor()
+                cursor.execute('SELECT password FROM ftp_users WHERE username = ?', (username,))
+                result = cursor.fetchone()
+                conn.close()
+                password = result[0] if result else None
             authorizer.edit_user(username, password, full_path, permissions)
             save_ftp_user_to_db(username, password, full_path, permissions)
             log("FTP user edited: " + username, request.remote_addr)
@@ -1209,6 +1225,11 @@ def root():
 @app.route('/auth', methods=['GET'])
 def auth():
     return send_from_directory(os.path.join(os.path.dirname(__file__), 'web'), 'login.html')
+
+@app.route('/preview', methods=['GET'])
+def preview():
+    return send_from_directory(os.path.join(os.path.dirname(__file__), 'web'), 'preview.html')
+
 
 @app.route('/web/<path:filename>', methods=['GET'])
 def serve_static(filename):

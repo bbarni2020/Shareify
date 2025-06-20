@@ -26,6 +26,184 @@
             background-repeat: no-repeat;
             transition: opacity 0.4s cubic-bezier(0.4,0,0.2,1);
         }
+
+        .preview-content-wrapper {
+            position: absolute;
+            top: 80px;
+            left: 30px;
+            right: 30px;
+            bottom: 30px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 20px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .preview-file-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            font-family: 'Kantumruy', sans-serif;
+        }
+
+        .preview-download-btn {
+            padding: 7px 18px;
+            border-radius: 18px;
+            border: none;
+            background: rgba(65, 137, 230, 0.12);
+            color: #23232a;
+            font-family: 'Kantumruy', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0px 2px 6px 0px rgba(60,67,71,0.08);
+            transition: background 0.18s, box-shadow 0.18s, transform 0.18s, opacity 0.2s ease-out;
+        }
+
+        .preview-download-btn:hover {
+            background: rgba(65, 137, 230, 0.18);
+            box-shadow: 0px 4px 12px 0px rgba(60,67,71,0.12);
+            transform: translateY(-2px);
+        }
+
+        .preview-display {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+        }
+
+        .preview-content {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .preview-image {
+            max-width: calc(100% - 40px);
+            max-height: calc(100% - 40px);
+            object-fit: contain;
+            border-radius: 15px;
+            box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.2);
+            margin: 20px;
+        }
+
+        .preview-video {
+            max-width: calc(100% - 40px);
+            max-height: calc(100% - 40px);
+            border-radius: 15px;
+            box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.2);
+            margin: 20px;
+        }
+
+        .preview-audio {
+            width: calc(100% - 80px);
+            max-width: 500px;
+            margin: 20px auto;
+            border-radius: 25px;
+            outline: none;
+        }
+
+        .preview-pdf {
+            width: calc(100% - 40px);
+            height: calc(100% - 40px);
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.2);
+            margin: 20px;
+        }
+
+        .preview-text {
+            width: calc(100% - 80px);
+            height: calc(100% - 80px);
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 20px;
+            padding: 20px;
+            margin: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .preview-text::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .preview-text::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .preview-text::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .preview-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            color: #666;
+            font-size: 18px;
+            font-family: 'Kantumruy', sans-serif;
+        }
+
+        .preview-spinner {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(128, 128, 128, 0.3);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(128, 128, 128, 0.4);
+        }
+
+        .preview-error {
+            background: rgba(255, 107, 107, 0.6);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            color: #d32f2f;
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'Kantumruy', sans-serif;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+
+        .preview-unsupported {
+            background: rgba(255, 193, 7, 0.6);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            color: #f57f17;
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'Kantumruy', sans-serif;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
 .finder-toolbar {
     display: flex;
     flex-direction: column;
@@ -532,6 +710,30 @@
                 <button class="upload-btn" id="upload-btn">
                     <span>Upload Files</span>
                 </button>
+            </div>
+        </div>
+        <div class="resize_handle"></div>
+    </div>
+    
+    <div class="window preview-window" id="preview-window">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="none" class="exit_btn">
+            <g filter="url(#filter0_i_19_3)">
+                <circle cx="11" cy="11" r="11" fill="#DC2626"/>
+            </g>
+        </svg>
+        <div class="window_title" id="preview-title">Preview</div>
+        <div class="preview-content-wrapper">
+            <div class="preview-header-bar">
+                <div class="preview-file-name" id="preview-file-name">Loading...</div>
+                <button class="preview-download-btn" id="preview-download-btn" style="display: none;">Download</button>
+            </div>
+            <div class="preview-display">
+                <div id="preview-loading" class="preview-loading">
+                    <div class="preview-spinner"></div>
+                    <div>Loading file...</div>
+                </div>
+                <div id="preview-content" class="preview-content" style="display: none;"></div>
+                <div id="preview-error" class="preview-error" style="display: none;"></div>
             </div>
         </div>
         <div class="resize_handle"></div>
@@ -1050,6 +1252,11 @@
         exitButton.addEventListener('click', () => {
             const windowId = windowElement.id;
             const indicatorId = `${windowId.split('-')[0]}-indicator`;
+            
+            if (windowId === 'preview-window') {
+                stopPreviewMedia();
+            }
+            
             windowElement.classList.add('hide');
             windowElement.classList.remove('show');
             updateIndicator(windowId, indicatorId);
@@ -1137,6 +1344,13 @@
             case 'wmv':
             case 'mkv':
             case 'flv':
+                return 'file-video';
+            case 'mp3':
+            case 'wav':
+            case 'ogg':
+            case 'aac':
+            case 'm4a':
+            case 'flac':
                 return 'file-video';
             case 'zip':
             case 'rar':
@@ -1381,6 +1595,11 @@
                         if (e.ctrlKey || e.metaKey) return;
                         loadFolderContents(itemPath);
                     });
+                } else {
+                    itemElement.addEventListener('dblclick', (e) => {
+                        e.stopPropagation();
+                        openPreview(itemPath);
+                    });
                 }
                 fileManager.appendChild(itemElement);
             });
@@ -1444,6 +1663,233 @@
             bringToFront(windowElement);
             updateIndicator('settings-window', 'settings-indicator');
         }
+    }
+
+    function openPreview(filePath) {
+        const windowElement = document.getElementById('preview-window');
+        if (windowElement) {
+            windowElement.classList.add('show');
+            windowElement.classList.remove('hide');
+            bringToFront(windowElement);
+            loadPreviewFile(filePath);
+        }
+    }
+
+    let currentPreviewFilePath = '';
+
+    function loadPreviewFile(filePath) {
+        const token = localStorage.getItem('jwt_token');
+        if (!token) {
+            showPreviewError('Authentication required. Please log in first.');
+            return;
+        }
+
+        currentPreviewFilePath = filePath;
+        document.getElementById('preview-file-name').textContent = getFileName(filePath);
+        document.getElementById('preview-title').textContent = `Preview`;
+        document.getElementById('preview-download-btn').style.display = 'block';
+        
+        stopPreviewMedia();
+        
+        document.getElementById('preview-loading').style.display = 'flex';
+        document.getElementById('preview-content').style.display = 'none';
+        document.getElementById('preview-error').style.display = 'none';
+
+        fetch(`/api/get_file?file_path=${encodeURIComponent(filePath)}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            displayPreviewFile(filePath, data.content, data.type || 'text');
+        })
+        .catch(error => {
+            console.error('Error loading file:', error);
+            showPreviewError(error.message);
+        });
+    }
+
+    function displayPreviewFile(filePath, content, contentType) {
+        const fileExt = getFileExtension(filePath);
+        
+        document.getElementById('preview-loading').style.display = 'none';
+        document.getElementById('preview-content').style.display = 'flex';
+        
+        const contentDiv = document.getElementById('preview-content');
+        contentDiv.innerHTML = '';
+        
+        if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(fileExt)) {
+            try {
+                const img = document.createElement('img');
+                img.className = 'preview-image';
+                
+                if (contentType === 'binary') {
+                    const bytes = Uint8Array.from(atob(content), c => c.charCodeAt(0));
+                    const blob = new Blob([bytes], { type: `image/${fileExt}` });
+                    img.src = URL.createObjectURL(blob);
+                } else {
+                    const blob = new Blob([content], { type: `image/${fileExt}` });
+                    img.src = URL.createObjectURL(blob);
+                }
+                
+                img.onerror = () => showPreviewUnsupported('Unable to display this image format');
+                contentDiv.appendChild(img);
+            } catch (e) {
+                console.error('Image display error:', e);
+                showPreviewUnsupported('Unable to display this image format');
+            }
+        } else if (['mp4', 'webm', 'ogg', 'avi', 'mov'].includes(fileExt)) {
+            try {
+                const video = document.createElement('video');
+                video.className = 'preview-video';
+                video.controls = true;
+                
+                if (contentType === 'binary') {
+                    const bytes = Uint8Array.from(atob(content), c => c.charCodeAt(0));
+                    const blob = new Blob([bytes], { type: `video/${fileExt}` });
+                    video.src = URL.createObjectURL(blob);
+                } else {
+                    const blob = new Blob([content], { type: `video/${fileExt}` });
+                    video.src = URL.createObjectURL(blob);
+                }
+                
+                video.onerror = () => showPreviewUnsupported('Unable to play this video format');
+                contentDiv.appendChild(video);
+            } catch (e) {
+                console.error('Video display error:', e);
+                showPreviewUnsupported('Unable to play this video format');
+            }
+        } else if (['mp3', 'wav', 'ogg', 'aac', 'm4a', 'flac'].includes(fileExt)) {
+            try {
+                const audio = document.createElement('audio');
+                audio.className = 'preview-audio';
+                audio.controls = true;
+                
+                if (contentType === 'binary') {
+                    const bytes = Uint8Array.from(atob(content), c => c.charCodeAt(0));
+                    const blob = new Blob([bytes], { type: `audio/${fileExt}` });
+                    audio.src = URL.createObjectURL(blob);
+                } else {
+                    const blob = new Blob([content], { type: `audio/${fileExt}` });
+                    audio.src = URL.createObjectURL(blob);
+                }
+                
+                audio.onerror = () => showPreviewUnsupported('Unable to play this audio format');
+                contentDiv.appendChild(audio);
+            } catch (e) {
+                console.error('Audio display error:', e);
+                showPreviewUnsupported('Unable to play this audio format');
+            }
+        } else if (fileExt === 'pdf') {
+            try {
+                const iframe = document.createElement('iframe');
+                iframe.className = 'preview-pdf';
+                
+                if (contentType === 'binary') {
+                    const bytes = Uint8Array.from(atob(content), c => c.charCodeAt(0));
+                    const blob = new Blob([bytes], { type: 'application/pdf' });
+                    iframe.src = URL.createObjectURL(blob);
+                } else {
+                    const blob = new Blob([content], { type: 'application/pdf' });
+                    iframe.src = URL.createObjectURL(blob);
+                }
+                
+                iframe.onerror = () => showPreviewUnsupported('Unable to display this PDF');
+                contentDiv.appendChild(iframe);
+            } catch (e) {
+                console.error('PDF display error:', e);
+                showPreviewUnsupported('Unable to display this PDF');
+            }
+        } else if (['txt', 'js', 'css', 'html', 'json', 'xml', 'py', 'java', 'cpp', 'c', 'h', 'md', 'log', 'csv', 'php', 'rb', 'go', 'rs', 'swift'].includes(fileExt)) {
+            const pre = document.createElement('div');
+            pre.className = 'preview-text';
+            
+            if (contentType === 'binary') {
+                try {
+                    const decodedContent = atob(content);
+                    pre.textContent = decodedContent;
+                } catch (e) {
+                    pre.textContent = 'Unable to decode file content as text';
+                }
+            } else {
+                pre.textContent = content;
+            }
+            
+            contentDiv.appendChild(pre);
+        } else {
+            showPreviewUnsupported('File type not supported for preview');
+        }
+    }
+
+    function showPreviewError(message) {
+        document.getElementById('preview-loading').style.display = 'none';
+        document.getElementById('preview-content').style.display = 'none';
+        const errorDiv = document.getElementById('preview-error');
+        errorDiv.style.display = 'block';
+        errorDiv.textContent = message;
+    }
+
+    function showPreviewUnsupported(message) {
+        document.getElementById('preview-loading').style.display = 'none';
+        document.getElementById('preview-content').style.display = 'none';
+        
+        const unsupportedDiv = document.createElement('div');
+        unsupportedDiv.className = 'preview-unsupported';
+        unsupportedDiv.textContent = message;
+        
+        document.getElementById('preview-content').appendChild(unsupportedDiv);
+        document.getElementById('preview-content').style.display = 'flex';
+    }
+
+    function stopPreviewMedia() {
+        const previewContent = document.getElementById('preview-content');
+        if (previewContent) {
+            const videos = previewContent.querySelectorAll('video');
+            videos.forEach(video => {
+                video.pause();
+                video.currentTime = 0;
+                if (video.src && video.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(video.src);
+                }
+            });
+            
+            const audios = previewContent.querySelectorAll('audio');
+            audios.forEach(audio => {
+                audio.pause();
+                audio.currentTime = 0;
+                if (audio.src && audio.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(audio.src);
+                }
+            });
+            
+            const pdfs = previewContent.querySelectorAll('iframe');
+            pdfs.forEach(pdf => {
+                if (pdf.src && pdf.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(pdf.src);
+                }
+            });
+            
+            previewContent.innerHTML = '';
+        }
+    }
+
+    function getFileName(filePath) {
+        return filePath.split('/').pop() || filePath;
+    }
+
+    function getFileExtension(filePath) {
+        return filePath.split('.').pop().toLowerCase();
     }
 
     document.querySelectorAll('.section_title').forEach((titleElement) => {
@@ -4023,6 +4469,46 @@
 
         document.querySelector('.users-users .remove-btn')?.addEventListener('click', () => {
             showNotification('Select a user from the list to remove them.', 'info');
+        });
+
+        document.getElementById('preview-download-btn')?.addEventListener('click', () => {
+            if (!currentPreviewFilePath) return;
+            
+            const token = localStorage.getItem('jwt_token');
+            if (!token) {
+                showPreviewError('Authentication required for download');
+                return;
+            }
+
+            fetch(`/api/download?file_path=${encodeURIComponent(currentPreviewFilePath)}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Download failed: ${response.statusText}`);
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = getFileName(currentPreviewFilePath);
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                console.error('Download error:', error);
+                const link = document.createElement('a');
+                link.href = `/api/download?file_path=${encodeURIComponent(currentPreviewFilePath)}`;
+                link.target = '_blank';
+                link.click();
+            });
         });
 
         document.getElementById('user_create_btn')?.addEventListener('click', () => {
