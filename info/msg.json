@@ -1,1 +1,1 @@
-{"active": true, "message": "Test message", "type": "error"}
+{"active": true, "message": "This is the first version of Shareify. This update (0.1.0) is the first beta version of Shareify. Settings and NAS manager are fully working, User management is not available, and File manager is under development. File upload/download is unstable. File/folder deletion and folder creation are available.", "type": "error"}
