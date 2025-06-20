@@ -898,7 +898,6 @@
             }
             
             const data = await response.json();
-            console.log('User permissions verified:', data);
             userPermissions = data;
             const hasCommandAccess = data['/api/command'] === true;
 
@@ -950,7 +949,7 @@
                 document.getElementById('users-ontab').style.display = 'none';
             }
         } catch (error) {
-            console.error('Error verifying user permissions:', error);
+            showNotification('Error verifying user permissions', 'error');
             redirectToAuth();
         }
     }
@@ -964,7 +963,7 @@
     function startTokenExpirationMonitor() {
         setInterval(() => {
             if (isTokenExpired()) {
-                console.log('Token expired, redirecting to login');
+                showNotification('Token expired, redirecting to login', 'warning');
                 redirectToAuth();
             }
         }, 60000);
@@ -1019,7 +1018,7 @@
 
             return response;
         } catch (error) {
-            console.error('Authenticated fetch error:', error);
+            showNotification('Authenticated fetch error', 'error');
             throw error;
         }
     }
@@ -1174,7 +1173,7 @@
         try {
             const jwtToken = localStorage.getItem('jwt_token');
             if (!jwtToken) {
-                console.error('JWT token not found');
+                showNotification('JWT token not found', 'error');
                 return;
             }
 
@@ -1289,7 +1288,7 @@
         try {
             const jwtToken = localStorage.getItem('jwt_token');
             if (!jwtToken) {
-                console.error('JWT token not found');
+                showNotification('JWT token not found', 'error');
                 return;
             }
 
@@ -1398,7 +1397,6 @@
             
             setupFileSelection();
         } catch (error) {
-            console.error('Error loading folder contents:', error);
             showNotification('Failed to load folder contents. Please try again.', 'error');
         }
     }
@@ -1772,9 +1770,7 @@
             } catch (e) {
                 if (versionDiv) versionDiv.style.display = "none";
             }
-        } catch (err) {
-            console.log('Could not load server settings.');
-        }
+        } catch (err) {}
     }
 
     function gatherServerSettingsFromFields() {
@@ -2225,7 +2221,6 @@
                         selectedItem.style.display = '';
                     }
                 } catch (error) {
-                    console.error('Error renaming item:', error);
                     showNotification(`Failed to rename ${isFolder ? 'folder' : 'file'}. Please try again.`, 'error');
                     renamingItem.remove();
                     selectedItem.style.display = '';
@@ -2295,7 +2290,6 @@
                     
                     await new Promise(resolve => setTimeout(resolve, 100));
                 } catch (error) {
-                    console.error(`Error downloading ${itemPath}:`, error);
                     showNotification(`Failed to download ${itemPath.split('/').pop()}`, 'error');
                 }
             }
@@ -2326,7 +2320,7 @@
                         successCount++;
                     } else {
                         failCount++;
-                        console.error(`Failed to delete ${itemPath}`);
+                        showNotification(`Failed to delete ${itemPath}`, 'error');
                     }
                 } catch (error) {
                     failCount++;
@@ -2406,12 +2400,12 @@
                         loadFolderContents(cleanedPath);
                     } else {
                         const errorData = await response.json();
-                        alert(`Failed to create folder: ${errorData.error || 'Unknown error'}`);
+                        showNotification(`Failed to create folder: ${errorData.error || 'Unknown error'}`, 'error');
                         newFolderItem.remove();
                     }
                 } catch (error) {
                     console.error('Error creating folder:', error);
-                    alert('Failed to create folder. Please try again.');
+                    showNotification('Failed to create folder. Please try again.', 'error');
                     newFolderItem.remove();
                 }
             }
@@ -2610,7 +2604,7 @@
                     if (response.ok) {
                         uploadedCount++;
                     } else {
-                        console.error(`Failed to upload ${file.name}`);
+                        showNotification(`Failed to upload ${file.name}`, 'error');
                     }
                 } catch (error) {
                     console.error(`Error uploading ${file.name}:`, error);
@@ -2674,7 +2668,6 @@
     }
 
     function openUserEditWindow(userData) {
-        console.log('openUserEditWindow called with:', userData);
         const windowElement = document.getElementById('user-edit-window');
         if (windowElement) {
             windowElement.classList.add('show');
@@ -2700,8 +2693,7 @@
             if (ftpEnabledEl) ftpEnabledEl.value = userData.ftp_enabled ? 'true' : 'false';
             if (ftpPathEl) ftpPathEl.value = userData.ftp_path || '';
             if (ftpPermissionsEl) ftpPermissionsEl.value = userData.ftp_permissions || '';
-            
-            console.log('Setting userId to:', userData.id);
+
             windowElement.dataset.userId = userData.id || '';
             
             loadConnectedFTPUsers(userData.username);
@@ -2770,7 +2762,7 @@
         const currentUsername = document.getElementById('edit-user-username').value;
         
         if (!currentUsername) {
-            alert('Please save the user first before connecting FTP users');
+            showNotification('Please save the user first before connecting FTP users', 'warning');
             return;
         }
 
@@ -2784,7 +2776,7 @@
                 const allFTPUsers = await response.json();
                 
                 if (allFTPUsers.length === 0) {
-                    alert('No FTP users available. Create FTP users first.');
+                    showNotification('No FTP users available. Create FTP users first.', 'warning');
                     return;
                 }
 
@@ -2792,15 +2784,14 @@
                 const selectedFTPUser = prompt(`Select an FTP user to connect:\n\n${ftpUsersList}\n\nEnter the FTP username:`);
                 
                 if (selectedFTPUser && allFTPUsers.some(user => user.username === selectedFTPUser)) {
-                    alert(`FTP user "${selectedFTPUser}" connected to user "${currentUsername}"`);
+                    showNotification(`FTP user "${selectedFTPUser}" connected to user "${currentUsername}"`, 'success');
                     loadConnectedFTPUsers(currentUsername);
                 } else if (selectedFTPUser) {
-                    alert('Invalid FTP username selected');
+                    showNotification('Invalid FTP username selected', 'error');
                 }
             }
         } catch (error) {
-            console.error('Error connecting FTP user:', error);
-            alert('Failed to connect FTP user');
+            showNotification('Failed to connect FTP user', 'error');
         }
     }
 
@@ -2823,11 +2814,10 @@
                 loadConnectedFTPUsers(username);
             } else {
                 const errorData = await response.json();
-                alert('Failed to disconnect user: ' + (errorData.error || 'Unknown error'));
+                showNotification('Failed to disconnect user: ' + (errorData.error || 'Unknown error', 'error'));
             }
         } catch (error) {
-            console.error('Error disconnecting FTP user:', error);
-            alert('Failed to disconnect FTP user');
+            showNotification('Failed to disconnect FTP user', 'error');
         }
     }
 
@@ -2846,7 +2836,7 @@
         const writePathsText = document.getElementById('user-paths-write').value.trim();
 
         if (!username || !password) {
-            alert('Username and password are required');
+            showNotification('Username and password are required', 'info');
             return;
         }
 
@@ -2861,7 +2851,7 @@
                 writePaths = JSON.parse(writePathsText);
             }
         } catch (error) {
-            alert('Invalid JSON format in paths fields');
+            showNotification('Invalid JSON format in paths fields', 'warning');
             return;
         }
 
@@ -2949,11 +2939,10 @@
                 }, 1500);
             } else {
                 const errorData = await response.json();
-                alert(`Error creating user: ${errorData.error || 'Unknown error'}`);
+                showNotification(`Error creating user: ${errorData.error || 'Unknown error'}`, 'error');
             }
         } catch (error) {
-            console.error('Error creating user:', error);
-            alert('Failed to create user. Please try again.');
+            showNotification('Failed to create user. Please try again.', 'error');
         }
     }
 
@@ -2961,11 +2950,8 @@
         const windowElement = document.getElementById('user-edit-window');
         const userId = windowElement.dataset.userId;
         
-        console.log('updateUser called, userId:', userId);
-        console.log('windowElement.dataset:', windowElement.dataset);
-        
         if (!userId) {
-            alert('No user selected for editing');
+            showNotification('No user selected for editing', 'warning');
             return;
         }
 
@@ -2997,7 +2983,7 @@
         const writePathsText = document.getElementById('edit-user-paths-write').value.trim();
 
         if (!username || !name) {
-            alert('Username and name are required');
+            showNotification('Username and name are required', 'info');
             return;
         }
 
@@ -3012,7 +2998,7 @@
                 writePaths = JSON.parse(writePathsText);
             }
         } catch (error) {
-            alert('Invalid JSON format in paths fields');
+            showNotification('Invalid JSON format in paths fields', 'warning');
             return;
         }
 
@@ -3094,11 +3080,10 @@
                 }, 1500);
             } else {
                 const errorData = await response.json();
-                alert(`Error updating user: ${errorData.error || 'Unknown error'}`);
+                showNotification(`Error updating user: ${errorData.error || 'Unknown error'}`, 'error');
             }
         } catch (error) {
-            console.error('Error updating user:', error);
-            alert('Failed to update user. Please try again.');
+            showNotification('Failed to update user. Please try again.', 'error');
         }
     }
 
@@ -3112,13 +3097,12 @@
             if (currentUserResponse.ok) {
                 const currentUser = await currentUserResponse.json();
                 if (currentUser.username === username) {
-                    alert('You cannot delete your own account.');
+                    showNotification('You cannot delete your own account.', 'warning');
                     return;
                 }
             }
         } catch (error) {
-            console.error('Error checking current user:', error);
-            alert('Unable to verify user permissions. Please try again.');
+            showNotification('Unable to verify user permissions. Please try again.', 'error');
             return;
         }
 
@@ -3187,11 +3171,10 @@
                 loadUsersData();
             } else {
                 const errorData = await response.json();
-                alert(`Error deleting user: ${errorData.error || 'Unknown error'}`);
+                showNotification(`Error deleting user: ${errorData.error || 'Unknown error'}`, 'error');
             }
         } catch (error) {
-            console.error('Error deleting user:', error);
-            alert('Failed to delete user. Please try again.');
+            showNotification('Failed to delete user. Please try again.', 'error');
         }
     }
 
@@ -3206,7 +3189,7 @@
                 const users = await response.json();
                 await displayUsers(users);
             } else {
-                console.error('Failed to load users data');
+                showNotification('Failed to load users data', 'error');
             }
         } catch (error) {
             console.error('Error loading users data:', error);
@@ -3301,7 +3284,7 @@
                 const ftpUsers = await response.json();
                 displayFTPUsers(ftpUsers);
             } else {
-                console.error('Failed to load FTP users data');
+                showNotification('Failed to load FTP users data' ,'error');
             }
         } catch (error) {
             console.error('Error loading FTP users data:', error);
@@ -3386,11 +3369,10 @@
                 loadFTPUsers();
             } else {
                 const errorData = await response.json();
-                alert(`Error deleting FTP user: ${errorData.error || 'Unknown error'}`);
+                showNotification(`Error deleting FTP user: ${errorData.error || 'Unknown error'}`, 'error');
             }
         } catch (error) {
-            console.error('Error deleting FTP user:', error);
-            alert('Failed to delete FTP user. Please try again.');
+            showNotification('Failed to delete FTP user. Please try again.', 'error');
         }
     }
 
@@ -3417,7 +3399,7 @@
         const ftpUsername = windowElement.dataset.ftpUsername;
         
         if (!ftpUsername) {
-            alert('No FTP user selected for editing');
+            showNotification('No FTP user selected for editing', 'warning');
             return;
         }
 
@@ -3464,11 +3446,10 @@
                 }, 1500);
             } else {
                 const errorData = await response.json();
-                alert(`Error updating FTP user: ${errorData.error || 'Unknown error'}`);
+                showNotification(`Error updating FTP user: ${errorData.error || 'Unknown error'}`, 'error');
             }
         } catch (error) {
-            console.error('Error updating FTP user:', error);
-            alert('Failed to update FTP user. Please try again.');
+            showNotification('Failed to update FTP user. Please try again.', 'error');
         }
     }
 
@@ -3481,7 +3462,7 @@
         });
         
         if (!roleName) {
-            alert('Role name is required');
+            showNotification('Role name is required', 'info');
             return;
         }
 
@@ -3499,16 +3480,16 @@
             });
 
             if (response.ok) {
-                alert('Role created successfully');
+                showNotification('Role created successfully', 'success');
                 loadRoles();
                 document.getElementById('role-name').value = '';
             } else {
                 const errorData = await response.json();
-                alert(`Error creating role: ${errorData.error || 'Unknown error'}`);
+                showNotification(`Error creating role: ${errorData.error || 'Unknown error'}`, 'error');
             }
         } catch (error) {
             console.error('Error creating role:', error);
-            alert('Failed to create role. Please try again.');
+            showNotification('Failed to create role. Please try again.', 'error');
         }
     }
 
@@ -3524,7 +3505,7 @@
         });
         
         if (!endpoint) {
-            alert('No endpoint selected');
+            showNotification('No endpoint selected', 'warning');
             return;
         }
 
@@ -3543,7 +3524,7 @@
             });
 
             if (response.ok) {
-                alert('Role updated successfully');
+                showNotification('Role updated successfully', 'success');
                 loadRoles();
                 const currentRoles = await loadRoles();
                 if (currentRoles && currentRoles[endpoint]) {
@@ -3551,11 +3532,10 @@
                 }
             } else {
                 const errorData = await response.json();
-                alert('Failed to update role: ' + (errorData.error || 'Unknown error'));
+                showNotification('Failed to update role: ' + (errorData.error || 'Unknown error', 'error'));
             }
         } catch (error) {
-            console.error('Error updating role:', error);
-            alert('Failed to update role. Please try again.');
+            showNotification('Failed to update role. Please try again.', 'error');
         }
     }
 
@@ -3595,7 +3575,7 @@
         try {
             const currentRoles = await loadRoles();
             if (!currentRoles) {
-                alert('Failed to load current roles');
+                showNotification('Failed to load current roles', 'error');
                 return;
             }
             
@@ -3619,18 +3599,17 @@
                     openRoleDetailsWindow(endpoint, currentRoles[endpoint]);
                 } else {
                     const errorData = await response.json();
-                    alert('Failed to add user: ' + (errorData.error || 'Unknown error'));
+                    showNotification('Failed to add user: ' + (errorData.error || 'Unknown error', 'error'));
                 }
             }
         } catch (error) {
-            console.error('Error adding user to role:', error);
-            alert('Failed to add user. Please try again.');
+            showNotification('Failed to add user. Please try again.', 'error');
         }
     }
 
     async function removeUserFromRole(endpoint, role) {
         if (role === 'admin') {
-            alert('Cannot remove admin from endpoint access');
+            showNotification('Cannot remove admin from endpoint access', 'warning');
             return;
         }
         
@@ -3641,7 +3620,7 @@
         try {
             const currentRoles = await loadRoles();
             if (!currentRoles) {
-                alert('Failed to load current roles');
+                showNotification('Failed to load current roles', 'error');
                 return;
             }
             
@@ -3665,12 +3644,11 @@
                     openRoleDetailsWindow(endpoint, currentRoles[endpoint] || []);
                 } else {
                     const errorData = await response.json();
-                    alert('Failed to remove user: ' + (errorData.error || 'Unknown error'));
+                    showNotification('Failed to remove user: ' + (errorData.error || 'Unknown error', 'error'));
                 }
             }
         } catch (error) {
-            console.error('Error removing user from role:', error);
-            alert('Failed to remove user. Please try again.');
+            showNotification('Failed to remove user. Please try again.', 'error');
         }
     }
 
@@ -3749,10 +3727,6 @@
                 console.error('Error loading roles for user:', error);
             }
         }
-    }
-
-    function editRoles() {
-        alert('Role editing functionality would open a detailed permissions editor here.');
     }
 
     function openFTPCreateWindow() {
@@ -3846,7 +3820,7 @@
         const permissions = getPermissionsFromCheckboxes('create');
 
         if (!username || !password || !permissions) {
-            alert('Please fill in username, password, and select at least one permission.');
+            showNotification('Please fill in username, password, and select at least one permission.', 'info');
             return;
         }
 
@@ -3885,11 +3859,10 @@
                 }, 1500);
             } else {
                 const errorData = await response.json();
-                alert(`Error creating FTP user: ${errorData.error || 'Unknown error'}`);
+                showNotification(`Error creating FTP user: ${errorData.error || 'Unknown error'}`, 'error');
             }
         } catch (error) {
-            console.error('Error creating FTP user:', error);
-            alert('Failed to create FTP user. Please try again.');
+            showNotification('Failed to create FTP user. Please try again.', 'error');
         }
     }
     async function loadRoles() {
@@ -3905,7 +3878,7 @@
                 await updateEndpointCheckboxes(roles);
                 return roles;
             } else {
-                console.error('Failed to load roles');
+                showNotification('Failed to load roles', 'error');
                 return null;
             }
         } catch (error) {
@@ -4050,9 +4023,6 @@
 
         document.querySelector('.users-users .remove-btn')?.addEventListener('click', () => {
             showNotification('Select a user from the list to remove them.', 'info');
-        });
-        document.querySelector('.users-roles .edit-btn')?.addEventListener('click', () => {
-            editRoles();
         });
 
         document.getElementById('user_create_btn')?.addEventListener('click', () => {
