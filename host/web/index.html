@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="web/index.css">
     <link rel="shortcut icon" href="web/assets/icon.ico" type="image/x-icon">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
@@ -399,6 +400,190 @@
             font-family: 'Kantumruy', sans-serif;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+
+        .preview-word-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #f5f5f5;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .preview-word-content {
+            flex: 1;
+            padding: 40px;
+            background: white;
+            margin: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            font-family: 'Times New Roman', Times, serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .preview-word-content h1,
+        .preview-word-content h2,
+        .preview-word-content h3,
+        .preview-word-content h4,
+        .preview-word-content h5,
+        .preview-word-content h6 {
+            color: #2c3e50;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .preview-word-content p {
+            margin-bottom: 1em;
+            text-align: justify;
+        }
+
+        .preview-word-content ul,
+        .preview-word-content ol {
+            margin-left: 20px;
+            margin-bottom: 1em;
+        }
+
+        .preview-word-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1em;
+        }
+
+        .preview-word-content td,
+        .preview-word-content th {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .preview-word-content th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .preview-word-content img {
+            max-width: 100%;
+            height: auto;
+            margin: 10px 0;
+        }
+
+        .preview-word-content::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        .preview-word-content::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+        }
+
+        .preview-word-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .preview-word-error {
+            padding: 30px;
+            text-align: center;
+            color: #d32f2f;
+            font-size: 16px;
+            background: rgba(255, 107, 107, 0.1);
+            border-radius: 10px;
+            margin: 20px;
+        }
+
+        .preview-word-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #f5f5f5;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .preview-word-content {
+            flex: 1;
+            padding: 40px;
+            background: white;
+            margin: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            font-family: 'Times New Roman', Times, serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .preview-word-content h1,
+        .preview-word-content h2,
+        .preview-word-content h3,
+        .preview-word-content h4,
+        .preview-word-content h5,
+        .preview-word-content h6 {
+            color: #2c3e50;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .preview-word-content p {
+            margin-bottom: 1em;
+            text-align: justify;
+        }
+
+        .preview-word-content ul,
+        .preview-word-content ol {
+            margin-left: 20px;
+            margin-bottom: 1em;
+        }
+
+        .preview-word-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1em;
+        }
+
+        .preview-word-content td,
+        .preview-word-content th {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .preview-word-content th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .preview-word-content img {
+            max-width: 100%;
+            height: auto;
+            margin: 10px 0;
+        }
+
+        .preview-word-content::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        .preview-word-content::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+        }
+
+        .preview-word-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .preview-word-error {
+            padding: 30px;
+            text-align: center;
+            color: #d32f2f;
+            font-size: 16px;
+            background: rgba(255, 107, 107, 0.1);
+            border-radius: 10px;
+            margin: 20px;
         }
 .finder-toolbar {
     display: flex;
@@ -2002,6 +2187,28 @@
             } catch (e) {
                 console.error('PDF display error:', e);
                 showPreviewUnsupported('Unable to display this PDF');
+            }
+        } else if (['docx', 'doc'].includes(fileExt)) {
+            try {
+                if (fileExt === 'docx' && typeof mammoth !== 'undefined') {
+                    let wordData;
+                    if (contentType === 'binary') {
+                        const bytes = Uint8Array.from(atob(content), c => c.charCodeAt(0));
+                        wordData = bytes.buffer;
+                    } else {
+                        const encoder = new TextEncoder();
+                        wordData = encoder.encode(content).buffer;
+                    }
+                    
+                    createWordViewer(contentDiv, wordData);
+                } else if (fileExt === 'doc') {
+                    showPreviewUnsupported('Legacy DOC files are not supported. Please convert to DOCX format.');
+                } else {
+                    showPreviewUnsupported('Word document viewer not available');
+                }
+            } catch (e) {
+                console.error('Word document display error:', e);
+                showPreviewUnsupported('Unable to display this Word document');
             }
         } else if (['txt', 'js', 'css', 'html', 'json', 'xml', 'py', 'java', 'cpp', 'c', 'h', 'md', 'log', 'csv', 'php', 'rb', 'go', 'rs', 'swift'].includes(fileExt)) {
             const pre = document.createElement('div');
@@ -4920,6 +5127,53 @@ function updatePdfControls(prevBtn, nextBtn, pageInput, zoomLevel) {
     
     if (zoomLevelEl) {
         zoomLevelEl.textContent = Math.round(pdfScale * 100) + '%';
+    }
+}
+
+async function createWordViewer(container, wordData) {
+    container.innerHTML = '';
+    
+    const wordContainer = document.createElement('div');
+    wordContainer.className = 'preview-word-container';
+    
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'preview-loading';
+    loadingDiv.innerHTML = `
+        <div class="preview-spinner"></div>
+        <div>Loading Word document...</div>
+    `;
+    wordContainer.appendChild(loadingDiv);
+    container.appendChild(wordContainer);
+    
+    try {
+        const result = await mammoth.convertToHtml({arrayBuffer: wordData});
+        
+        loadingDiv.remove();
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'preview-word-content';
+        contentDiv.innerHTML = result.value;
+        
+        if (result.messages && result.messages.length > 0) {
+            const warningsDiv = document.createElement('div');
+            warningsDiv.style.cssText = 'padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; margin-bottom: 10px; font-size: 14px; color: #856404;';
+            warningsDiv.innerHTML = '<strong>Conversion warnings:</strong><br>' + result.messages.map(m => m.message).join('<br>');
+            wordContainer.appendChild(warningsDiv);
+        }
+        
+        wordContainer.appendChild(contentDiv);
+        
+    } catch (error) {
+        console.error('Error converting Word document:', error);
+        loadingDiv.remove();
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'preview-word-error';
+        errorDiv.innerHTML = `
+            <strong>Failed to load Word document</strong><br>
+            <small>This file may be corrupted or in an unsupported format</small>
+        `;
+        wordContainer.appendChild(errorDiv);
     }
 }
 
