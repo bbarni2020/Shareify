@@ -1,5 +1,7 @@
 #Imports
 from flask import Flask, request, jsonify, g, send_from_directory
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import os
 import json
 import psutil
@@ -318,6 +320,11 @@ app = Flask(__name__)
 CORS(app)
 app.config['JWT_SECRET_KEY'] = secrets.token_hex(32)
 
+limiter = Limiter(
+    app,
+    default_limits=[]
+)
+
 @app.before_request
 def require_jwt():
     if request.endpoint in ['login', 'is_up', 'root', 'serve_static', 'serve_assets', 'auth']:
@@ -376,6 +383,7 @@ def update_ip(response):
     return response
 
 @app.route('/api/is_up', methods=['GET'])
+@limiter.limit("1/second", override_defaults=False)
 def is_up():
     return jsonify({"status": "Server is up"}), 200
 
@@ -453,10 +461,31 @@ def command():
     if command:
         try:
             command = command.strip()
-            
+            if command.startswith('mkdir '):
+                target_dir = command[6:].strip()
+                if target_dir == '' or target_dir == '~':
+                    new_dir = settings['path']
+                elif target_dir.startswith('/'):
+                    new_dir = target_dir
+                elif target_dir == '..':
+                    current_dir = get_command_dir()
+                    new_dir = os.path.dirname(current_dir)
+                else:
+                    current_dir = get_command_dir()
+                    new_dir = os.path.join(current_dir, target_dir)
+                new_dir = os.path.abspath(new_dir)
+                if has_write_access(new_dir):
+                    if not os.path.exists(new_dir):
+                        os.makedirs(new_dir)
+                        return jsonify({"status": "Command executed", "output": f"Created directory: {target_dir}"})
+                else:
+                    log("Unauthorized access attempt in creating directory", request.remote_addr)
+                    return jsonify({"error": "Unauthorized"}), 401
+            if command.startswith('nano'):
+                return jsonify({"status": "Command executed", "output": "Nano editor is not supported."})
             if command.startswith('cd '):
                 target_dir = command[3:].strip()
-                if target_dir == '~' or target_dir == '':
+                if target_dir == '~' or target_dir == '.' or target_dir == '':
                     new_dir = settings['path']
                 elif target_dir.startswith('/'):
                     new_dir = target_dir
@@ -537,7 +566,7 @@ def delete_folder():
             try:
                 full_path = os.path.join(settings['path'], path)
                 if os.path.exists(full_path):
-                    os.rmdir(full_path)
+                    shutil.rmtree(full_path)
                     return jsonify({"status": "Folder deleted"})
                 else:
                     return jsonify ({"error": "Path does not exist"}), 404
@@ -750,6 +779,12 @@ def update_settings():
     new_settings = request.json
     if new_settings:
         try:
+            with open(settings_file, 'r') as file:
+                current_settings = json.load(file)
+            
+            if 'com_password' in current_settings:
+                new_settings['com_password'] = current_settings['com_password']
+            
             with open(settings_file, 'w') as file:
                 json.dump(new_settings, file)
                 file.close
@@ -998,6 +1033,7 @@ def edit_user():
         return jsonify({"error": "No username, name, role or id provided"}), 400
 
 @app.route('/api/user/login', methods=['POST'])
+@limiter.limit("1/second", override_defaults=False)
 def login():
     username = request.json.get('username')
     password = request.json.get('password')

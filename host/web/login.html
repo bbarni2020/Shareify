@@ -42,6 +42,20 @@
         .login-btn:active {
             transform: translateY(-2px);
         }
+        .login-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: linear-gradient(93deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+            color: rgba(255, 255, 255, 0.6);
+            transform: none !important;
+            box-shadow: 0 4px 16px 0 rgba(60,67,71,0.08);
+        }
+        .login-btn:disabled:hover {
+            transform: none !important;
+            background: linear-gradient(93deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+            color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 16px 0 rgba(60,67,71,0.08);
+        }
         .login-error {
             display: none;
             color: #e74c3c;
@@ -54,6 +68,18 @@
         }
         .login-error.visible {
             display: block;
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        .textbox.shake {
+            animation: inputShake 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            border-color: #e74c3c !important;
+            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3), 0 4px 16px rgba(231, 76, 60, 0.2) !important;
+        }
+        @keyframes inputShake {
+            0%, 100% { transform: translateX(0); }
+            15%, 45%, 75% { transform: translateX(-8px); }
+            30%, 60%, 90% { transform: translateX(8px); }
         }
         .login-fade-out {
             opacity: 0 !important;
@@ -114,7 +140,7 @@
             </div>
         </div>
         <div style="width: 85%; display: flex; justify-content: center; margin-top: 18px;">
-            <button type="button" class="login-btn">Log in</button>
+            <button type="button" class="login-btn" id="loginBtn" disabled>Log in</button>
         </div>
         <div class="login-error" id="loginError" style="margin: 10px;">Invalid username or password.</div>
     </div>
@@ -126,7 +152,23 @@
             setTimeout(() => {
                 document.getElementById('loginWindow').classList.add('show');
             }, 60);
-        });        async function checkExistingAuth() {
+
+            updateLoginButtonState();
+            document.getElementById('username').addEventListener('input', updateLoginButtonState);
+            document.getElementById('password').addEventListener('input', updateLoginButtonState);
+        });
+
+        function updateLoginButtonState() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            
+            if (username && password) {
+                loginBtn.disabled = false;
+            } else {
+                loginBtn.disabled = true;
+            }
+        }        async function checkExistingAuth() {
             const token = localStorage.getItem('jwt_token');
             const expiry = localStorage.getItem('jwt_expiry');
 
@@ -152,14 +194,19 @@
         }
 
         const baseURL = window.location.origin;
-        document.querySelector('.login-btn').addEventListener('click', async function () {
+        document.getElementById('loginBtn').addEventListener('click', async function () {
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('loginError');
+            const passwordInput = document.getElementById('password');
             errorDiv.classList.remove('visible');
+            passwordInput.classList.remove('shake');
             if (!username || !password) {
                 errorDiv.textContent = "Please enter username and password.";
                 errorDiv.classList.add('visible');
+                passwordInput.value = '';
+                passwordInput.classList.add('shake');
+                setTimeout(() => passwordInput.classList.remove('shake'), 600);
                 return;
             }
             try {
@@ -216,17 +263,20 @@
             } catch {
                 errorDiv.textContent = "Invalid username or password.";
                 errorDiv.classList.add('visible');
+                passwordInput.value = '';
+                passwordInput.classList.add('shake');
+                setTimeout(() => passwordInput.classList.remove('shake'), 600);
             }
         });
 
         document.getElementById('password').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
-                document.querySelector('.login-btn').click();
+                document.getElementById('loginBtn').click();
             }
         });
         document.getElementById('username').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
-                document.querySelector('.login-btn').click();
+                document.getElementById('loginBtn').click();
             }
         });
     </script>
