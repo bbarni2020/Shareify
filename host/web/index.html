@@ -11,6 +11,9 @@
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <style>
         .logout-fade-out {
             opacity: 0 !important;
@@ -811,9 +814,178 @@
     background: transparent;
 }
 
+.preview-code-container {
+    width: calc(100% - 40px);
+    height: calc(100% - 40px);
+    margin: 20px;
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.code-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: rgba(40, 44, 52, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.code-file-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #abb2bf;
+    font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.code-language-badge {
+    background: rgba(97, 175, 239, 0.2);
+    color: #61afef;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.code-line-count {
+    color: #5c6370;
+    font-size: 12px;
+}
+
+.code-viewer-container {
+    flex: 1;
+    overflow: auto;
+    background: #282c34;
+}
+
+.code-viewer-container::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.code-viewer-container::-webkit-scrollbar-thumb {
+    background: rgba(171, 178, 191, 0.3);
+    border-radius: 6px;
+}
+
+.code-viewer-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.code-content {
+    padding: 0;
+    margin: 0;
+    font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    background: #282c34 !important;
+    color: #abb2bf;
+    border-radius: 0;
+    overflow: visible;
+}
+
+.code-content pre {
+    margin: 0;
+    padding: 20px;
+    background: transparent !important;
+    overflow: visible;
+    white-space: pre;
+}
+
+.code-content .line-numbers {
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    margin-right: 15px;
+    padding-right: 15px;
+}
+
+.code-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    color: #abb2bf;
+    font-family: 'Kantumruy', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 40px;
+    background: #282c34;
+}
+
+.code-error {
+    padding: 30px;
+    text-align: center;
+    color: #e06c75;
+    font-size: 16px;
+    background: rgba(224, 108, 117, 0.1);
+    border-radius: 10px;
+    margin: 20px;
+    font-family: 'Kantumruy', sans-serif;
+}
+
+#mobile-unsupported-overlay a:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+#mobile-unsupported-overlay button:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+@media (max-width: 480px) {
+    #mobile-unsupported-overlay h1 {
+        font-size: 24px !important;
+    }
+    
+    #mobile-unsupported-overlay p {
+        font-size: 16px !important;
+    }
+    
+    #mobile-unsupported-overlay a {
+        font-size: 14px !important;
+        padding: 14px 20px !important;
+    }
+}
     </style>
 </head>
 <body style="opacity:0; transition: opacity 0.5s;">
+    <div id="mobile-unsupported-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1e3a8a 0%, #000000 100%); z-index: 99999; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; text-align: center;">
+            <div style="max-width: 400px;">
+                <div style="font-size: 80px; margin-bottom: 20px;">📱❌</div>
+                <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 16px 0; line-height: 1.2;">Mobile Not Supported</h1>
+                <p style="font-size: 18px; opacity: 0.9; margin: 0 0 30px 0; line-height: 1.5;">
+                    Shareify is designed for desktop and tablet devices. For the best experience, please use a computer or download our mobile app.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 16px; align-items: center;">
+                    <a href="https://github.com/bbarni2020/Shareify/blob/main/ios_app/APP.md" target="_blank" style="display: inline-flex; align-items: center; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.3); color: white; text-decoration: none; padding: 16px 24px; border-radius: 12px; font-weight: 600; font-size: 16px; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+                        <span style="margin-right: 8px;">📱</span>
+                        More about Mobile App
+                    </a>
+                    <button onclick="hideMobileWarning()" style="background: none; color: white; padding: 12px 20px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.3s ease; backdrop-filter: blur(5px);">
+                        Continue Anyway (Not Recommended)
+                    </button>
+                </div>
+                <p style="font-size: 12px; opacity: 0.7; margin-top: 20px; line-height: 1.4;">
+                    Mobile devices may experience layout issues and limited functionality.
+                </p>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <div class="app_icons" style="background: url(web/assets/finder.png) lightgray 50% / cover no-repeat;" onclick="finder_open()" id="finder-ontab">
             <div class="indicator" id="finder-indicator"></div>
@@ -1448,6 +1620,64 @@
 <script>
     const baseURL = window.location.origin;
     
+    function isMobileDevice() {
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        const isIPad = /iPad/i.test(userAgent) || 
+                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        
+        const isAndroidTablet = /Android/i.test(userAgent) && !/Mobile/i.test(userAgent);
+        const isTablet = isIPad || isAndroidTablet || 
+                        (/tablet/i.test(userAgent)) ||
+                        (window.innerWidth >= 768 && window.innerWidth <= 1024 && 'ontouchstart' in window);
+        if (isTablet) {
+            return false;
+        }
+        const isPhone = /iPhone|Android.*Mobile|webOS|BlackBerry|IEMobile|Opera Mini|Windows Phone/i.test(userAgent);    
+        const isSmallScreen = window.innerWidth < 768;
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        return isPhone || (isSmallScreen && isTouchDevice && !isTablet);
+    }
+    
+    function showMobileWarning() {
+        const overlay = document.getElementById('mobile-unsupported-overlay');
+        if (overlay) {
+            overlay.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    
+    function hideMobileWarning() {
+        const overlay = document.getElementById('mobile-unsupported-overlay');
+        if (overlay) {
+            showNotification('Mobile warning dismissed', 'info');
+            overlay.style.display = 'none';
+            document.body.style.overflow = '';
+            localStorage.setItem('shareify_mobile_warning_dismissed', 'true');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const warningDismissed = localStorage.getItem('shareify_mobile_warning_dismissed');
+        
+        if (isMobileDevice() && !warningDismissed) {
+            showMobileWarning();
+        }
+    });
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            const warningDismissed = localStorage.getItem('shareify_mobile_warning_dismissed');
+            const overlay = document.getElementById('mobile-unsupported-overlay');
+            
+            if (isMobileDevice() && !warningDismissed) {
+                showMobileWarning();
+            } else if (overlay && overlay.style.display === 'block' && !isMobileDevice()) {
+                hideMobileWarning();
+            }
+        }, 250);
+    });
+    
     async function checkForNotifications() {
         try {
             const response = await fetch('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/msg.json');
@@ -1830,6 +2060,7 @@
             case 'json':
             case 'xml':
             case 'html':
+            case 'py':
             case 'css':
             case 'js':
                 return 'file-text';
@@ -2286,7 +2517,25 @@
                 console.error('Word document display error:', e);
                 showPreviewUnsupported('Unable to display this Word document');
             }
-        } else if (['txt', 'js', 'css', 'html', 'json', 'xml', 'py', 'java', 'cpp', 'c', 'h', 'md', 'log', 'csv', 'php', 'rb', 'go', 'rs', 'swift'].includes(fileExt)) {
+        } else if (['py', 'js', 'ts', 'jsx', 'tsx', 'css', 'scss', 'html', 'xml', 'json', 'java', 'cpp', 'c', 'h', 'php', 'rb', 'go', 'rs', 'swift', 'kt', 'dart', 'sql', 'sh', 'bash', 'ps1', 'yaml', 'yml', 'dockerfile', 'makefile', 'gradle'].includes(fileExt)) {
+            try {
+                let codeContent;
+                if (contentType === 'binary') {
+                    try {
+                        codeContent = atob(content);
+                    } catch (e) {
+                        codeContent = 'Unable to decode file content as text';
+                    }
+                } else {
+                    codeContent = content;
+                }
+                
+                createCodeViewer(contentDiv, codeContent, fileExt, filePath);
+            } catch (e) {
+                console.error('Code display error:', e);
+                showPreviewUnsupported('Unable to display this code file');
+            }
+        } else if (['txt', 'md', 'log', 'csv'].includes(fileExt)) {
             const pre = document.createElement('div');
             pre.className = 'preview-text';
             
@@ -5261,6 +5510,133 @@ async function createWordViewer(container, wordData) {
         `;
         wordContainer.appendChild(errorDiv);
     }
+}
+
+function createCodeViewer(container, content, fileExtension, filePath) {
+    container.innerHTML = '';
+    
+    const codeContainer = document.createElement('div');
+    codeContainer.className = 'preview-code-container';
+    
+    const toolbar = document.createElement('div');
+    toolbar.className = 'code-toolbar';
+    
+    const fileInfo = document.createElement('div');
+    fileInfo.className = 'code-file-info';
+    
+    const languageMap = {
+        'py': 'python',
+        'js': 'javascript',
+        'ts': 'typescript',
+        'jsx': 'jsx',
+        'tsx': 'tsx',
+        'css': 'css',
+        'scss': 'scss',
+        'html': 'html',
+        'xml': 'xml',
+        'json': 'json',
+        'java': 'java',
+        'cpp': 'cpp',
+        'c': 'c',
+        'h': 'c',
+        'php': 'php',
+        'rb': 'ruby',
+        'go': 'go',
+        'rs': 'rust',
+        'swift': 'swift',
+        'kt': 'kotlin',
+        'dart': 'dart',
+        'sql': 'sql',
+        'sh': 'bash',
+        'bash': 'bash',
+        'ps1': 'powershell',
+        'yaml': 'yaml',
+        'yml': 'yaml',
+        'dockerfile': 'docker',
+        'makefile': 'makefile',
+        'gradle': 'gradle'
+    };
+    
+    if (!content) {
+        content = 'File content could not be loaded';
+    }
+    
+    const language = languageMap[fileExtension] || 'text';
+    const lines = content.split('\n').length;
+    
+    const languageBadge = document.createElement('span');
+    languageBadge.className = 'code-language-badge';
+    languageBadge.textContent = language.toUpperCase();
+    
+    const fileName = document.createElement('span');
+    fileName.textContent = getFileName(filePath);
+    
+    const lineCount = document.createElement('span');
+    lineCount.className = 'code-line-count';
+    lineCount.textContent = `${lines} lines`;
+    
+    fileInfo.appendChild(languageBadge);
+    fileInfo.appendChild(fileName);
+    fileInfo.appendChild(lineCount);
+    
+    toolbar.appendChild(fileInfo);
+    
+    const viewerContainer = document.createElement('div');
+    viewerContainer.className = 'code-viewer-container';
+    
+    const codeContent = document.createElement('div');
+    codeContent.className = 'code-content';
+    
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'code-loading';
+    loadingDiv.innerHTML = `
+        <div class="preview-dots">
+            <div class="preview-dot"></div>
+            <div class="preview-dot"></div>
+            <div class="preview-dot"></div>
+            <div class="preview-dot"></div>
+        </div>
+        <div>Processing code...</div>
+    `;
+    viewerContainer.appendChild(loadingDiv);
+    
+    codeContainer.appendChild(toolbar);
+    codeContainer.appendChild(viewerContainer);
+    container.appendChild(codeContainer);
+    
+    setTimeout(() => {
+        try {
+            const pre = document.createElement('pre');
+            const code = document.createElement('code');
+            
+            code.className = `language-${language}`;
+            code.textContent = content;
+            
+            pre.appendChild(code);
+            codeContent.appendChild(pre);
+            
+            if (typeof Prism !== 'undefined') {
+                Prism.highlightElement(code);
+            }
+            
+            loadingDiv.remove();
+            viewerContainer.appendChild(codeContent);
+            
+        } catch (error) {
+            console.error('Error highlighting code:', error);
+            loadingDiv.innerHTML = `
+                <div class="code-error">
+                    <div>Failed to process code file</div>
+                    <div style="font-size: 14px; margin-top: 10px;">Displaying as plain text</div>
+                </div>
+            `;
+            
+            const plainText = document.createElement('pre');
+            plainText.style.cssText = 'padding: 20px; color: #abb2bf; font-family: monospace; white-space: pre-wrap; word-break: break-word;';
+            plainText.textContent = content || 'File content could not be loaded';
+            viewerContainer.appendChild(plainText);
+        }
+    }, 100);
 }
 
 </script>

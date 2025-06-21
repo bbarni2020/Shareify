@@ -4,8 +4,8 @@ This document outlines the cloud-based functions and services that will be avail
 
 ## Features (Not Yet Implemented)
 
-* **Version Control** - Cloud backup and history of document changes
-* **Push Notifications** - Server-driven alerts for collaboration updates
+* **Version Control** - Cloud backup
+* **Push Notifications** - Server-driven alerts for updates
 
 
 ## Getting Started
