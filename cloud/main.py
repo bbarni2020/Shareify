@@ -1,15 +1,20 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import uuid
 import time
 import json
 import os
 import hashlib
+import bcrypt
+import jwt
+import sqlite3
 from datetime import datetime, timedelta
 from collections import defaultdict
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'my-secret-key'
+app.config['JWT_SECRET_KEY'] = 'jwt-secret-key-change-in-production'
+app.config['JWT_EXPIRATION_HOURS'] = 24
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 connected_servers = {}
@@ -18,6 +23,7 @@ authenticated_users = {}
 rate_limits = defaultdict(list)
 users_db_file = 'users_database.json'
 users_db_file_path = os.path.join(os.path.dirname(__file__), users_db_file)
+user_sqlite_db_path = os.path.join(os.path.dirname(__file__), 'user.db')
 
 def check_rate_limit(identifier, max_requests=10, window_minutes=1):
     now = datetime.now()
@@ -57,6 +63,149 @@ def verify_auth_token(user_id, token):
     if user_id in users_db:
         return users_db[user_id].get('auth_token') == token
     return False
+
+def hash_password(password):
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(password, hashed):
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+def generate_jwt_token(user_id):
+    jwt_id = str(uuid.uuid4())
+    payload = {
+        'user_id': user_id,
+        'jwt_id': jwt_id,
+        'exp': datetime.utcnow() + timedelta(hours=app.config['JWT_EXPIRATION_HOURS']),
+        'iat': datetime.utcnow()
+    }
+    return jwt.encode(payload, app.config['JWT_SECRET_KEY'], algorithm='HS256')
+
+def decode_jwt_token(token):
+    try:
+        payload = jwt.decode(token, app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+def get_user_id_from_jwt(jwt_token):
+    payload = decode_jwt_token(jwt_token)
+    return payload.get('user_id') if payload else None
+
+def init_sqlite_db():
+    conn = sqlite3.connect(user_sqlite_db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            username TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            auth_token TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            last_activity TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'active',
+            settings TEXT DEFAULT '{}'
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
+
+def get_sqlite_user(user_id=None, email=None):
+    conn = sqlite3.connect(user_sqlite_db_path)
+    cursor = conn.cursor()
+    
+    if user_id:
+        cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))
+    elif email:
+        cursor.execute('SELECT * FROM users WHERE email = ?', (email,))
+    else:
+        conn.close()
+        return None
+    
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        return {
+            'id': row[0],
+            'username': row[1],
+            'email': row[2],
+            'password': row[3],
+            'auth_token': row[4],
+            'created_at': row[5],
+            'last_activity': row[6],
+            'status': row[7],
+            'settings': json.loads(row[8]) if row[8] else {}
+        }
+    return None
+
+def create_sqlite_user(user_id, username, email, password, auth_token):
+    conn = sqlite3.connect(user_sqlite_db_path)
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+            INSERT INTO users (id, username, email, password, auth_token, created_at, last_activity, status, settings)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            user_id, username, email, password, auth_token,
+            datetime.now().isoformat(), datetime.now().isoformat(),
+            'active', '{}'
+        ))
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.IntegrityError:
+        conn.close()
+        return False
+
+def update_sqlite_user(user_id, **kwargs):
+    conn = sqlite3.connect(user_sqlite_db_path)
+    cursor = conn.cursor()
+    
+    update_fields = []
+    values = []
+    
+    for key, value in kwargs.items():
+        if key == 'settings':
+            value = json.dumps(value)
+        update_fields.append(f"{key} = ?")
+        values.append(value)
+    
+    values.append(user_id)
+    
+    cursor.execute(f'''
+        UPDATE users SET {', '.join(update_fields)} WHERE id = ?
+    ''', values)
+    
+    conn.commit()
+    conn.close()
+
+def get_sqlite_user_by_auth_token(auth_token):
+    conn = sqlite3.connect(user_sqlite_db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT * FROM users WHERE auth_token = ?', (auth_token,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        return {
+            'id': row[0],
+            'username': row[1],
+            'email': row[2],
+            'password': row[3],
+            'auth_token': row[4],
+            'created_at': row[5],
+            'last_activity': row[6],
+            'status': row[7],
+            'settings': json.loads(row[8]) if row[8] else {}
+        }
+    return None
 
 users_db = load_users_database()
 
@@ -314,6 +463,8 @@ def send_command_to_server(server_id, command, command_id=None, method='GET', bo
     pending_commands[command_id] = {
         'server_id': server_id,
         'command': command,
+        'method': method,
+        'body': body,
         'timestamp': datetime.now().isoformat(),
         'completed': False,
         'response': None
@@ -352,265 +503,266 @@ def handle_message(data):
 @app.route('/cloud/<auth_token>/servers')
 def list_user_servers(auth_token):
     if not check_rate_limit(auth_token, max_requests=30, window_minutes=1):
-        return {'error': 'Rate limit exceeded. Too many requests.'}, 429
+        return jsonify({'error': 'Rate limit exceeded. Too many requests.'}), 429
     
-    user_id = None
+    user_ids = []
+
     users_db = load_users_database()
     for uid, user_info in users_db.items():
         if user_info.get('auth_token') == auth_token:
-            user_id = uid
-            break
+            user_ids.append(uid)
+
+    conn = sqlite3.connect(user_sqlite_db_path)
+    cursor = conn.cursor()
+    cursor.execute('SELECT id FROM users WHERE auth_token = ?', (auth_token,))
+    rows = cursor.fetchall()
+    conn.close()
     
-    if not user_id:
-        return {'error': 'Invalid auth token'}, 401
+    for row in rows:
+        user_ids.append(row[0])
+    
+    if not user_ids:
+        return jsonify({'error': 'Invalid auth token'}), 401
     
     user_servers = []
     for server_id, server_info in connected_servers.items():
-        if server_info.get('owner_user_id') == user_id:
+        if server_info.get('owner_user_id') in user_ids:
             user_servers.append({
                 'server_id': server_id,
                 'name': server_info['name'],
+                'owner_user_id': server_info['owner_user_id'],
                 'connected_at': server_info['connected_at'],
                 'last_ping': server_info['last_ping']
             })
     
-    return {
-        'user_id': user_id,
+    return jsonify({
+        'user_ids': user_ids,
         'servers': user_servers,
         'total_servers': len(user_servers)
-    }
+    })
 
-@app.route('/cloud/<auth_token>/command')
-def test_command_endpoint(auth_token):
+@app.route('/cloud', methods=['GET', 'POST'])
+def execute_command_on_all_servers():
+    jwt_token = request.headers.get('Authorization')
+    if jwt_token and jwt_token.startswith('Bearer '):
+        jwt_token = jwt_token[7:]
+    
+    if not jwt_token:
+        jwt_token = request.args.get('jwt_token')
+    
+    if not jwt_token:
+        return jsonify({'error': 'JWT token required'}), 401
+    
+    user_id = get_user_id_from_jwt(jwt_token)
+    if not user_id:
+        return jsonify({'error': 'Invalid or expired JWT token'}), 401
+    
+    user = get_sqlite_user(user_id=user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+    
+    auth_token = user['auth_token']
+    
     if not check_rate_limit(auth_token, max_requests=20, window_minutes=1):
-        return {'error': 'Rate limit exceeded. Too many requests.'}, 429
+        return jsonify({'error': 'Rate limit exceeded. Too many requests.'}), 429
     
-    if request.method == 'GET' and not request.args.get('command'):
-        return render_command_dashboard(auth_token)
-    
-    command = request.args.get('command')
-    server_id = request.args.get('server_id')
+    if request.method == 'POST' and request.is_json:
+        json_data = request.get_json()
+        command = json_data.get('command')
+        method = json_data.get('method', 'GET')
+        body = json_data.get('body', {})
+    else:
+        command = request.args.get('command')
+        method = request.args.get('method', 'GET')
+        
+        body = {}
+        if request.args.get('body'):
+            try:
+                body = json.loads(request.args.get('body'))
+            except (json.JSONDecodeError, TypeError):
+                body = {}
     
     if not command:
-        return {'error': 'Command parameter required'}, 400
+        return jsonify({'error': 'Command parameter required'}), 400
     
-    user_id = None
+    user_ids = []
+    
     users_db = load_users_database()
     for uid, user_info in users_db.items():
         if user_info.get('auth_token') == auth_token:
-            user_id = uid
-            break
+            user_ids.append(uid)
     
-    if not user_id:
-        return {'error': 'Invalid auth token'}, 401
+    conn = sqlite3.connect(user_sqlite_db_path)
+    cursor = conn.cursor()
+    cursor.execute('SELECT id FROM users WHERE auth_token = ?', (auth_token,))
+    rows = cursor.fetchall()
+    conn.close()
     
-    if not server_id:
-        user_servers = []
-        for sid, server_info in connected_servers.items():
-            if server_info.get('owner_user_id') == user_id:
-                user_servers.append(sid)
-        
-        if not user_servers:
-            return {'error': 'No servers found for this user'}, 404
-        
-        server_id = user_servers[0]
+    for row in rows:
+        user_ids.append(row[0])
     
-    if server_id not in connected_servers:
-        return {'error': 'Server not connected'}, 404
+    if not user_ids:
+        return jsonify({'error': 'No servers found for this auth token'}), 404
     
-    if connected_servers[server_id].get('owner_user_id') != user_id:
-        return {'error': 'Not authorized to control this server'}, 403
-    
-    result = send_command_to_server(server_id, command)
-    return result
-
-def render_command_dashboard(auth_token):
-    user_id = None
-    username = None
-    users_db = load_users_database()
-    for uid, user_info in users_db.items():
-        if user_info.get('auth_token') == auth_token:
-            user_id = uid
-            username = user_info.get('username')
-            break
-    
-    if not user_id:
-        return '<h1>Invalid Auth Token</h1><p>Please check your authentication token.</p>', 401
-    
-    user_servers = []
+    auth_token_servers = []
     for server_id, server_info in connected_servers.items():
-        if server_info.get('owner_user_id') == user_id:
-            user_servers.append({
-                'id': server_id,
-                'name': server_info['name'],
-                'connected_at': server_info['connected_at'],
-                'last_ping': server_info['last_ping']
-            })
+        if server_info.get('owner_user_id') in user_ids:
+            auth_token_servers.append(server_id)
     
-    server_options = ''.join([
-        f'<option value="{server["id"]}">{server["name"]} ({server["id"][:8]})</option>'
-        for server in user_servers
-    ])
+    if not auth_token_servers:
+        return jsonify({'error': 'No servers found for this auth token'}), 404
     
-    command_history = []
-    for cmd_id, cmd_info in pending_commands.items():
-        if any(s['id'] == cmd_info['server_id'] for s in user_servers):
-            status = 'completed' if cmd_info['completed'] else 'pending'
-            command_history.append({
-                'id': cmd_id,
-                'command': cmd_info['command'],
-                'server_id': cmd_info['server_id'],
-                'timestamp': cmd_info['timestamp'],
-                'status': status,
-                'response': cmd_info.get('response', {}) if cmd_info['completed'] else None
-            })
+    results = []
+    for server_id in auth_token_servers:
+        result = send_command_to_server(server_id, command, method=method, body=body)
+        results.append({
+            'server_id': server_id,
+            'server_name': connected_servers[server_id]['name'],
+            'result': result
+        })
     
-    command_history.sort(key=lambda x: x['timestamp'], reverse=True)
-    command_history = command_history[:10]
+    return jsonify({
+        'auth_token': auth_token,
+        'user_ids': user_ids,
+        'command': command,
+        'method': method,
+        'body': body,
+        'servers_targeted': len(auth_token_servers),
+        'results': results
+    })
+
+@app.route('/signup', methods=['POST'])
+def signup():
+    if not check_rate_limit(request.environ.get('REMOTE_ADDR', 'unknown'), max_requests=5, window_minutes=10):
+        return jsonify({'error': 'Rate limit exceeded. Too many signup attempts.'}), 429
     
-    history_html = ''.join([
-        f'''
-        <div class="command-item">
-            <div class="command-header">
-                <span class="command-text">{cmd['command']}</span>
-                <span class="status status-{cmd['status']}">{cmd['status']}</span>
-                <span class="timestamp">{cmd['timestamp']}</span>
-            </div>
-            <div class="command-details">
-                Server: {cmd['server_id'][:8]}... | ID: {cmd['id'][:8]}...
-            </div>
-            {f'<div class="response"><pre>{json.dumps(cmd["response"], indent=2) if cmd["response"] else "No response"}</pre></div>' if cmd['status'] == 'completed' else ''}
-        </div>
-        '''
-        for cmd in command_history
-    ])
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'JSON data required'}), 400
     
-    return f'''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Shareify Cloud Dashboard</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f5f7; }}
-            .container {{ max-width: 1200px; margin: 0 auto; }}
-            .header {{ background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
-            .dashboard {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }}
-            .panel {{ background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
-            .command-form {{ display: flex; flex-direction: column; gap: 15px; }}
-            .form-group {{ display: flex; flex-direction: column; }}
-            label {{ font-weight: 600; margin-bottom: 5px; color: #333; }}
-            input, select, button {{ padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }}
-            button {{ background: #007aff; color: white; border: none; cursor: pointer; font-weight: 600; }}
-            button:hover {{ background: #0056cc; }}
-            .server-list {{ margin-bottom: 20px; }}
-            .server-item {{ background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 8px; }}
-            .command-item {{ background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 10px; }}
-            .command-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }}
-            .command-text {{ font-family: monospace; background: #e1e1e1; padding: 4px 8px; border-radius: 4px; }}
-            .status {{ padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }}
-            .status-completed {{ background: #d4edda; color: #155724; }}
-            .status-pending {{ background: #fff3cd; color: #856404; }}
-            .timestamp {{ font-size: 12px; color: #666; }}
-            .command-details {{ font-size: 12px; color: #666; }}
-            .response {{ margin-top: 10px; }}
-            .response pre {{ background: #f1f1f1; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }}
-            .quick-commands {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 15px; }}
-            .quick-cmd {{ background: #f0f0f0; border: 1px solid #ddd; padding: 8px 12px; border-radius: 6px; cursor: pointer; text-align: center; font-size: 12px; }}
-            .quick-cmd:hover {{ background: #e0e0e0; }}
-            @media (max-width: 768px) {{ .dashboard {{ grid-template-columns: 1fr; }} }}
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>🚀 Shareify Cloud Dashboard</h1>
-                <p>Welcome <strong>{username}</strong> | {len(user_servers)} server(s) connected | Auth: {auth_token[:16]}...</p>
-            </div>
-            
-            <div class="dashboard">
-                <div class="panel">
-                    <h2>Command Console</h2>
-                    <form class="command-form" onsubmit="sendCommand(event)">
-                        <div class="form-group">
-                            <label for="server_select">Target Server:</label>
-                            <select id="server_select" name="server_id" required>
-                                <option value="">Auto-select first server</option>
-                                {server_options}
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="command_input">Command:</label>
-                            <input type="text" id="command_input" name="command" placeholder="Enter command (e.g., ls, pwd, echo hello)" required>
-                        </div>
-                        
-                        <button type="submit">Execute Command</button>
-                    </form>
-                    
-                    <div class="quick-commands">
-                        <div class="quick-cmd" onclick="setCommand('ls -la')">ls -la</div>
-                        <div class="quick-cmd" onclick="setCommand('pwd')">pwd</div>
-                        <div class="quick-cmd" onclick="setCommand('whoami')">whoami</div>
-                        <div class="quick-cmd" onclick="setCommand('date')">date</div>
-                        <div class="quick-cmd" onclick="setCommand('uname -a')">uname -a</div>
-                        <div class="quick-cmd" onclick="setCommand('df -h')">df -h</div>
-                        <div class="quick-cmd" onclick="setCommand('shareify:status')">shareify:status</div>
-                        <div class="quick-cmd" onclick="setCommand('shareify:info')">shareify:info</div>
-                    </div>
-                    
-                    <div class="server-list">
-                        <h3>Connected Servers ({len(user_servers)})</h3>
-                        {''.join([f'<div class="server-item"><strong>{server["name"]}</strong><br><small>ID: {server["id"]}<br>Connected: {server["connected_at"]}<br>Last ping: {server["last_ping"]}</small></div>' for server in user_servers]) or '<p>No servers connected</p>'}
-                    </div>
-                </div>
-                
-                <div class="panel">
-                    <h2>Command History</h2>
-                    <div id="command-history">
-                        {history_html or '<p>No command history yet</p>'}
-                    </div>
-                </div>
-            </div>
-        </div>
+    email = data.get('email')
+    password = data.get('password')
+    username = data.get('username', email)
+    custom_auth_token = data.get('auth_token')
+    
+    if not email or not password or not custom_auth_token:
+        return jsonify({'error': 'Email, password and Shareify token required'}), 400
+    
+    if len(password) < 6:
+        return jsonify({'error': 'Password must be at least 6 characters'}), 400
+    
+    existing_user = get_sqlite_user(email=email)
+    if existing_user:
+        return jsonify({'error': 'Email already exists'}), 409
+    
+    user_id = str(uuid.uuid4())
+    auth_token = custom_auth_token
+    hashed_password = hash_password(password)
+    
+    success = create_sqlite_user(user_id, username, email, hashed_password, auth_token)
+    if not success:
+        return jsonify({'error': 'Failed to create user'}), 500
+    
+    jwt_token = generate_jwt_token(user_id)
+    
+    return jsonify({
+        'user_id': user_id,
+        'username': username,
+        'email': email,
+        'auth_token': auth_token,
+        'jwt_token': jwt_token,
+        'message': 'User created successfully'
+    }), 201
+
+@app.route('/login', methods=['POST'])
+def login():
+    if not check_rate_limit(request.environ.get('REMOTE_ADDR', 'unknown'), max_requests=10, window_minutes=5):
+        return jsonify({'error': 'Rate limit exceeded. Too many login attempts.'}), 429
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'JSON data required'}), 400
+    
+    email = data.get('email')
+    password = data.get('password')
+    
+    if not email or not password:
+        return jsonify({'error': 'Email and password required'}), 400
+    
+    user = get_sqlite_user(email=email)
+    if not user:
+        return jsonify({'error': 'Email not found'}), 404
+    
+    if verify_password(password, user['password']):
+        update_sqlite_user(user['id'], 
+                          last_activity=datetime.now().isoformat(),
+                          status='active')
         
-        <script>
-            function setCommand(cmd) {{
-                document.getElementById('command_input').value = cmd;
-            }}
-            
-            async function sendCommand(event) {{
-                event.preventDefault();
-                const formData = new FormData(event.target);
-                const params = new URLSearchParams();
-                
-                for (let [key, value] of formData.entries()) {{
-                    if (value) params.append(key, value);
-                }}
-                
-                try {{
-                    const response = await fetch(window.location.pathname + '?' + params.toString());
-                    const result = await response.json();
-                    
-                    if (response.ok) {{
-                        alert('Command sent successfully!\\nCommand ID: ' + result.command_id);
-                        setTimeout(() => location.reload(), 1000);
-                    }} else {{
-                        alert('Error: ' + result.error);
-                    }}
-                }} catch (error) {{
-                    alert('Network error: ' + error.message);
-                }}
-            }}
-            
-            setInterval(() => {{
-                location.reload();
-            }}, 30000);
-        </script>
-    </body>
-    </html>
-    '''
+        jwt_token = generate_jwt_token(user['id'])
+        
+        return jsonify({
+            'user_id': user['id'],
+            'username': user['username'],
+            'email': email,
+            'auth_token': user['auth_token'],
+            'jwt_token': jwt_token,
+            'settings': user.get('settings', {}),
+            'message': 'Login successful'
+        }), 200
+    else:
+        return jsonify({'error': 'Invalid password'}), 401
+
+@app.route('/user/settings', methods=['GET', 'PUT'])
+def user_settings():
+    jwt_token = request.headers.get('Authorization')
+    if jwt_token and jwt_token.startswith('Bearer '):
+        jwt_token = jwt_token[7:]
+    
+    if not jwt_token:
+        return jsonify({'error': 'JWT token required'}), 401
+    
+    user_id = get_user_id_from_jwt(jwt_token)
+    if not user_id:
+        return jsonify({'error': 'Invalid or expired JWT token'}), 401
+    
+    user = get_sqlite_user(user_id=user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+    
+    if request.method == 'GET':
+        return jsonify({
+            'user_id': user['id'],
+            'username': user['username'],
+            'email': user['email'],
+            'settings': user.get('settings', {}),
+            'created_at': user['created_at'],
+            'last_activity': user['last_activity']
+        })
+    
+    elif request.method == 'PUT':
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'JSON data required'}), 400
+        
+        update_data = {'last_activity': datetime.now().isoformat()}
+        
+        if 'settings' in data:
+            update_data['settings'] = data['settings']
+        
+        if 'username' in data:
+            update_data['username'] = data['username']
+        
+        update_sqlite_user(user['id'], **update_data)
+        
+        updated_user = get_sqlite_user(user_id=user['id'])
+        
+        return jsonify({
+            'message': 'Settings updated successfully',
+            'user_id': user['id'],
+            'settings': updated_user['settings']
+        })
 
 if __name__ == '__main__':
+    init_sqlite_db()
     print('Starting Socket.IO server...')
     socketio.run(app, host='0.0.0.0', port=5698, debug=True)

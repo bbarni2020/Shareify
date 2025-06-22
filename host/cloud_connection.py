@@ -138,19 +138,24 @@ class ShareifyLocalClient:
         def on_execute_command(data):
             command_id = data['command_id']
             command = data['command']
-            token = data.get('token', None)
-            print(f"Received command {command_id}: {command} (token: {token})")
+            method = data.get('method', 'GET')
+            body = data.get('body', {})
+            timestamp = data.get('timestamp')
+            print(f"Received command {command_id}: {command} (method: {method})")
 
             try:
-                requests.get(
-                    f"http://127.0.0.1:6969/command",
-                    params={'command': command},
-                    headers={'X-API-KEY': token}
-                )
-            except requests.RequestException as e:
-                print(f"Failed to forward command to local server: {e}")
-            
-            self.execute_command(command_id, command)
+                if command.startswith('http://') or command.startswith('https://') or command.startswith('/'):
+                    self.execute_api_request(command_id, command, method, body)
+                else:
+                    self.execute_command(command_id, command)
+            except Exception as e:
+                print(f"Failed to handle command: {e}")
+                self.sio.emit('command_response', {
+                    'command_id': command_id,
+                    'success': False,
+                    'error': str(e),
+                    'timestamp': time.time()
+                })
             
             
         @self.sio.on('pong')
@@ -367,6 +372,77 @@ class ShareifyLocalClient:
             print("\nShutting down...")
             self.disconnect()
 
+    def execute_api_request(self, command_id, url, method='GET', body=None):
+        try:
+            base_url = "http://127.0.0.1:6969"
+            
+            if url.startswith('/'):
+                full_url = base_url + url
+            elif url.startswith('http://') or url.startswith('https://'):
+                full_url = url
+            else:
+                full_url = base_url + '/' + url
+            
+            print(f"Making {method} request to: {full_url}")
+            
+            headers = {'Content-Type': 'application/json'}
+            
+            if method.upper() == 'GET':
+                response = requests.get(full_url, headers=headers, timeout=self.command_timeout)
+            elif method.upper() == 'POST':
+                response = requests.post(full_url, json=body, headers=headers, timeout=self.command_timeout)
+            elif method.upper() == 'PUT':
+                response = requests.put(full_url, json=body, headers=headers, timeout=self.command_timeout)
+            elif method.upper() == 'DELETE':
+                response = requests.delete(full_url, headers=headers, timeout=self.command_timeout)
+            elif method.upper() == 'PATCH':
+                response = requests.patch(full_url, json=body, headers=headers, timeout=self.command_timeout)
+            else:
+                raise ValueError(f"Unsupported HTTP method: {method}")
+            
+            result_data = {
+                'status_code': response.status_code,
+                'headers': dict(response.headers),
+                'url': full_url,
+                'method': method.upper()
+            }
+            
+            try:
+                result_data['json'] = response.json()
+            except json.JSONDecodeError:
+                result_data['text'] = response.text
+            
+            self.sio.emit('command_response', {
+                'command_id': command_id,
+                'success': response.status_code < 400,
+                'result': result_data,
+                'timestamp': time.time()
+            })
+            
+        except requests.exceptions.Timeout:
+            self.sio.emit('command_response', {
+                'command_id': command_id,
+                'success': False,
+                'error': 'API request timeout',
+                'timestamp': time.time()
+            })
+            
+        except requests.exceptions.ConnectionError:
+            self.sio.emit('command_response', {
+                'command_id': command_id,
+                'success': False,
+                'error': 'Failed to connect to local API server',
+                'timestamp': time.time()
+            })
+            
+        except Exception as e:
+            self.sio.emit('command_response', {
+                'command_id': command_id,
+                'success': False,
+                'error': str(e),
+                'timestamp': time.time()
+            })
+    
 def main():
     parser = argparse.ArgumentParser(description='Shareify Cloud Bridge Client')
     parser.add_argument('--cloud-url', '-u', 
