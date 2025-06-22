@@ -402,7 +402,7 @@ def restart():
     if os.name == 'nt':
         os.system("shutdown /r /t 10")
     else:
-        os.system("sudo shutdown -r +1")
+        os.system("sudo reboot")
     return jsonify({"status": "Restarting"})
 
 @app.route('/api/finder', methods=['GET'])

@@ -10,6 +10,26 @@ import argparse
 from pathlib import Path
 import requests
 
+def load_cloud_config():
+    settings_dir = Path(__file__).parent / "settings"
+    cloud_config_path = settings_dir / "cloud.json"
+    
+    if cloud_config_path.exists():
+        try:
+            with open(cloud_config_path, 'r') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            return {}
+    return {}
+
+def save_cloud_config(config_data):
+    settings_dir = Path(__file__).parent / "settings"
+    settings_dir.mkdir(exist_ok=True)
+    cloud_config_path = settings_dir / "cloud.json"
+    
+    with open(cloud_config_path, 'w') as f:
+        json.dump(config_data, f, indent=2)
+
 DEFAULT_CLOUD_URL = "http://127.0.0.1:5698"
 DEFAULT_SERVER_ID = None
 DEFAULT_SERVER_NAME = None
@@ -17,11 +37,19 @@ DEFAULT_HEARTBEAT_INTERVAL = 30
 DEFAULT_COMMAND_TIMEOUT = 30
 
 class ShareifyLocalClient:
-    def __init__(self, cloud_url=None, server_id=None, server_name=None):
+    def __init__(self, cloud_url=None, server_id=None, server_name=None, user_id=None, auth_token=None, username=None, password=None):
         self.cloud_url = cloud_url or DEFAULT_CLOUD_URL
+        
+        self.cloud_config = load_cloud_config()
         
         self.server_id = self._get_or_create_server_id(server_id)
         self.server_name = server_name or DEFAULT_SERVER_NAME or f"Shareify-{self.server_id[:8]}"
+        
+        self.user_id = user_id or self.cloud_config.get('user_id')
+        self.auth_token = auth_token or self.cloud_config.get('auth_token')
+        self.username = username or self.cloud_config.get('username')
+        self.password = password or self.cloud_config.get('password')
+        self.authenticated = False
         
         self.sio = socketio.Client()
         self.connected = False
@@ -35,21 +63,76 @@ class ShareifyLocalClient:
         def connect():
             print(f"Connected to cloud bridge at {self.cloud_url}")
             self.connected = True
-
-            self.sio.emit('register_server', {
-                'server_id': self.server_id,
-                'name': self.server_name
-            })
+            self.authenticate_user()
             
         @self.sio.event
         def disconnect():
             print("Disconnected from cloud bridge")
             self.connected = False
+            self.authenticated = False
+            
+        @self.sio.on('authentication_success')
+        def on_auth_success(data):
+            print(f"Authentication successful: {data['username']}")
+            self.user_id = data['user_id']
+            self.auth_token = data.get('auth_token')
+            self.authenticated = True
+            
+            config_data = {
+                'user_id': self.user_id,
+                'auth_token': self.auth_token,
+                'username': data['username'],
+                'server_id': self.server_id,
+                'server_name': self.server_name,
+                'cloud_url': self.cloud_url
+            }
+            save_cloud_config(config_data)
+            
+            self.register_server()
+            
+        @self.sio.on('authentication_failed')
+        def on_auth_failed(data):
+            print(f"Authentication failed: {data['error']}")
+            self.authenticated = False
             
         @self.sio.on('registration_success')
-        def on_registration(data):
-            print(f"Successfully registered: {data['message']}")
-            print(f"Server ID: {data['server_id']}")
+        def on_registration_success(data):
+            if 'server_id' in data:
+                print(f"Server registration successful: {data['message']}")
+                print(f"Server ID: {data['server_id']}")
+                
+                config_data = load_cloud_config()
+                config_data.update({
+                    'server_registered': True,
+                    'registration_timestamp': time.time()
+                })
+                save_cloud_config(config_data)
+            else:
+                print(f"User registration successful: {data['username']}")
+                self.user_id = data['user_id']
+                self.auth_token = data.get('auth_token')
+                self.authenticated = True
+                
+                config_data = {
+                    'user_id': self.user_id,
+                    'auth_token': self.auth_token,
+                    'username': data['username'],
+                    'password': self.password,
+                    'server_id': self.server_id,
+                    'server_name': self.server_name,
+                    'cloud_url': self.cloud_url
+                }
+                save_cloud_config(config_data)
+                
+                self.register_server()
+            
+        @self.sio.on('registration_failed')
+        def on_registration_failed(data):
+            if 'server_id' in str(data):
+                print(f"Server registration failed: {data['error']}")
+            else:
+                print(f"User registration failed: {data['error']}")
+                self.authenticated = False
             
         @self.sio.on('execute_command')
         def on_execute_command(data):
@@ -58,16 +141,55 @@ class ShareifyLocalClient:
             token = data.get('token', None)
             print(f"Received command {command_id}: {command} (token: {token})")
 
-            requests.get(
-                f"http://127.0.0.1:6969/command",
-                params={'command': command},
-                headers={'X-API-KEY': token}
-            )
+            try:
+                requests.get(
+                    f"http://127.0.0.1:6969/command",
+                    params={'command': command},
+                    headers={'X-API-KEY': token}
+                )
+            except requests.RequestException as e:
+                print(f"Failed to forward command to local server: {e}")
+            
+            self.execute_command(command_id, command)
             
             
         @self.sio.on('pong')
         def on_pong(data):
             print(f"Ping response: {data['timestamp']}")
+    
+    def authenticate_user(self):
+        if self.user_id and self.auth_token:
+            self.sio.emit('authenticate_user', {
+                'user_id': self.user_id,
+                'auth_token': self.auth_token
+            })
+        elif self.username and self.password:
+            self.sio.emit('authenticate_user', {
+                'username': self.username,
+                'password': self.password
+            })
+        else:
+            print("No authentication credentials found, registering new user")
+            new_username = f"shareify_user_{str(uuid.uuid4())[:8]}"
+            new_password = str(uuid.uuid4())
+            self.sio.emit('register_user', {
+                'username': new_username,
+                'password': new_password
+            })
+            self.username = new_username
+            self.password = new_password
+    
+    def register_server(self):
+        if not self.authenticated:
+            print("Cannot register server: not authenticated")
+            return
+            
+        self.sio.emit('register_server', {
+            'server_id': self.server_id,
+            'name': self.server_name,
+            'user_id': self.user_id,
+            'auth_token': self.auth_token
+        })
     
     def _get_or_create_server_id(self, provided_id=None):
         
@@ -212,7 +334,11 @@ class ShareifyLocalClient:
         def heartbeat():
             while self.connected:
                 try:
-                    self.sio.emit('ping', {'server_id': self.server_id})
+                    if self.authenticated:
+                        self.sio.emit('ping', {
+                            'server_id': self.server_id,
+                            'user_id': self.user_id
+                        })
                     time.sleep(self.heartbeat_interval)
                 except Exception as e:
                     print(f"Heartbeat error: {e}")
@@ -252,6 +378,18 @@ def main():
     parser.add_argument('--server-name', '-n',
                        default=os.getenv('SHAREIFY_SERVER_NAME', DEFAULT_SERVER_NAME),
                        help='Server display name')
+    parser.add_argument('--user-id',
+                       default=os.getenv('SHAREIFY_USER_ID'),
+                       help='User ID for authentication')
+    parser.add_argument('--auth-token',
+                       default=os.getenv('SHAREIFY_AUTH_TOKEN'),
+                       help='Authentication token')
+    parser.add_argument('--username',
+                       default=os.getenv('SHAREIFY_USERNAME'),
+                       help='Username for authentication')
+    parser.add_argument('--password',
+                       default=os.getenv('SHAREIFY_PASSWORD'),
+                       help='Password for authentication')
     parser.add_argument('--heartbeat-interval',
                        type=int,
                        default=DEFAULT_HEARTBEAT_INTERVAL,
@@ -279,7 +417,11 @@ def main():
     client = ShareifyLocalClient(
         cloud_url=args.cloud_url,
         server_id=args.server_id,
-        server_name=args.server_name
+        server_name=args.server_name,
+        user_id=args.user_id,
+        auth_token=args.auth_token,
+        username=args.username,
+        password=args.password
     )
     
     if args.heartbeat_interval != DEFAULT_HEARTBEAT_INTERVAL:
@@ -298,6 +440,8 @@ def main():
     print(f"Cloud URL: {args.cloud_url}")
     print(f"Server ID: {client.server_id}")
     print(f"Server Name: {client.server_name}")
+    print(f"User ID: {client.user_id}")
+    print(f"Username: {client.username}")
     print(f"Heartbeat Interval: {client.heartbeat_interval}s")
     print(f"Command Timeout: {client.command_timeout}s")
     print("="*50)
