@@ -136,6 +136,10 @@ def update():
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "database.py"), 'w') as file:
             file.write(database_py)
             file.close()
+        cloud_conn = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/cloud_connection.py").text
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "cloud_connection.py"), 'w') as file:
+            file.write(cloud_conn)
+            file.close()
         with open(settings_file, 'w') as file:
             settings['version'] = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version").text
             json.dump(settings, file, indent=4)

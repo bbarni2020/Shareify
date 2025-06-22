@@ -8,12 +8,14 @@ import hashlib
 import bcrypt
 import jwt
 import sqlite3
+import threading
 from datetime import datetime, timedelta
 from collections import defaultdict
+import threading
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'my-secret-key'
-app.config['JWT_SECRET_KEY'] = 'jwt-secret-key-change-in-production'
+app.config['JWT_SECRET_KEY'] = 'jwt-secret-key'
 app.config['JWT_EXPIRATION_HOURS'] = 24
 socketio = SocketIO(app, cors_allowed_origins="*")
 
@@ -72,12 +74,17 @@ def verify_password(password, hashed):
 
 def generate_jwt_token(user_id):
     jwt_id = str(uuid.uuid4())
+    expires_at = datetime.utcnow() + timedelta(hours=app.config['JWT_EXPIRATION_HOURS'])
     payload = {
         'user_id': user_id,
         'jwt_id': jwt_id,
-        'exp': datetime.utcnow() + timedelta(hours=app.config['JWT_EXPIRATION_HOURS']),
+        'exp': expires_at,
         'iat': datetime.utcnow()
     }
+    
+    store_jwt_session(jwt_id, user_id, expires_at)
+    cleanup_expired_jwts()
+    
     return jwt.encode(payload, app.config['JWT_SECRET_KEY'], algorithm='HS256')
 
 def decode_jwt_token(token):
@@ -91,7 +98,20 @@ def decode_jwt_token(token):
 
 def get_user_id_from_jwt(jwt_token):
     payload = decode_jwt_token(jwt_token)
-    return payload.get('user_id') if payload else None
+    if not payload:
+        return None
+    
+    jwt_id = payload.get('jwt_id')
+    user_id = payload.get('user_id')
+    
+    if not jwt_id or not user_id:
+        return None
+    
+    valid_user_id = is_jwt_valid(jwt_id)
+    if valid_user_id != user_id:
+        return None
+    
+    return user_id
 
 def init_sqlite_db():
     conn = sqlite3.connect(user_sqlite_db_path)
@@ -108,6 +128,16 @@ def init_sqlite_db():
             last_activity TEXT NOT NULL,
             status TEXT NOT NULL DEFAULT 'active',
             settings TEXT DEFAULT '{}'
+        )
+    ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS jwt_sessions (
+            jwt_id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
         )
     ''')
     
@@ -206,6 +236,44 @@ def get_sqlite_user_by_auth_token(auth_token):
             'settings': json.loads(row[8]) if row[8] else {}
         }
     return None
+
+def store_jwt_session(jwt_id, user_id, expires_at):
+    conn = sqlite3.connect(user_sqlite_db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        INSERT INTO jwt_sessions (jwt_id, user_id, expires_at, created_at)
+        VALUES (?, ?, ?, ?)
+    ''', (jwt_id, user_id, expires_at.isoformat(), datetime.now().isoformat()))
+    
+    conn.commit()
+    conn.close()
+
+def cleanup_expired_jwts():
+    conn = sqlite3.connect(user_sqlite_db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        DELETE FROM jwt_sessions 
+        WHERE expires_at < ?
+    ''', (datetime.now().isoformat(),))
+    
+    conn.commit()
+    conn.close()
+
+def is_jwt_valid(jwt_id):
+    conn = sqlite3.connect(user_sqlite_db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT user_id FROM jwt_sessions 
+        WHERE jwt_id = ? AND expires_at > ?
+    ''', (jwt_id, datetime.now().isoformat()))
+    
+    result = cursor.fetchone()
+    conn.close()
+    
+    return result[0] if result else None
 
 users_db = load_users_database()
 
@@ -762,7 +830,14 @@ def user_settings():
             'settings': updated_user['settings']
         })
 
+def periodic_jwt_cleanup():
+    while True:
+        time.sleep(3600)
+        cleanup_expired_jwts()
+
 if __name__ == '__main__':
     init_sqlite_db()
+    cleanup_expired_jwts()
     print('Starting Socket.IO server...')
+    threading.Thread(target=periodic_jwt_cleanup, daemon=True).start()
     socketio.run(app, host='0.0.0.0', port=5698, debug=True)

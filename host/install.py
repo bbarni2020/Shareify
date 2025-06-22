@@ -210,6 +210,18 @@ def create_jsons():
         except Exception as e:
             print(f"Failed to fetch or write roles.json: {e}")
 
+    cloud_path = os.path.join(os.path.dirname(__file__), 'settings/cloud.json')
+    if not os.path.exists(cloud_path):
+        try:
+            with open(cloud_path, 'w') as f:
+                f.write("""
+{
+  "enabled": false
+}
+""")
+        except Exception as e:
+            print(f"Failed to fetch or write cloud.json: {e}")
+
 @app.route('/')
 def install_page():
     return render_template('install.html')

@@ -1,3 +1,5 @@
 flask
 flask-socketio
 python-socketio
+bcrypt
+PyJWT

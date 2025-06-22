@@ -6,7 +6,6 @@ import threading
 import uuid
 import os
 import sys
-import argparse
 from pathlib import Path
 import requests
 
@@ -49,6 +48,7 @@ class ShareifyLocalClient:
         self.auth_token = auth_token or self.cloud_config.get('auth_token')
         self.username = username or self.cloud_config.get('username')
         self.password = password or self.cloud_config.get('password')
+        self.enabled = self.cloud_config.get('enabled', True)
         self.authenticated = False
         
         self.sio = socketio.Client()
@@ -84,7 +84,8 @@ class ShareifyLocalClient:
                 'username': data['username'],
                 'server_id': self.server_id,
                 'server_name': self.server_name,
-                'cloud_url': self.cloud_url
+                'cloud_url': self.cloud_url,
+                'enabled': self.enabled
             }
             save_cloud_config(config_data)
             
@@ -120,7 +121,8 @@ class ShareifyLocalClient:
                     'password': self.password,
                     'server_id': self.server_id,
                     'server_name': self.server_name,
-                    'cloud_url': self.cloud_url
+                    'cloud_url': self.cloud_url,
+                    'enabled': self.enabled
                 }
                 save_cloud_config(config_data)
                 
@@ -216,6 +218,7 @@ class ShareifyLocalClient:
             'server_name': self.server_name,
             'cloud_url': self.cloud_url,
             'connected': self.connected,
+            'enabled': self.enabled,
             'heartbeat_interval': self.heartbeat_interval,
             'command_timeout': self.command_timeout
         }
@@ -273,6 +276,7 @@ class ShareifyLocalClient:
                 'server_id': self.server_id,
                 'server_name': self.server_name,
                 'connected': self.connected,
+                'enabled': self.enabled,
                 'uptime': time.time(),
                 'platform': sys.platform,
                 'heartbeat_interval': self.heartbeat_interval,
@@ -314,6 +318,19 @@ class ShareifyLocalClient:
             self.server_id = str(uuid.uuid4())
             return {'message': f'Server ID changed from "{old_id}" to "{self.server_id}"'}
         
+        elif action == 'enable':
+            self.set_enabled(True)
+            return {'message': 'Cloud connection enabled'}
+        
+        elif action == 'disable':
+            self.set_enabled(False)
+            return {'message': 'Cloud connection disabled'}
+        
+        elif action == 'toggle':
+            new_state = not self.enabled
+            self.set_enabled(new_state)
+            return {'message': f'Cloud connection {"enabled" if new_state else "disabled"}'}
+        
         else:
             return {'error': f'Unknown Shareify command: {action}'}
     
@@ -335,6 +352,17 @@ class ShareifyLocalClient:
         print(f"Server ID changed from '{old_id}' to '{new_id}'")
         return self.server_id
     
+    def set_enabled(self, enabled):
+        self.enabled = enabled
+        config_data = load_cloud_config()
+        config_data['enabled'] = enabled
+        save_cloud_config(config_data)
+        print(f"Cloud connection {'enabled' if enabled else 'disabled'}")
+        return self.enabled
+    
+    def is_enabled(self):
+        return self.enabled
+    
     def start_heartbeat(self):
         def heartbeat():
             while self.connected:
@@ -352,6 +380,10 @@ class ShareifyLocalClient:
         threading.Thread(target=heartbeat, daemon=True).start()
     
     def connect(self):
+        if not self.enabled:
+            print("Cloud connection is disabled. Use 'shareify:enable' to enable it.")
+            return False
+            
         try:
             print(f"Connecting to cloud bridge at {self.cloud_url}")
             self.sio.connect(self.cloud_url)
@@ -444,83 +476,22 @@ class ShareifyLocalClient:
             })
     
 def main():
-    parser = argparse.ArgumentParser(description='Shareify Cloud Bridge Client')
-    parser.add_argument('--cloud-url', '-u', 
-                       default=os.getenv('SHAREIFY_CLOUD_URL', DEFAULT_CLOUD_URL),
-                       help=f'Cloud bridge URL (default: {DEFAULT_CLOUD_URL})')
-    parser.add_argument('--server-id', '-i',
-                       default=os.getenv('SHAREIFY_SERVER_ID', DEFAULT_SERVER_ID),
-                       help='Unique server ID (if not provided, will use default or generate new)')
-    parser.add_argument('--server-name', '-n',
-                       default=os.getenv('SHAREIFY_SERVER_NAME', DEFAULT_SERVER_NAME),
-                       help='Server display name')
-    parser.add_argument('--user-id',
-                       default=os.getenv('SHAREIFY_USER_ID'),
-                       help='User ID for authentication')
-    parser.add_argument('--auth-token',
-                       default=os.getenv('SHAREIFY_AUTH_TOKEN'),
-                       help='Authentication token')
-    parser.add_argument('--username',
-                       default=os.getenv('SHAREIFY_USERNAME'),
-                       help='Username for authentication')
-    parser.add_argument('--password',
-                       default=os.getenv('SHAREIFY_PASSWORD'),
-                       help='Password for authentication')
-    parser.add_argument('--heartbeat-interval',
-                       type=int,
-                       default=DEFAULT_HEARTBEAT_INTERVAL,
-                       help=f'Heartbeat interval in seconds (default: {DEFAULT_HEARTBEAT_INTERVAL})')
-    parser.add_argument('--command-timeout',
-                       type=int,
-                       default=DEFAULT_COMMAND_TIMEOUT,
-                       help=f'Command execution timeout in seconds (default: {DEFAULT_COMMAND_TIMEOUT})')
-    parser.add_argument('--generate-id', '-g',
-                       action='store_true',
-                       help='Generate a new server ID and exit')
-    parser.add_argument('--show-info', '-s',
-                       action='store_true',
-                       help='Show current server configuration and exit')
-    
-    args = parser.parse_args()
-    
-    if args.generate_id:
-        new_id = str(uuid.uuid4())
-        print(f"Generated new server ID: {new_id}")
-        print(f"Use with: --server-id {new_id}")
-        print(f"Or set DEFAULT_SERVER_ID = '{new_id}' in the script")
-        return
-    
-    client = ShareifyLocalClient(
-        cloud_url=args.cloud_url,
-        server_id=args.server_id,
-        server_name=args.server_name,
-        user_id=args.user_id,
-        auth_token=args.auth_token,
-        username=args.username,
-        password=args.password
-    )
-    
-    if args.heartbeat_interval != DEFAULT_HEARTBEAT_INTERVAL:
-        client.heartbeat_interval = args.heartbeat_interval
-    if args.command_timeout != DEFAULT_COMMAND_TIMEOUT:
-        client.command_timeout = args.command_timeout
-    
-    if args.show_info:
-        info = client.get_server_info()
-        print("\n=== Shareify Client Configuration ===")
-        for key, value in info.items():
-            print(f"{key.replace('_', ' ').title()}: {value}")
-        return
+    client = ShareifyLocalClient()
     
     print(f"\n=== Shareify Cloud Client Starting ===")
-    print(f"Cloud URL: {args.cloud_url}")
+    print(f"Cloud URL: {client.cloud_url}")
     print(f"Server ID: {client.server_id}")
     print(f"Server Name: {client.server_name}")
     print(f"User ID: {client.user_id}")
     print(f"Username: {client.username}")
+    print(f"Enabled: {client.enabled}")
     print(f"Heartbeat Interval: {client.heartbeat_interval}s")
     print(f"Command Timeout: {client.command_timeout}s")
     print("="*50)
+    
+    if not client.enabled:
+        print("Cloud connection is disabled. Use 'shareify:enable' to enable it.")
+        sys.exit(0)
     
     if client.connect():
         print("Client started successfully")
