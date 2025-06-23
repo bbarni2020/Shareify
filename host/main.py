@@ -416,6 +416,8 @@ def finder():
         try:
             if has_access(path):
                 full_path = os.path.normpath(os.path.join(settings['path'], path))
+                if not full_path.startswith(settings['path']):
+                    return jsonify({"error": "Unauthorized"}), 401
                 if os.path.exists(full_path):
                     items = os.listdir(full_path)
                     return jsonify({"items": items})
@@ -430,6 +432,8 @@ def finder():
         try:
             if has_access(""):
                 full_path = os.path.normpath(settings['path'])
+                if not full_path.startswith(settings['path']):
+                    return jsonify({"error": "Unauthorized"}), 401
                 if os.path.exists(full_path):
                     items = os.listdir(full_path)
                     return jsonify({"items": items})
@@ -472,9 +476,11 @@ def command():
                     new_dir = os.path.dirname(current_dir)
                 else:
                     current_dir = get_command_dir()
-                    new_dir = os.path.join(current_dir, target_dir)
+                    new_dir = os.path.normpath(os.path.join(current_dir, target_dir))
                 new_dir = os.path.normpath(os.path.abspath(new_dir))
                 if has_write_access(new_dir):
+                    if not new_dir.startswith(settings['path']):
+                        return jsonify({"error": "Unauthorized"}), 401
                     if not os.path.exists(new_dir):
                         os.makedirs(new_dir)
                         return jsonify({"status": "Command executed", "output": f"Created directory: {target_dir}"})
@@ -494,7 +500,7 @@ def command():
                     new_dir = os.path.dirname(current_dir)
                 else:
                     current_dir = get_command_dir()
-                    new_dir = os.path.join(current_dir, target_dir)
+                    new_dir = os.path.normpath(os.path.join(current_dir, target_dir))
                 
                 new_dir = os.path.normpath(os.path.abspath(new_dir))
                 
@@ -536,6 +542,8 @@ def create_folder():
             if has_write_access(path):
                 try:
                     full_path = os.path.normpath(os.path.join(settings['path'], path, folder_name))
+                    if not full_path.startswith(settings['path']):
+                        return jsonify({"error": "Unauthorized"}), 401
                     os.mkdir(full_path)
                     return jsonify({"status": "Folder created", "path": path + folder_name})
                 except Exception as e:
@@ -547,6 +555,8 @@ def create_folder():
             if has_write_access(""):
                 try:
                     full_path = os.path.normpath(os.path.join(settings['path'], folder_name))
+                    if not full_path.startswith(settings['path']):
+                        return jsonify({"error": "Unauthorized"}), 401
                     os.mkdir(full_path)
                     return jsonify({"status": "Folder created", "path": folder_name})
                 except Exception as e:
@@ -565,6 +575,8 @@ def delete_folder():
         if has_write_access(path):
             try:
                 full_path = os.path.normpath(os.path.join(settings['path'], path))
+                if not full_path.startswith(settings['path']):
+                    return jsonify({"error": "Unauthorized"}), 401
                 if os.path.exists(full_path):
                     shutil.rmtree(full_path)
                     return jsonify({"status": "Folder deleted"})
@@ -590,6 +602,8 @@ def rename_folder():
                 try:
                     full_path = os.path.normpath(os.path.join(settings['path'], path, old_name))
                     new_full_path = os.path.normpath(os.path.join(settings['path'], path, new_name))
+                    if not full_path.startswith(settings['path']) or not new_full_path.startswith(settings['path']):
+                        return jsonify({"error": "Unauthorized"}), 401
                     if os.path.exists(full_path):
                         os.rename(full_path, new_full_path)
                         return jsonify({"status": "Folder renamed", "path": path + new_name})
@@ -604,6 +618,8 @@ def rename_folder():
                 try:
                     full_path = os.path.normpath(os.path.join(settings['path'], old_name))
                     new_full_path = os.path.normpath(os.path.join(settings['path'], new_name))
+                    if not full_path.startswith(settings['path']) or not new_full_path.startswith(settings['path']):
+                        return jsonify({"error": "Unauthorized"}), 401
                     if os.path.exists(full_path):
                         os.rename(full_path, new_full_path)
                         return jsonify({"status": "Folder renamed", "path": new_name})
@@ -640,6 +656,8 @@ def new_file():
                 full_path = os.path.normpath(os.path.join(settings['path'], path, file_name))
             else:
                 full_path = os.path.normpath(os.path.join(settings['path'], file_name))
+            if not full_path.startswith(settings['path']):
+                return jsonify({"error": "Unauthorized"}), 401
             with open(full_path, 'w') as file:
                 file.write(file_content)
             return jsonify({"status": "File created", "path": path + file_name})
@@ -656,6 +674,8 @@ def delete_file():
         if has_write_access(path):
             try:
                 full_path = os.path.normpath(os.path.join(settings['path'], path))
+                if not full_path.startswith(settings['path']):
+                    return jsonify({"error": "Unauthorized"}), 401
                 if os.path.exists(full_path):
                     os.remove(full_path)
                     return jsonify({"status": "File deleted"})
@@ -679,6 +699,8 @@ def rename_file():
         if path:
             full_path = os.path.normpath(os.path.join(settings['path'], path, old_name))
             new_full_path = os.path.normpath(os.path.join(settings['path'], path, new_name))
+            if not full_path.startswith(settings['path']) or not new_full_path.startswith(settings['path']):
+                return jsonify({"error": "Unauthorized"}), 401
         else:
             return jsonify({"error": "No path provided"}), 400
         if has_write_access(path):
@@ -704,6 +726,8 @@ def get_file():
         if has_access(file):
             try:
                 full_path = os.path.normpath(os.path.join(settings['path'], file))
+                if not full_path.startswith(settings['path']):
+                    return jsonify({"error": "Unauthorized"}), 401
                 if os.path.exists(full_path):
                     mime_type, _ = mimetypes.guess_type(full_path)
                     if mime_type and (mime_type.startswith('video/') or mime_type.startswith('image/')):
@@ -744,6 +768,8 @@ def edit_file():
         if has_write_access(path):
             try:
                 full_path = os.path.normpath(os.path.join(settings['path'], path))
+                if not full_path.startswith(settings['path']):
+                    return jsonify({"error": "Unauthorized"}), 401
                 with open(full_path, 'w') as file:
                     file.write(file_content)
                     file.close()
@@ -839,6 +865,8 @@ def create_ftp_user():
                 full_path = os.path.normpath(os.path.join(settings['path'], path))
             else:
                 full_path = os.path.normpath(settings['path'])
+            if not full_path.startswith(settings['path']):
+                return jsonify({"error": "Unauthorized"}), 401
             if not os.path.exists(full_path):
                 return jsonify({"error": "Path does not exist"}), 404
             authorizer.add_user(username, password, full_path, permissions)
@@ -889,6 +917,8 @@ def edit_ftp_user():
     if username:
         try:
             full_path = os.path.normpath(os.path.join(settings['path'], path)) if path else os.path.normpath(settings['path'])
+            if not full_path.startswith(settings['path']):
+                return jsonify({"error": "Unauthorized"}), 401
             if path and not os.path.exists(full_path):
                 return jsonify({"error": "Path does not exist"}), 404
             if password is None or password == "":
@@ -1252,8 +1282,12 @@ def upload_file():
         return jsonify({"error": "Unauthorized"}), 401
     filename = secure_filename(file.filename)
     dest_dir = os.path.normpath(os.path.join(settings['path'], path)) if path else os.path.normpath(settings['path'])
+    if not dest_dir.startswith(settings['path']):
+        return jsonify({"error": "Unauthorized"}), 401
     os.makedirs(dest_dir, exist_ok=True)
     dest_path = os.path.normpath(os.path.join(dest_dir, filename))
+    if not dest_path.startswith(settings['path']):
+        return jsonify({"error": "Unauthorized"}), 401
     try:
         file.save(dest_path)
         log(f"File uploaded", request.remote_addr)
@@ -1270,6 +1304,8 @@ def download_file():
     if not has_access(file_path):
         return jsonify({"error": "Unauthorized"}), 401
     full_path = os.path.normpath(os.path.join(settings['path'], file_path))
+    if not full_path.startswith(settings['path']):
+        return jsonify({"error": "Unauthorized"}), 401
     if os.path.exists(full_path):
         if os.path.isfile(full_path):
             directory = os.path.dirname(full_path)
