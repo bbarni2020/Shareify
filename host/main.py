@@ -504,6 +504,9 @@ def command():
                 
                 new_dir = os.path.normpath(os.path.abspath(new_dir))
                 
+                if not new_dir.startswith(settings['path']):
+                    return jsonify({"status": "Command executed", "output": f"cd: {target_dir}: Permission denied"})
+                
                 if os.path.exists(new_dir) and os.path.isdir(new_dir):
                     set_command_dir(new_dir)
                     return jsonify({"status": "Command executed", "output": f"Changed directory to: {target_dir}"})
