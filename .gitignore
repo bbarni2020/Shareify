@@ -4,3 +4,4 @@ host/db/logs.db-shm
 host/db/logs.db-wal
 host/settings/settings.json
 *.db
+*.DS_Store

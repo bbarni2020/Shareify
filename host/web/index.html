@@ -15,6 +15,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+        
         .logout-fade-out {
             opacity: 0 !important;
             transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1);
@@ -985,18 +996,31 @@
             </div>
         </div>
     </div>
-
+    <svg width="0" height="0" style="position: absolute;">
+        <defs>
+            <filter id="filter0_i_19_3" x="0" y="0" width="22" height="22" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+                <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                <feOffset/>
+                <feGaussianBlur stdDeviation="1"/>
+                <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"/>
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+                <feBlend mode="normal" in2="shape" result="effect1_innerShadow_19_3"/>
+            </filter>
+        </defs>
+    </svg>
     <div class="container">
-        <div class="app_icons" style="background: url(web/assets/finder.png) lightgray 50% / cover no-repeat;" onclick="finder_open()" id="finder-ontab">
+        <div class="app_icons" style="background: url(web/assets/finder.png) lightgray 50% / 100% 100% no-repeat;" onclick="finder_open()" id="finder-ontab">
             <div class="indicator" id="finder-indicator"></div>
         </div>
-        <div class="app_icons" style="background: url(web/assets/user.png) lightgray 50% / cover no-repeat;" onclick="users_open()" id="users-ontab">
+        <div class="app_icons" style="background: url(web/assets/user.png) lightgray 50% / 100% 100% no-repeat;" onclick="users_open()" id="users-ontab">
             <div class="indicator" id="users-indicator"></div>
         </div>
-        <div class="app_icons" style="background: url(web/assets/nas.png) lightgray 50% / cover no-repeat;" onclick="nas_open()" id="nas-ontab">
+        <div class="app_icons" style="background: url(web/assets/nas.png) lightgray 50% / 100% 100% no-repeat;" onclick="nas_open()" id="nas-ontab">
             <div class="indicator" id="nas-indicator"></div>
         </div>
-        <div class="app_icons" style="background: url(web/assets/settings.png) lightgray 50% / cover no-repeat;" onclick="settings_open()" id="settings-ontab">
+        <div class="app_icons" style="background: url(web/assets/settings.png) lightgray 50% / 100% 100% no-repeat;" onclick="settings_open()" id="settings-ontab">
             <div class="indicator" id="settings-indicator"></div>
         </div>
     </div>
@@ -1007,7 +1031,7 @@
     </div>
     <div class="leave" id="leave"></div>
     <div class="window" id="finder-window">
-        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="</div>none" class="exit_btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 22 22" fill="none" class="exit_btn">
             <g filter="url(#filter0_i_19_3)">
                 <circle cx="11" cy="11" r="11" fill="#DC2626"/>
             </g>
@@ -1944,8 +1968,7 @@
                 stopPreviewMedia();
             }
             
-            windowElement.classList.add('hide');
-            windowElement.classList.remove('show');
+            hideWindowSafely(windowElement);
             updateIndicator(windowId, indicatorId);
         });
 
@@ -1953,6 +1976,14 @@
             if (e.target === resizeHandle || e.target === exitButton) return;
             bringToFront(windowElement);
             if (getTopmostWindow() !== windowElement) return;
+
+            if (windowElement.style.left === '' || windowElement.style.top === '') {
+                const rect = windowElement.getBoundingClientRect();
+                windowElement.style.left = `${rect.left}px`;
+                windowElement.style.top = `${rect.top}px`;
+                windowElement.style.transform = 'none';
+            }
+            
             isDragging = true;
             activeDragWindow = windowElement;
             offsetX = e.clientX - windowElement.offsetLeft;
@@ -1961,6 +1992,13 @@
         });
 
         resizeHandle.addEventListener('mousedown', (e) => {
+            if (windowElement.style.left === '' || windowElement.style.top === '') {
+                const rect = windowElement.getBoundingClientRect();
+                windowElement.style.left = `${rect.left}px`;
+                windowElement.style.top = `${rect.top}px`;
+                windowElement.style.transform = 'none';
+            }
+            
             isResizing = true;
             offsetX = e.clientX;
             offsetY = e.clientY;
@@ -1973,15 +2011,37 @@
 
     document.addEventListener('mousemove', (e) => {
         if (isDragging && activeDragWindow) {
-            activeDragWindow.style.left = `${e.clientX - offsetX}px`;
-            activeDragWindow.style.top = `${e.clientY - offsetY}px`;
+            const newLeft = e.clientX - offsetX;
+            const newTop = e.clientY - offsetY;
+            
+            const windowWidth = activeDragWindow.offsetWidth;
+            const windowHeight = activeDragWindow.offsetHeight;
+            
+            const maxLeft = window.innerWidth - windowWidth;
+            const maxTop = window.innerHeight - windowHeight;
+            
+            const constrainedLeft = Math.max(0, Math.min(newLeft, maxLeft));
+            const constrainedTop = Math.max(0, Math.min(newTop, maxTop));
+            
+            activeDragWindow.style.left = `${constrainedLeft}px`;
+            activeDragWindow.style.top = `${constrainedTop}px`;
         } else if (isResizing) {
             const activeWindow = document.querySelector('.window.show');
             if (activeWindow) {
+                const currentLeft = activeWindow.offsetLeft;
+                const currentTop = activeWindow.offsetTop;
+                
+                const maxWidth = window.innerWidth - currentLeft;
+                const maxHeight = window.innerHeight - currentTop;
+                
                 const newWidth = Math.max(startWidth + (e.clientX - offsetX), 300);
                 const newHeight = Math.max(startHeight + (e.clientY - offsetY), 200);
-                activeWindow.style.width = `${newWidth}px`;
-                activeWindow.style.height = `${newHeight}px`;
+                
+                const constrainedWidth = Math.min(newWidth, maxWidth);
+                const constrainedHeight = Math.min(newHeight, maxHeight);
+                
+                activeWindow.style.width = `${constrainedWidth}px`;
+                activeWindow.style.height = `${constrainedHeight}px`;
             }
         }
     });
@@ -1996,6 +2056,33 @@
     function bringToFront(windowElement) {
         zIndexCounter++;
         windowElement.style.zIndex = zIndexCounter;
+    }
+
+    function showWindowSafely(windowElement) {
+        if (windowElement.style.left === '' || windowElement.style.top === '') {
+            const rect = windowElement.getBoundingClientRect();
+            const maxLeft = window.innerWidth - windowElement.offsetWidth;
+            const maxTop = window.innerHeight - windowElement.offsetHeight;
+            
+            const constrainedLeft = Math.max(0, Math.min(rect.left, maxLeft));
+            const constrainedTop = Math.max(0, Math.min(rect.top, maxTop));
+            
+            windowElement.style.left = `${constrainedLeft}px`;
+            windowElement.style.top = `${constrainedTop}px`;
+            windowElement.style.transform = 'none';
+        }
+        
+        windowElement.classList.add('show');
+        windowElement.classList.remove('hide');
+        bringToFront(windowElement);
+    }
+
+    function hideWindowSafely(windowElement) {
+        windowElement.classList.add('hide');
+        windowElement.classList.remove('show');
+        windowElement.style.left = '';
+        windowElement.style.top = '';
+        windowElement.style.transform = 'translate(-50%, -50%)';
     }
 
     function updateIndicator(windowId, indicatorId) {
@@ -2311,9 +2398,7 @@
     function finder_open() {
         const windowElement = document.getElementById('finder-window');
         if (windowElement) {
-            windowElement.classList.add('show');
-            windowElement.classList.remove('hide');
-            bringToFront(windowElement);
+            showWindowSafely(windowElement);
             updateIndicator('finder-window', 'finder-indicator');
             loadInitialPaths();
         }
@@ -2322,9 +2407,7 @@
     function users_open() {
         const windowElement = document.getElementById('users-window');
         if (windowElement) {
-            windowElement.classList.add('show');
-            windowElement.classList.remove('hide');
-            bringToFront(windowElement);
+            showWindowSafely(windowElement);
             updateIndicator('users-window', 'users-indicator');
             loadUsersData();
             loadFTPUsers();
@@ -2335,9 +2418,7 @@
     function nas_open() {
         const windowElement = document.getElementById('nas-window');
         if (windowElement) {
-            windowElement.classList.add('show');
-            windowElement.classList.remove('hide');
-            bringToFront(windowElement);
+            showWindowSafely(windowElement);
             updateIndicator('nas-window', 'nas-indicator');
             loadLogs();
         }
@@ -2346,9 +2427,7 @@
     function settings_open() {
         const windowElement = document.getElementById('settings-window');
         if (windowElement) {
-            windowElement.classList.add('show');
-            windowElement.classList.remove('hide');
-            bringToFront(windowElement);
+            showWindowSafely(windowElement);
             updateIndicator('settings-window', 'settings-indicator');
         }
     }
