@@ -315,6 +315,20 @@ def has_write_access(path):
                     return True
     return False
 
+def is_cloud_on():
+    try:
+        cloud_path = os.path.join(os.path.dirname(__file__), 'settings', 'cloud.json')
+        if os.path.exists(cloud_path):
+            with open(cloud_path, 'r') as f:
+                settings = json.load(f)
+                if settings.get('enabled', '') == 'true':
+                    return True
+                else:
+                    return False
+    except Exception as e:
+        print(f"Error reading cloud settings: {e}")
+    return None
+
 # Flask app
 app = Flask(__name__)
 CORS(app)
@@ -371,13 +385,14 @@ def update_ip(response):
         try:
             conn = get_users_db_connection()
             cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE users
-                SET ip = ?
-                WHERE id = ?
-            ''', (request.remote_addr, g.user_id))
-            conn.commit()
-            conn.close()
+            if (not is_cloud_on()) or request.remote_addr != '127.0.0.1':
+                cursor.execute('''
+                    UPDATE users
+                    SET ip = ?
+                    WHERE id = ?
+                ''', (request.remote_addr, g.user_id))
+                conn.commit()
+                conn.close()
         except Exception as e:
             print_status(f"Error updating IP in database: {e}", "error")
     return response

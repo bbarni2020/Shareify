@@ -4,9 +4,9 @@ import os
 import platform
 import json
 import requests
+import threading
 
 def get_sudo_password():
-    """Get the stored sudo password from settings.json"""
     try:
         settings_path = os.path.join(os.path.dirname(__file__), 'settings', 'settings.json')
         if os.path.exists(settings_path):
@@ -15,6 +15,20 @@ def get_sudo_password():
                 return settings.get('com_password', '')
     except Exception as e:
         print(f"Error reading sudo password: {e}")
+    return None
+
+def is_cloud_on():
+    try:
+        cloud_path = os.path.join(os.path.dirname(__file__), 'settings', 'cloud.json')
+        if os.path.exists(cloud_path):
+            with open(cloud_path, 'r') as f:
+                settings = json.load(f)
+                if settings.get('enabled', ''):
+                    return True
+                else:
+                    return False
+    except Exception as e:
+        print(f"Error reading cloud settings: {e}")
     return None
 
 def main():
@@ -27,7 +41,32 @@ def main():
             return
         
         print("Starting Shareify with administrator privileges...")
-        
+
+        if is_cloud_on():
+            print("Cloud mode is enabled. Starting cloud bridge connection...")
+            cloud_conection_path = os.path.join(script_dir, 'cloud_connection.py')
+            if os.path.exists(cloud_conection_path):
+                def start_cloud_connection():
+                    import time
+                    time.sleep(10)
+                    print("Starting cloud connection process...")
+                    try:
+                        cloud_process = subprocess.Popen(
+                            [sys.executable, cloud_conection_path], 
+                            cwd=script_dir,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True
+                        )
+                        return cloud_process
+                    except Exception as e:
+                        print(f"Error starting cloud connection: {e}")
+                        return None
+                
+                thread = threading.Thread(target=start_cloud_connection)
+                thread.daemon = True
+                thread.start()
+
         current_os = platform.system().lower()
         
         if current_os == "windows":
@@ -58,6 +97,7 @@ def main():
         print(f"Error starting Shareify: {e}")
 
 if __name__ == "__main__":
+    print("Updating Shareify update system")
     print(r"""
  __ _                     __       
 / _\ |__   __ _ _ __ ___ / _|_   _ 
@@ -66,8 +106,8 @@ _\ \ | | | (_| | | |  __/  _| |_| |
 \__/_| |_|\__,_|_|  \___|_|  \__, |
                              |___/ 
 """)
-    endpoints_json = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/update.py").text
+    update_py = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/host/update.py").text
     with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "update.py"), 'w') as file:
-        file.write(endpoints_json)
+        file.write(update_py)
         file.close()
     main()

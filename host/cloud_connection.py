@@ -8,6 +8,18 @@ import os
 import sys
 from pathlib import Path
 import requests
+from colorama import init, Fore, Back, Style
+
+
+def print_status(message, status_type="info"):
+    if status_type == "success":
+        print(Fore.GREEN + message)
+    elif status_type == "error":
+        print(Fore.RED + message)
+    elif status_type == "warning":
+        print(Fore.YELLOW + message)
+    else:
+        print(Fore.BLUE + message)
 
 def load_cloud_config():
     settings_dir = Path(__file__).parent / "settings"
@@ -209,7 +221,8 @@ class ShareifyLocalClient:
             return DEFAULT_SERVER_ID
         
         new_id = str(uuid.uuid4())
-        print(f"Generated new server ID: {new_id}")
+        print()
+        print_status(f"Generated new server ID: {new_id}", "success")
         return new_id
     
     def get_server_info(self):
@@ -384,14 +397,24 @@ class ShareifyLocalClient:
             print("Cloud connection is disabled. Use 'shareify:enable' to enable it.")
             return False
             
-        try:
-            print(f"Connecting to cloud bridge at {self.cloud_url}")
-            self.sio.connect(self.cloud_url)
-            self.start_heartbeat()
-            return True
-        except Exception as e:
-            print(f"Failed to connect: {e}")
-            return False
+        max_retries = 3
+        retry_delay = 10
+        
+        for attempt in range(max_retries):
+            try:
+                print_status(f"Connecting to cloud bridge at {self.cloud_url} (attempt {attempt + 1}/{max_retries})")
+                print()
+                self.sio.connect(self.cloud_url)
+                self.start_heartbeat()
+                return True
+            except Exception as e:
+                print_status(f"Connection attempt {attempt + 1} failed: {e}", "error")
+                if attempt < max_retries - 1:
+                    print_status(f"Retrying in {retry_delay} seconds...", "warning")
+                    time.sleep(retry_delay)
+                else:
+                    print_status(f"All connection attempts failed", "error")
+                    return False
     
     def disconnect(self):
         if self.connected:
@@ -477,29 +500,43 @@ class ShareifyLocalClient:
             })
     
 def main():
-    client = ShareifyLocalClient()
-    
-    print(f"\n=== Shareify Cloud Client Starting ===")
-    print(f"Cloud URL: {client.cloud_url}")
-    print(f"Server ID: {client.server_id}")
-    print(f"Server Name: {client.server_name}")
-    print(f"User ID: {client.user_id}")
-    print(f"Username: {client.username}")
-    print(f"Enabled: {client.enabled}")
-    print(f"Heartbeat Interval: {client.heartbeat_interval}s")
-    print(f"Command Timeout: {client.command_timeout}s")
-    print("="*50)
-    
-    if not client.enabled:
-        print("Cloud connection is disabled. Use 'shareify:enable' to enable it.")
-        sys.exit(0)
-    
-    if client.connect():
-        print("Client started successfully")
-        print("Waiting for commands from cloud...")
-        client.wait()
-    else:
-        print("Failed to start client")
+    try:
+        client = ShareifyLocalClient()
+        
+        print()
+        print_status(f"\n=== Shareify Cloud Client Starting ===")
+        print_status(f"Cloud URL: {client.cloud_url}")
+        print_status(f"Server ID: {client.server_id}")
+        print_status(f"Server Name: {client.server_name}")
+        print_status(f"User ID: {client.user_id}")
+        print_status(f"Username: {client.username}")
+        print_status(f"Enabled: {client.enabled}")
+        print_status(f"Heartbeat Interval: {client.heartbeat_interval}s")
+        print_status(f"Command Timeout: {client.command_timeout}s")
+        print_status("="*50)
+        print()
+        
+        if not client.enabled:
+            print_status("Cloud connection is disabled. Use 'shareify:enable' to enable it.", "warning")
+            sys.exit(0)
+        
+        if client.connect():
+            print_status("Client started successfully", "success")
+            print("Waiting for commands from cloud...")
+            client.wait()
+        else:
+            print_status("Failed to start client after all retry attempts", "error")
+            print_status("This could be because:", "info")
+            print_status("1. The cloud server is not running", "info")
+            print_status("2. Network connectivity issues", "info")
+            print_status("3. Incorrect cloud URL configuration", "info")
+            print()
+            sys.exit(1)
+            
+    except Exception as e:
+        print_status(f"Unexpected error in main: {e}", "error")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 if __name__ == "__main__":
