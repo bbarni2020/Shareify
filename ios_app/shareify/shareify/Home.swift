@@ -175,7 +175,7 @@ struct SpeedometerView: View {
                 .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
                 .tracking(1)
         }
-        .onChange(of: value) { newValue in
+        .onChange(of: value) { _, newValue in
             withAnimation(.spring(response: 1.0, dampingFraction: 0.8, blendDuration: 0.5)) {
                 animatedValue = newValue
             }
