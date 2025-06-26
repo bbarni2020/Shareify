@@ -438,7 +438,7 @@ class ShareifyLocalClient:
             
             print(f"Making {method} request to: {full_url}")
             
-            if not (url == '/resources' or url == 'resources' or url == '/is_up' or url == 'is_up' or url == '/user/get_self' or url == 'user/get_self'):
+            if not (url == '/resources' or url == 'resources' or url == '/is_up' or url == 'is_up' or url == '/user/get_self' or url == 'user/get_self' or url == 'user/login' or url == '/user/login'):
                 return
 
             headers = {'Content-Type': 'application/json'}
