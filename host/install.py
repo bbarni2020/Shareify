@@ -2,6 +2,7 @@ import subprocess
 import sys
 import os
 import platform
+import socket
 
 def install_pip():
     try:
@@ -275,13 +276,25 @@ def create_app():
     initialize_users_db()
     return app
 
+def get_local_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        return local_ip
+    except Exception:
+        return "127.0.0.1"
+
 if __name__ == '__main__':
     from wsgiref.simple_server import make_server
     
     host = '0.0.0.0'
     port = 6969
+    local_ip = get_local_ip()
     
     application = create_app()
     server = make_server(host, port, application)
-    print(f"Starting installation server at http://{host}:{port}")
+    print(f"Starting installation server at: http://{host}:{port}")
+    print(f"Access the page from network at:  http://{local_ip}:{port}")
     server.serve_forever()

@@ -1,5 +1,5 @@
 # Shareify
-https://hackatime-badge.hackclub.com/U07H3E1CW7J/Shareify
+![Hackatime Badge](https://hackatime-badge.hackclub.com/U07H3E1CW7J/Shareify)
 
 When sharing is storing.
 
