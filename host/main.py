@@ -427,7 +427,7 @@ def finder():
                 log("Unauthorized access attempt in finder", request.remote_addr)
                 return jsonify({"error": "Unauthorized"}), 401
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": "Internal server error"}), 500
     else:
         try:
             if has_access(""):
@@ -444,7 +444,7 @@ def finder():
                 return jsonify({"error": "Unauthorized"}), 401
         except Exception as e:
             log("Finder error: " + str(e), request.remote_addr)
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": "Internal server error"}), 500
 
 current_command_dir = None
 
@@ -531,7 +531,7 @@ def command():
                 
         except Exception as e:
             log("Command execution error: " + str(e), request.remote_addr)
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": "Internal server error"}), 500
     else:
         return jsonify({"error": "No command provided"}), 400
     
@@ -550,7 +550,7 @@ def create_folder():
                     os.mkdir(full_path)
                     return jsonify({"status": "Folder created", "path": path + folder_name})
                 except Exception as e:
-                    return jsonify({"error": str(e)}), 500
+                    return jsonify({"error": "Internal server error"}), 500
             else:
                 log("Unauthorized access attempt in creating folder", request.remote_addr)
                 return jsonify({"error": "Unauthorized"}), 401
@@ -563,7 +563,7 @@ def create_folder():
                     os.mkdir(full_path)
                     return jsonify({"status": "Folder created", "path": folder_name})
                 except Exception as e:
-                    return jsonify({"error": str(e)}), 500
+                    return jsonify({"error": "Internal server error"}), 500
             else:
                 log("Unauthorized access attempt in creating folder", request.remote_addr)
                 return jsonify({"error": "Unauthorized"}), 401
@@ -586,7 +586,7 @@ def delete_folder():
                 else:
                     return jsonify ({"error": "Path does not exist"}), 404
             except Exception as e:
-                    return jsonify({"error": str(e)}), 500
+                    return jsonify({"error": "Internal server error"}), 500
         else:
             log("Unauthorized access attempt in deleting folder", request.remote_addr)
             return jsonify({"error": "Unauthorized"}), 401
@@ -613,7 +613,7 @@ def rename_folder():
                     else:
                         return jsonify({"error": "Path does not exist"}), 404
                 except Exception as e:
-                    return jsonify({"error": str(e)}), 500
+                    return jsonify({"error": "Internal server error"}), 500
             else:
                 log("Unauthorized access attempt in renameing folder", request.remote_addr)
         else:
@@ -629,7 +629,7 @@ def rename_folder():
                     else:
                         return jsonify({"error": "Path does not exist"}), 404
                 except Exception as e:
-                    return jsonify({"error": str(e)}), 500
+                    return jsonify({"error": "Internal server error"}), 500
             else:
                 log("Unauthorized access attempt in renameing folder", request.remote_addr)
                 return jsonify({"error": "Unauthorized"}), 401
@@ -644,7 +644,7 @@ def resource():
         disk = psutil.disk_usage('/').percent
         return jsonify({"cpu": int(cpu), "memory": int(memory), "disk": int(disk)})
     except Exception as e:
-        return jsonify ({"error": str(e)}), 500
+        return jsonify ({"error": "Internal server error"}), 500
 
     
 @app.route('/api/new_file', methods=['POST'])
@@ -665,7 +665,7 @@ def new_file():
                 file.write(file_content)
             return jsonify({"status": "File created", "path": path + file_name})
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": "Internal server error"}), 500
     else:
         return jsonify({"error": "No file name or content provided"}), 400
     
@@ -685,7 +685,7 @@ def delete_file():
                 else:
                     return jsonify({"error": "Path does not exist"}), 404
             except Exception as e:
-                return jsonify({"error": str(e)}), 500
+                return jsonify({"error": "Internal server error"}), 500
         else:
             log("Unauthorized access attempt in deleting file", request.remote_addr)
             return jsonify({"error": "Unauthorized"}), 401
@@ -714,7 +714,7 @@ def rename_file():
                 else:
                     return jsonify({"error": "Path does not exist"}), 404
             except Exception as e:
-                return jsonify({"error":str(e)}), 500
+                return jsonify({"error": "Internal server error"}), 500
         else:
             log("Unauthorized access attempt in reneaming file", request.remote_addr)
             return jsonify({"error": "Unauthorized"}), 401
@@ -753,7 +753,7 @@ def get_file():
                 else:
                     return jsonify({"error": "Path does not exist"}), 404
             except Exception as e:
-                return jsonify({"error": str(e)}), 500
+                return jsonify({"error": "Internal server error"}), 500
         else:
             log("Unauthorized access attempt in getting file", request.remote_addr)
             return jsonify({"error": "Unauthorized"}), 401
@@ -778,7 +778,7 @@ def edit_file():
                     file.close()
                 return jsonify({"status": "File edited", "path": path})
             except Exception as e:
-                return jsonify({"error": str(e)}), 500
+                return jsonify({"error": "Internal server error"}), 500
         else:
             log("Unauthorized acces attempt", request.remote_addr)
             return jsonify({"error": "Unauthorized"}), 401
@@ -810,7 +810,7 @@ def get_settings():
             settings = json.load(file)
             return jsonify(settings)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Internal server error"}), 500
     
 @app.route('/api/update_settings', methods=['POST'])
 def update_settings():
@@ -830,7 +830,7 @@ def update_settings():
             reload_jsons()
             return jsonify({"status": "Settings updated"}), 200
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": "Internal server error"}), 500
     else:
         return jsonify({"error": "No settings provided"}), 400
 
@@ -877,7 +877,7 @@ def create_ftp_user():
             log("FTP user created: " + username, request.remote_addr)
             return jsonify({"status": "FTP user created"}), 200
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": "Internal server error"}), 500
     else:
         return jsonify({"error": "No username, password or permissions provided"}), 400
     
@@ -891,7 +891,7 @@ def delete_ftp_user():
             log("FTP user deleted:" + username, request.remote_addr)
             return jsonify({"status": "FTP user deleted"}), 200
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": "Internal server error"}), 500
 
 @app.route('/api/ftp/get_users', methods=['GET'])
 def get_ftp_users():
@@ -908,7 +908,7 @@ def get_ftp_users():
         log("FTP users retrived", request.remote_addr)
         return jsonify(users), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Internal server error"}), 500
 
 @app.route('/api/ftp/edit_user', methods=['POST'])
 def edit_ftp_user():
@@ -938,7 +938,7 @@ def edit_ftp_user():
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 404
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": "Internal server error"}), 500
     else:
         return jsonify({"error": "No username provided"}), 400
 
@@ -954,7 +954,7 @@ def start_ftp_server_from_api():
         print_status("FTP server started from API", "success")
         return jsonify({"status": "FTP server started"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Internal server error"}), 500
     
 @app.route('/api/ftp/stop', methods=['POST'])
 def stop_ftp_server_from_api():
@@ -967,7 +967,7 @@ def stop_ftp_server_from_api():
             print_status("FTP server stopped from API", "success")
             return jsonify({"status": "FTP server stopped"}), 200
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": "Internal server error"}), 500
     else:
         return jsonify({"error": "FTP server is not running"}), 400
 
@@ -997,7 +997,7 @@ def create_user():
             log("User created: " + username, request.remote_addr)
             return jsonify({"status": "User created", "API_KEY": api_key}), 200
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": "Internal server error"}), 500
     else:
         return jsonify({"error": "No username, password, name or role provided"}), 400
 
@@ -1044,7 +1044,7 @@ def delete_user():
             log("User deleted: " + username, request.remote_addr)
             return jsonify({"status": "User deleted"}), 200
         except Exception as e:
-            return jsonify ({"error": str(e)}), 500
+            return jsonify ({"error": "Internal server error"}), 500
     else:
         return jsonify({"error": "No username provided"}), 400
     
@@ -1077,7 +1077,7 @@ def edit_user():
             conn.close()
             return jsonify({"status": "User edited"}), 200
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": "Internal server error"}), 500
     else:
         return jsonify({"error": "No username, name, role or id provided"}), 400
 
@@ -1108,7 +1108,7 @@ def login():
                 log("Invalid login attempt: " + username, request.remote_addr)
                 return jsonify({"error": "Invalid username or password"}), 401
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": "Internal server error"}), 500
     else:
         return jsonify({"error": "No username or password provided"}), 400
 
@@ -1155,7 +1155,7 @@ def get_all_users():
             })
         return jsonify(user_list), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Internal server error"}), 500
 
 @app.route('/api/user/edit_self', methods=['POST'])
 def self_edit_user():
@@ -1201,7 +1201,7 @@ def self_edit_user():
                 log("User self-edited: " + data[1], request.remote_addr)
                 return jsonify({"status": "User updated"}), 200
             except Exception as e:
-                return jsonify({"error": str(e)}), 500
+                return jsonify({"error": "Internal server error"}), 500
             finally:
                 conn.close()
         else:
@@ -1217,7 +1217,7 @@ def get_roles():
             roles = json.load(file)
             return jsonify(roles)
     except Exception as e:
-        return jsonify ({"error": str(e)}), 500
+        return jsonify ({"error": "Internal server error"}), 500
 
 @app.route('/api/role/edit', methods=['POST'])
 def edit_roles():
@@ -1231,7 +1231,7 @@ def edit_roles():
             reload_jsons()
             return jsonify ({"status": "Roles update"}), 200
         except Exception as e:
-            return jsonify ({"error": str(e)}), 500
+            return jsonify ({"error": "Internal server error"}), 500
     else:
         return jsonify ({"error": "No roles provided"}), 400
 
@@ -1247,7 +1247,7 @@ def get_self_role():
                     permissions[endpoint] = role in roles[endpoint]
                 return jsonify(permissions)
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": "Internal server error"}), 500
     else:
         return jsonify({"error": "Role not found"}), 404
 
@@ -1296,7 +1296,7 @@ def upload_file():
         log(f"File uploaded", request.remote_addr)
         return jsonify({"status": "File uploaded"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Internal server error"}), 500
     
 @app.route('/api/download', methods=['GET'])
 def download_file():
@@ -1338,7 +1338,7 @@ def download_file():
                 
             except Exception as e:
                 shutil.rmtree(temp_dir, ignore_errors=True)
-                return jsonify({"error": f"Failed to create zip: {str(e)}"}), 500
+                return jsonify({"error": "Internal server error"}), 500
     
     return jsonify({"error": "File or folder does not exist"}), 404
 
