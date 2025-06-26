@@ -142,7 +142,6 @@ def initialize_users_db():
             action TEXT NOT NULL,
             ip TEXT NOT NULL
         )
-        )
     ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -269,10 +268,20 @@ def complete_installation():
         else:
             return jsonify({'success': False, 'error': 'Launcher not found'}), 500
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+def create_app():
+    initialize_logs_db()
+    initialize_users_db()
+    return app
 
 if __name__ == '__main__':
+    from wsgiref.simple_server import make_server
+    
     host = '0.0.0.0'
     port = 6969
+    
+    application = create_app()
+    server = make_server(host, port, application)
     print(f"Starting installation server at http://{host}:{port}")
-    app.run(host=host, port=port, debug=True)
+    server.serve_forever()
