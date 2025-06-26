@@ -2,7 +2,8 @@
 
 @font-face {
     font-family: 'Kantumruy';
-    src: url('assets/Kantumruy/Kantumruy-Bold.ttf') format('truetype');
+    src: url('assets/Kantumruy/Kantumruy-Bold.ttf') format('truetype'),
+         url('assets/Kantumruy/Kantumruy-Bold.woff') format('woff');
     font-weight: normal;
     font-style: normal;
 }
@@ -38,6 +39,11 @@ html {
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
     image-rendering: pixelated;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 * {

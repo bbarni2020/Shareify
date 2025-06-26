@@ -936,7 +936,7 @@ def edit_ftp_user():
             log("FTP user edited: " + username, request.remote_addr)
             return jsonify({"status": "FTP user edited"}), 200
         except ValueError as ve:
-            return jsonify({"error": str(ve)}), 404
+            return jsonify({"error": "Internal server error"}), 404
         except Exception as e:
             return jsonify({"error": "Internal server error"}), 500
     else:

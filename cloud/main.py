@@ -357,7 +357,7 @@ def handle_user_registration(data):
 
     users_db[user_id] = {
         'username': username,
-        'password': hashlib.sha256(password.encode()).hexdigest(),
+        'password': hash_password(password),
         'auth_token': auth_token,
         'created_at': datetime.now().isoformat(),
         'last_activity': datetime.now().isoformat(),
@@ -426,11 +426,9 @@ def handle_user_authentication(data):
             return
     
     if username and password:
-        password_hash = hashlib.sha256(password.encode()).hexdigest()
-        
         for stored_user_id, user_info in users_db.items():
             if (user_info['username'] == username and 
-                user_info['password'] == password_hash):
+                verify_password(password, user_info['password'])):
 
                 new_auth_token = generate_auth_token(stored_user_id)
                 users_db[stored_user_id]['auth_token'] = new_auth_token
@@ -835,9 +833,19 @@ def periodic_jwt_cleanup():
         time.sleep(3600)
         cleanup_expired_jwts()
 
-if __name__ == '__main__':
+def create_app():
     init_sqlite_db()
     cleanup_expired_jwts()
-    print('Starting Socket.IO server...')
     threading.Thread(target=periodic_jwt_cleanup, daemon=True).start()
-    socketio.run(app, host='0.0.0.0', port=5698, debug=True)
+    return app
+
+if __name__ == '__main__':
+    from wsgiref.simple_server import make_server
+    
+    host = '0.0.0.0'
+    port = 5698
+    
+    application = create_app()
+    server = make_server(host, port, application)
+    print(f'Starting Shareify bridge server on: port {port} (http://{host}:{port})')
+    server.serve_forever()

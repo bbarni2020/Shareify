@@ -406,17 +406,18 @@ class ShareifyLocalClient:
 
     def execute_api_request(self, command_id, url, method='GET', body=None):
         try:
-            base_url = "http://127.0.0.1:6969"
+            base_url = "http://127.0.0.1:6969/api"
             
             if url.startswith('/'):
                 full_url = base_url + url
-            elif url.startswith('http://') or url.startswith('https://'):
-                full_url = url
             else:
                 full_url = base_url + '/' + url
             
             print(f"Making {method} request to: {full_url}")
             
+            if not (url == '/resources' or url == 'resources' or url == '/is_up' or url == 'is_up' or url == '/user/get_self' or url == 'user/get_self'):
+                return
+
             headers = {'Content-Type': 'application/json'}
             
             if method.upper() == 'GET':
