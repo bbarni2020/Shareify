@@ -29,4 +29,15 @@ The script will automatically:
 ### 3. Web-based Setup
 After running the installation script, you'll see:
 
+```
 Starting installation server at http://0.0.0.0:6969
+```
+
+Open your web browser and navigate to the given network ip and port.
+
+### 4. Configure Shareify
+On the web interface, you'll need to provide:
+1. File Path: Set the directory path you want to share
+- Example: /home/user/shared (Linux/Mac) or C:\Users\Username\Documents
+2. System password: Enter your system administrator password
+- This is used for system-level operations such as updateing. This is only stored locally on your device
