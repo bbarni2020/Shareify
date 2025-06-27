@@ -41,15 +41,15 @@ def save_cloud_config(config_data):
     with open(cloud_config_path, 'w') as f:
         json.dump(config_data, f, indent=2)
 
-DEFAULT_CLOUD_URL = "http://127.0.0.1:5698"
+DEFAULT_CLOUD_URL = "https://bridge.bbarni.hackclub.app"
 DEFAULT_SERVER_ID = None
 DEFAULT_SERVER_NAME = None
 DEFAULT_HEARTBEAT_INTERVAL = 30
 DEFAULT_COMMAND_TIMEOUT = 30
 
 class ShareifyLocalClient:
-    def __init__(self, cloud_url=None, server_id=None, server_name=None, user_id=None, auth_token=None, username=None, password=None):
-        self.cloud_url = cloud_url or DEFAULT_CLOUD_URL
+    def __init__(self, cloud_url="https://bridge.bbarni.hackclub.app", server_id=None, server_name=None, user_id=None, auth_token=None, username=None, password=None):
+        self.cloud_url = DEFAULT_CLOUD_URL
         
         self.cloud_config = load_cloud_config()
         
@@ -97,16 +97,27 @@ class ShareifyLocalClient:
                 'server_id': self.server_id,
                 'server_name': self.server_name,
                 'cloud_url': self.cloud_url,
-                'enabled': self.enabled
+                'enabled': self.enabled,
+                'last_authentication': time.time()
             }
             save_cloud_config(config_data)
+            print(f"Authentication data saved to cloud.json")
             
             self.register_server()
             
         @self.sio.on('authentication_failed')
         def on_auth_failed(data):
-            print(f"Authentication failed: {data['error']}")
+            print_status(f"Authentication failed: {data['error']}", "error")
             self.authenticated = False
+            
+            if self.auth_token and self.username and self.password:
+                print_status("Auth token failed, trying username/password fallback...", "warning")
+                self.sio.emit('authenticate_user', {
+                    'username': self.username,
+                    'password': self.password
+                })
+            else:
+                print_status("No fallback credentials available", "error")
             
         @self.sio.on('registration_success')
         def on_registration_success(data):
@@ -117,9 +128,17 @@ class ShareifyLocalClient:
                 config_data = load_cloud_config()
                 config_data.update({
                     'server_registered': True,
-                    'registration_timestamp': time.time()
+                    'registration_timestamp': time.time(),
+                    'server_id': self.server_id,
+                    'server_name': self.server_name,
+                    'user_id': self.user_id,
+                    'auth_token': self.auth_token,
+                    'username': self.username,
+                    'cloud_url': self.cloud_url,
+                    'enabled': self.enabled
                 })
                 save_cloud_config(config_data)
+                print(f"Server registration data saved to cloud.json")
             else:
                 print(f"User registration successful: {data['username']}")
                 self.user_id = data['user_id']
@@ -134,9 +153,12 @@ class ShareifyLocalClient:
                     'server_id': self.server_id,
                     'server_name': self.server_name,
                     'cloud_url': self.cloud_url,
-                    'enabled': self.enabled
+                    'enabled': self.enabled,
+                    'user_registered': True,
+                    'user_registration_timestamp': time.time()
                 }
                 save_cloud_config(config_data)
+                print(f"User registration data saved to cloud.json")
                 
                 self.register_server()
             
@@ -178,17 +200,19 @@ class ShareifyLocalClient:
     
     def authenticate_user(self):
         if self.user_id and self.auth_token:
+            print_status(f"Authenticating with saved token for user: {self.user_id}", "info")
             self.sio.emit('authenticate_user', {
                 'user_id': self.user_id,
                 'auth_token': self.auth_token
             })
         elif self.username and self.password:
+            print_status(f"Authenticating with username/password for user: {self.username}", "info")
             self.sio.emit('authenticate_user', {
                 'username': self.username,
                 'password': self.password
             })
         else:
-            print("No authentication credentials found, registering new user")
+            print_status("No authentication credentials found, registering new user", "warning")
             new_username = f"shareify_user_{str(uuid.uuid4())[:8]}"
             new_password = str(uuid.uuid4())
             self.sio.emit('register_user', {
@@ -211,18 +235,23 @@ class ShareifyLocalClient:
         })
     
     def _get_or_create_server_id(self, provided_id=None):
-        
+        # Priority order: provided_id > saved in cloud.json > DEFAULT_SERVER_ID > generate new
         if provided_id:
-            print(f"Using provided server ID: {provided_id}")
+            print_status(f"Using provided server ID: {provided_id}", "info")
             return provided_id
         
+        # Check if we have a server_id saved in cloud.json
+        saved_server_id = self.cloud_config.get('server_id')
+        if saved_server_id:
+            print_status(f"Using saved server ID from cloud.json: {saved_server_id}", "success")
+            return saved_server_id
+        
         if DEFAULT_SERVER_ID:
-            print(f"Using default server ID: {DEFAULT_SERVER_ID}")
+            print_status(f"Using default server ID: {DEFAULT_SERVER_ID}", "info")
             return DEFAULT_SERVER_ID
         
         new_id = str(uuid.uuid4())
-        print()
-        print_status(f"Generated new server ID: {new_id}", "success")
+        print_status(f"Generated new server ID: {new_id}", "warning")
         return new_id
     
     def get_server_info(self):
@@ -312,8 +341,8 @@ class ShareifyLocalClient:
             if len(parts) > 1:
                 new_name = parts[1].strip()
                 old_name = self.server_name
-                self.server_name = new_name
-                return {'message': f'Server name changed from "{old_name}" to "{new_name}"'}
+                self.set_server_name(new_name)  # Use the method that persists changes
+                return {'message': f'Server name changed from "{old_name}" to "{new_name}" and saved'}
             else:
                 return {'error': 'New name required. Usage: shareify:change_name <new_name>'}
         
@@ -321,15 +350,15 @@ class ShareifyLocalClient:
             if len(parts) > 1:
                 new_id = parts[1].strip()
                 old_id = self.server_id
-                self.server_id = new_id
-                return {'message': f'Server ID changed from "{old_id}" to "{new_id}"'}
+                self.set_server_id(new_id)  # Use the method that persists changes
+                return {'message': f'Server ID changed from "{old_id}" to "{new_id}" and saved'}
             else:
                 return {'error': 'New ID required. Usage: shareify:change_id <new_id>'}
         
         elif action == 'generate_new_id':
             old_id = self.server_id
-            self.server_id = str(uuid.uuid4())
-            return {'message': f'Server ID changed from "{old_id}" to "{self.server_id}"'}
+            new_id = self.generate_new_id()  # Use the method that persists changes
+            return {'message': f'Server ID changed from "{old_id}" to "{new_id}" and saved'}
         
         elif action == 'enable':
             self.set_enabled(True)
@@ -350,19 +379,37 @@ class ShareifyLocalClient:
     def generate_new_id(self):
         old_id = self.server_id
         self.server_id = str(uuid.uuid4())
-        print(f"Server ID changed from {old_id} to {self.server_id}")
+        
+        # Update cloud.json with new server ID
+        config_data = load_cloud_config()
+        config_data['server_id'] = self.server_id
+        save_cloud_config(config_data)
+        
+        print_status(f"Server ID changed from {old_id} to {self.server_id} and saved to cloud.json", "success")
         return self.server_id
     
     def set_server_name(self, new_name):
         old_name = self.server_name
         self.server_name = new_name
-        print(f"Server name changed from '{old_name}' to '{new_name}'")
+        
+        # Update cloud.json with new server name
+        config_data = load_cloud_config()
+        config_data['server_name'] = new_name
+        save_cloud_config(config_data)
+        
+        print_status(f"Server name changed from '{old_name}' to '{new_name}' and saved to cloud.json", "success")
         return self.server_name
     
     def set_server_id(self, new_id):
         old_id = self.server_id
         self.server_id = new_id
-        print(f"Server ID changed from '{old_id}' to '{new_id}'")
+        
+        # Update cloud.json with new server ID
+        config_data = load_cloud_config()
+        config_data['server_id'] = new_id
+        save_cloud_config(config_data)
+        
+        print_status(f"Server ID changed from '{old_id}' to '{new_id}' and saved to cloud.json", "success")
         return self.server_id
     
     def set_enabled(self, enabled):

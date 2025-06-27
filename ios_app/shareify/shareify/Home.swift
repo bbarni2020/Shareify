@@ -16,7 +16,7 @@ struct Home: View {
     
     var body: some View {
         GeometryReader { geometry in
-            VStack(spacing: 0) {
+            VStack(spacing: 0) {  
                 HStack(alignment: .center, spacing: 10) {
                     Rectangle()
                         .foregroundColor(.clear)
@@ -48,7 +48,7 @@ struct Home: View {
                 .padding(.top, 5)
                 
                 Spacer(minLength: 35)
-                
+
                 Rectangle()
                   .foregroundColor(.clear)
                   .frame(maxWidth: .infinity, maxHeight: .infinity)
