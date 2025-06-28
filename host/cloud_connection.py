@@ -67,6 +67,9 @@ class ShareifyLocalClient:
         self.connected = False
         self.heartbeat_interval = DEFAULT_HEARTBEAT_INTERVAL
         self.command_timeout = DEFAULT_COMMAND_TIMEOUT
+        self.last_successful_ping = time.time()
+        self.reconnect_attempts = 0
+        self.max_reconnect_attempts = 5
         
         self.setup_handlers()
         
@@ -196,7 +199,9 @@ class ShareifyLocalClient:
             
         @self.sio.on('pong')
         def on_pong(data):
-            print(f"Ping response: {data['timestamp']}")
+            self.last_successful_ping = time.time()
+            self.reconnect_attempts = 0
+            print(f"Ping response: {data.get('timestamp', 'no timestamp')}")
     
     def authenticate_user(self):
         if self.user_id and self.auth_token:
@@ -235,12 +240,10 @@ class ShareifyLocalClient:
         })
     
     def _get_or_create_server_id(self, provided_id=None):
-        # Priority order: provided_id > saved in cloud.json > DEFAULT_SERVER_ID > generate new
         if provided_id:
             print_status(f"Using provided server ID: {provided_id}", "info")
             return provided_id
         
-        # Check if we have a server_id saved in cloud.json
         saved_server_id = self.cloud_config.get('server_id')
         if saved_server_id:
             print_status(f"Using saved server ID from cloud.json: {saved_server_id}", "success")
@@ -341,7 +344,7 @@ class ShareifyLocalClient:
             if len(parts) > 1:
                 new_name = parts[1].strip()
                 old_name = self.server_name
-                self.set_server_name(new_name)  # Use the method that persists changes
+                self.set_server_name(new_name)
                 return {'message': f'Server name changed from "{old_name}" to "{new_name}" and saved'}
             else:
                 return {'error': 'New name required. Usage: shareify:change_name <new_name>'}
@@ -350,14 +353,14 @@ class ShareifyLocalClient:
             if len(parts) > 1:
                 new_id = parts[1].strip()
                 old_id = self.server_id
-                self.set_server_id(new_id)  # Use the method that persists changes
+                self.set_server_id(new_id)
                 return {'message': f'Server ID changed from "{old_id}" to "{new_id}" and saved'}
             else:
                 return {'error': 'New ID required. Usage: shareify:change_id <new_id>'}
         
         elif action == 'generate_new_id':
             old_id = self.server_id
-            new_id = self.generate_new_id()  # Use the method that persists changes
+            new_id = self.generate_new_id()
             return {'message': f'Server ID changed from "{old_id}" to "{new_id}" and saved'}
         
         elif action == 'enable':
@@ -380,7 +383,6 @@ class ShareifyLocalClient:
         old_id = self.server_id
         self.server_id = str(uuid.uuid4())
         
-        # Update cloud.json with new server ID
         config_data = load_cloud_config()
         config_data['server_id'] = self.server_id
         save_cloud_config(config_data)
@@ -391,8 +393,7 @@ class ShareifyLocalClient:
     def set_server_name(self, new_name):
         old_name = self.server_name
         self.server_name = new_name
-        
-        # Update cloud.json with new server name
+
         config_data = load_cloud_config()
         config_data['server_name'] = new_name
         save_cloud_config(config_data)
@@ -403,8 +404,7 @@ class ShareifyLocalClient:
     def set_server_id(self, new_id):
         old_id = self.server_id
         self.server_id = new_id
-        
-        # Update cloud.json with new server ID
+
         config_data = load_cloud_config()
         config_data['server_id'] = new_id
         save_cloud_config(config_data)
@@ -425,33 +425,63 @@ class ShareifyLocalClient:
     
     def start_heartbeat(self):
         def heartbeat():
-            while self.connected:
+            while self.connected and self.enabled:
                 try:
                     if self.authenticated:
                         self.sio.emit('ping', {
                             'server_id': self.server_id,
-                            'user_id': self.user_id
+                            'user_id': self.user_id,
+                            'timestamp': time.time()
                         })
+
+                        if time.time() - self.last_successful_ping > (self.heartbeat_interval * 3):
+                            print_status("No pong received for too long, connection might be dead", "warning")
+                            if self.reconnect_attempts < self.max_reconnect_attempts:
+                                self.reconnect_attempts += 1
+                                print_status(f"Attempting reconnection ({self.reconnect_attempts}/{self.max_reconnect_attempts})", "info")
+                                self.disconnect()
+                                time.sleep(5)
+                                if self.connect():
+                                    print_status("Reconnection successful", "success")
+                                    continue
+                            else:
+                                print_status("Max reconnection attempts reached", "error")
+                                break
+                    
                     time.sleep(self.heartbeat_interval)
                 except Exception as e:
-                    print(f"Heartbeat error: {e}")
+                    print_status(f"Heartbeat error: {e}", "error")
                     time.sleep(5)
+                    if not self.connected:
+                        break
         
-        threading.Thread(target=heartbeat, daemon=True).start()
+        heartbeat_thread = threading.Thread(target=heartbeat, daemon=True)
+        heartbeat_thread.start()
     
     def connect(self):
         if not self.enabled:
             print("Cloud connection is disabled. Use 'shareify:enable' to enable it.")
             return False
+
+        try:
+            if self.connected:
+                self.sio.disconnect()
+                time.sleep(2)
+        except:
+            pass
             
         max_retries = 3
-        retry_delay = 10
+        retry_delay = 5
         
         for attempt in range(max_retries):
             try:
                 print_status(f"Connecting to cloud bridge at {self.cloud_url} (attempt {attempt + 1}/{max_retries})")
-                print()
-                self.sio.connect(self.cloud_url)
+
+                self.sio.connect(
+                    self.cloud_url, 
+                    wait_timeout=10,
+                    headers={'User-Agent': f'Shareify-Client/{self.server_id}'}
+                )
                 self.start_heartbeat()
                 return True
             except Exception as e:
@@ -459,13 +489,21 @@ class ShareifyLocalClient:
                 if attempt < max_retries - 1:
                     print_status(f"Retrying in {retry_delay} seconds...", "warning")
                     time.sleep(retry_delay)
+                    retry_delay += 2
                 else:
                     print_status(f"All connection attempts failed", "error")
                     return False
     
     def disconnect(self):
-        if self.connected:
-            self.sio.disconnect()
+        print_status("Disconnecting from cloud bridge...", "info")
+        self.connected = False
+        self.authenticated = False
+        if self.sio.connected:
+            try:
+                self.sio.disconnect()
+                time.sleep(1)
+            except Exception as e:
+                print_status(f"Error during disconnect: {e}", "warning")
     
     def wait(self):
         try:

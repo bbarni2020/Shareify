@@ -3,3 +3,5 @@ flask-socketio
 python-socketio
 bcrypt
 PyJWT
+eventlet
+gunicorn[eventlet]
