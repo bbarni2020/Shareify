@@ -779,7 +779,6 @@ def login():
             'user_id': user['id'],
             'username': user['username'],
             'email': email,
-            'auth_token': user['auth_token'],
             'jwt_token': jwt_token,
             'settings': user.get('settings', {}),
             'message': 'Login successful'

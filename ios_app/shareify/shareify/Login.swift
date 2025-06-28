@@ -14,8 +14,28 @@ struct Login: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var navigateToHome = false
+    @State private var showAppLoad = true
+    @State private var loginCardOpacity: Double = 0
+    @State private var loginCardOffset: CGFloat = 50
     
     var body: some View {
+        if showAppLoad {
+            AppLoad()
+                .onAppear {
+                    startAppLoadSequence()
+                }
+        } else if navigateToHome {
+            Home()
+        } else {
+            loginView
+                .onAppear {
+                    startLoginAnimation()
+                }
+        }
+    }
+    
+    private var loginView: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {     
                 Spacer(minLength: 35)
@@ -30,6 +50,8 @@ struct Login: View {
                     topTrailingRadius: 40
                   ))
                   .shadow(color: .white.opacity(0.25), radius: 2.5, x: 0, y: 4)
+                  .opacity(loginCardOpacity)
+                  .offset(y: loginCardOffset)
                   .ignoresSafeArea(.all, edges: [.bottom, .leading, .trailing])
                   .overlay(
                     GeometryReader { containerGeometry in
@@ -47,11 +69,11 @@ struct Login: View {
                                 
                                 VStack(spacing: min(containerGeometry.size.height * 0.02, 16)) {
                                     VStack(alignment: .leading, spacing: 8) {
-                                        Text("Username")
+                                        Text("Email")
                                             .font(.system(size: min(containerGeometry.size.width * 0.04, 16), weight: .medium))
                                             .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
                                         
-                                        TextField("Enter your username", text: $username)
+                                        TextField("Enter your email", text: $username)
                                             .textFieldStyle(CustomTextFieldStyle())
                                             .frame(height: 50)
                                     }
@@ -143,23 +165,105 @@ struct Login: View {
         )
     }
     
+    private func startLoginAnimation() {
+        withAnimation(.easeOut(duration: 0.8)) {
+            loginCardOpacity = 1.0
+            loginCardOffset = 0
+        }
+    }
+    
+    private func startAppLoadSequence() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+            checkExistingToken()
+        }
+    }
+    
+    private func checkExistingToken() {
+        if let jwtToken = UserDefaults.standard.string(forKey: "jwt_token"), !jwtToken.isEmpty {
+            withAnimation(.easeInOut(duration: 0.5)) {
+                showAppLoad = false
+                navigateToHome = true
+            }
+        } else {
+            withAnimation(.easeInOut(duration: 0.5)) {
+                showAppLoad = false
+            }
+        }
+    }
+    
     private func loginAction() {
         withAnimation(.easeInOut(duration: 0.3)) {
             showError = false
             isLoading = true
         }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            withAnimation(.easeInOut(duration: 0.3)) {
-                isLoading = false
+        performLogin()
+    }
+    
+    private func performLogin() {
+        guard let url = URL(string: "https://bridge.bbarni.hackclub.app/login") else {
+            handleLoginError("Invalid server URL")
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let loginData = [
+            "email": username,
+            "password": password
+        ]
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: loginData)
+        } catch {
+            handleLoginError("Failed to encode login data")
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    handleLoginError("Network error: \(error.localizedDescription)")
+                    return
+                }
                 
-                if username.lowercased() == "admin" && password == "password" {
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    handleLoginError("Invalid response")
+                    return
+                }
+                
+                if httpResponse.statusCode == 200 {
+                    if let data = data,
+                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let jwtToken = json["jwt_token"] as? String {
+                        UserDefaults.standard.set(jwtToken, forKey: "jwt_token")
+                        UserDefaults.standard.synchronize()
+                    }
                     
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        isLoading = false
+                        navigateToHome = true
+                    }
                 } else {
-                    showError = true
-                    errorMessage = "Invalid username or password"
+                    if let data = data,
+                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let errorMsg = json["error"] as? String {
+                        handleLoginError(errorMsg)
+                    } else {
+                        handleLoginError("Login failed")
+                    }
                 }
             }
+        }.resume()
+    }
+    
+    private func handleLoginError(_ message: String) {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            isLoading = false
+            showError = true
+            errorMessage = message
         }
     }
 }

@@ -13,6 +13,11 @@ struct Home: View {
     @State private var memoryValue: Double = 0
     @State private var diskValue: Double = 0
     @State private var isLoaded = false
+    @State private var topBarOpacity: Double = 0
+    @State private var topBarOffset: CGFloat = -20
+    @State private var mainCardOpacity: Double = 0
+    @State private var mainCardOffset: CGFloat = 50
+    @State private var navigateToLogin = false
     
     var body: some View {
         GeometryReader { geometry in
@@ -39,11 +44,22 @@ struct Home: View {
                             .frame(maxWidth: .infinity)
                         )
                     Spacer()
-                    Rectangle()
-                      .foregroundColor(.clear)
-                      .frame(width: 50, height: 50)
-                      .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
+                    Button(action: {
+                        logout()
+                    }) {
+                        Rectangle()
+                          .foregroundColor(.clear)
+                          .frame(width: 50, height: 50)
+                          .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
+                          .overlay(
+                            Image(systemName: "power")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(Color.red)
+                          )
+                    }
                 }
+                .opacity(topBarOpacity)
+                .offset(y: topBarOffset)
                 .padding(.horizontal, 20)
                 .padding(.top, 5)
                 
@@ -59,6 +75,8 @@ struct Home: View {
                     topTrailingRadius: 40
                   ))
                   .shadow(color: .white.opacity(0.25), radius: 2.5, x: 0, y: 4)
+                  .opacity(mainCardOpacity)
+                  .offset(y: mainCardOffset)
                   .ignoresSafeArea(.all, edges: [.bottom, .leading, .trailing])
                   .overlay(
                     GeometryReader { containerGeometry in
@@ -107,7 +125,7 @@ struct Home: View {
         }
         .background(
             GeometryReader { geometry in
-                AsyncImage(url: URL(string: "https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/ios_app/background/back13.png")) { image in
+                AsyncImage(url: URL(string: "https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/ios_app/background/back1.png")) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -119,7 +137,34 @@ struct Home: View {
                 }
             }
             .ignoresSafeArea(.all)
+            .onAppear {
+                startHomeAnimation()
+            }
         )
+        .fullScreenCover(isPresented: $navigateToLogin) {
+            Login()
+        }
+    }
+    
+    private func logout() {
+        UserDefaults.standard.removeObject(forKey: "jwt_token")
+        UserDefaults.standard.synchronize()
+        
+        withAnimation(.easeInOut(duration: 0.5)) {
+            navigateToLogin = true
+        }
+    }
+    
+    private func startHomeAnimation() {
+        withAnimation(.easeOut(duration: 0.6)) {
+            topBarOpacity = 1.0
+            topBarOffset = 0
+        }
+        
+        withAnimation(.easeOut(duration: 0.8).delay(0.2)) {
+            mainCardOpacity = 1.0
+            mainCardOffset = 0
+        }
     }
     
     private func startLoadingAnimation() {
