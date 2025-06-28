@@ -180,13 +180,19 @@ class ShareifyLocalClient:
             method = data.get('method', 'GET')
             body = data.get('body', {})
             timestamp = data.get('timestamp')
+            shareify_jwt = data.get('shareify_jwt')
             print(f"Received command {command_id}: {command} (method: {method})")
 
             try:
                 if command.startswith('http://') or command.startswith('https://') or command.startswith('/'):
-                    self.execute_api_request(command_id, command, method, body)
+                    self.execute_api_request(command_id, command, method, body, shareify_jwt)
                 else:
-                    self.execute_command(command_id, command)
+                    self.sio.emit('command_response', {
+                    'command_id': command_id,
+                    'success': False,
+                    'error': 'Not a valid API request',
+                    'timestamp': time.time()
+                }) 
             except Exception as e:
                 print(f"Failed to handle command: {e}")
                 self.sio.emit('command_response', {
@@ -268,7 +274,7 @@ class ShareifyLocalClient:
             'command_timeout': self.command_timeout
         }
     
-    def execute_command(self, command_id, command):
+    def execute_command(self, command_id, command, shareify_jwt=None):
         try:
             print(f"Executing: {command}")
             
@@ -512,7 +518,7 @@ class ShareifyLocalClient:
             print("\nShutting down...")
             self.disconnect()
 
-    def execute_api_request(self, command_id, url, method='GET', body=None):
+    def execute_api_request(self, command_id, url, method='GET', body=None, shareify_jwt=None):
         try:
             base_url = "http://127.0.0.1:6969/api"
             
@@ -527,6 +533,9 @@ class ShareifyLocalClient:
                 return
 
             headers = {'Content-Type': 'application/json'}
+            
+            if shareify_jwt:
+                headers['Authorization'] = f'Bearer {shareify_jwt}'
             
             if method.upper() == 'GET':
                 response = requests.get(full_url, headers=headers, timeout=self.command_timeout)

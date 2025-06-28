@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shareify Cloud Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 10px 15px;
+            border-radius: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .servers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .server-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .server-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            border-color: #667eea;
+        }
+
+        .server-card.loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .server-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .server-info h3 {
+            color: #333;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .server-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .server-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-small:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .database-section {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .database-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+        }
+
+        .database-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .database-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+            border-color: #667eea;
+        }
+
+        .database-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .database-info h3 {
+            color: #333;
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .database-info p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .database-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .feature-tag {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            color: #333;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .database-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Shareify Cloud Dashboard</h1>
+            <div class="header-actions">
+                <div class="user-info">
+                    <div class="user-avatar">A</div>
+                    <span>Admin User</span>
+                </div>
+                <button onclick="logout()" class="btn btn-danger">Logout</button>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="serverCount">-</div>
+                <div class="stat-label">Connected Servers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="userCount">-</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="activeConnections">-</div>
+                <div class="stat-label">Active Connections</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🖥️ Connected Servers</h2>
+            <div class="servers-grid" id="serversGrid">
+                <div class="server-card loading">
+                    <div class="server-info">
+                        <div class="loading-spinner"></div>
+                        <h3>Loading servers...</h3>
+                        <p>Please wait while we fetch your connected servers</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="database-section">
+            <h2 class="section-title">🗄️ Database Management</h2>
+            <div class="database-grid">
+                <div class="database-card">
+                    <div class="database-icon">🗄️</div>
+                    <div class="database-info">
+                        <h3>SQLite Database</h3>
+                        <p>Manage your SQLite database with advanced table operations, query execution, and data editing</p>
+                        <div class="database-features">
+                            <span class="feature-tag">✏️ Edit Rows</span>
+                            <span class="feature-tag">➕ Add Data</span>
+                            <span class="feature-tag">🗑️ Delete</span>
+                            <span class="feature-tag">🔍 Query</span>
+                        </div>
+                    </div>
+                    <div class="database-actions">
+                        <a href="/dashboard/database/sqlite" class="btn btn-primary">Manage SQLite</a>
+                    </div>
+                </div>
+                
+                <div class="database-card">
+                    <div class="database-icon">📄</div>
+                    <div class="database-info">
+                        <h3>JSON Database</h3>
+                        <p>Manage user data stored in JSON format with user-friendly editing and validation</p>
+                        <div class="database-features">
+                            <span class="feature-tag">👤 User Management</span>
+                            <span class="feature-tag">✏️ Raw Editor</span>
+                            <span class="feature-tag">✅ Validation</span>
+                            <span class="feature-tag">💾 Backup</span>
+                        </div>
+                    </div>
+                    <div class="database-actions">
+                        <a href="/dashboard/database/json" class="btn btn-secondary">Manage JSON</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            alertContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        async function loadServers() {
+            try {
+                const response = await fetch('/dashboard/servers');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayServers(data.servers);
+                    updateStats(data.servers);
+                } else {
+                    showAlert('Error loading servers: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Error loading servers: ' + error.message, 'error');
+                displayServers([]);
+            }
+        }
+
+        function displayServers(servers) {
+            const container = document.getElementById('serversGrid');
+            
+            if (servers.length === 0) {
+                container.innerHTML = `
+                    <div class="server-card">
+                        <div class="server-info" style="text-align: center; padding: 20px;">
+                            <h3>No servers connected</h3>
+                            <p>Connect your first Shareify server to get started</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            servers.forEach(server => {
+                html += `
+                    <div class="server-card">
+                        <div class="server-header">
+                            <div class="server-info">
+                                <h3>🖥️ ${server.name || 'Server'}</h3>
+                                <div class="server-status">
+                                    <div class="status-indicator"></div>
+                                    Connected
+                                </div>
+                            </div>
+                        </div>
+                        <div class="server-actions">
+                            <button onclick="disconnectServer('${server.id}')" class="btn-small btn-danger">
+                                🔌 Disconnect
+                            </button>
+                            <button onclick="viewServerLogs('${server.id}')" class="btn-small btn-secondary">
+                                📋 Logs
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function updateStats(servers) {
+            document.getElementById('serverCount').textContent = servers.length;
+            document.getElementById('activeConnections').textContent = servers.length;
+        }
+
+        async function disconnectServer(serverId) {
+            if (!confirm('Are you sure you want to disconnect this server?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/dashboard/servers/${serverId}/disconnect`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Server disconnected successfully');
+                    loadServers();
+                } else {
+                    showAlert('Error disconnecting server: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Error disconnecting server: ' + error.message, 'error');
+            }
+        }
+
+        function viewServerLogs(serverId) {
+            showAlert('Server logs feature coming soon!');
+        }
+
+        async function loadUserCount() {
+            try {
+                const response = await fetch('/dashboard/database/json/data');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const userCount = Object.keys(data.data).length;
+                    document.getElementById('userCount').textContent = userCount;
+                }
+            } catch (error) {
+                console.error('Error loading user count:', error);
+            }
+        }
+
+        async function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                try {
+                    const response = await fetch('/dashboard/logout', {
+                        method: 'POST'
+                    });
+                    
+                    if (response.ok) {
+                        window.location.href = '/dashboard/login';
+                    } else {
+                        showAlert('Error logging out', 'error');
+                    }
+                } catch (error) {
+                    showAlert('Error logging out: ' + error.message, 'error');
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadServers();
+            loadUserCount();
+        });
+
+        setInterval(loadServers, 30000);
+    </script>
+</body>
+</html>

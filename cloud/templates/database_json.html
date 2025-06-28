@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Database Management - Shareify</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+        }
+
+        .users-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .users-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .users-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .user-card {
+            border: 2px solid #f0f0f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .user-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+        }
+
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .user-id {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #333;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-edit {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-save {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-small:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .user-data {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .data-field {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .field-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .field-value {
+            color: #333;
+            word-break: break-word;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .textarea-field {
+            width: 100%;
+            height: 100px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .raw-editor {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .raw-textarea {
+            width: 100%;
+            height: 400px;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+
+        .raw-textarea:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>JSON Database Management</h1>
+            <div class="nav-buttons">
+                <a href="/dashboard" class="btn">← Back to Dashboard</a>
+                <a href="/dashboard/database/sqlite" class="btn btn-secondary">SQLite Database</a>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="raw-editor">
+            <div class="users-header">
+                <h3 class="users-title">Raw JSON Editor</h3>
+                <div>
+                    <button onclick="loadRawData()" class="btn btn-secondary">Load Raw Data</button>
+                    <button onclick="saveRawData()" class="btn btn-success">Save Changes</button>
+                    <button onclick="resetRawData()" class="btn btn-danger">Reset</button>
+                </div>
+            </div>
+            <textarea id="rawDataTextarea" class="raw-textarea" placeholder="Raw JSON data will appear here..."></textarea>
+            <div id="jsonValidation" style="color: #dc3545; font-weight: 500;"></div>
+        </div>
+
+        <div class="users-container">
+            <div class="users-header">
+                <h3 class="users-title">Users Management</h3>
+                <div>
+                    <button onclick="loadUsers()" class="btn btn-secondary">Refresh Users</button>
+                    <button onclick="openAddUserModal()" class="btn btn-success">➕ Add User</button>
+                </div>
+            </div>
+            <div id="usersContainer">
+                <div class="empty-state">
+                    <h3>No users loaded</h3>
+                    <p>Click "Refresh Users" to load user data</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add New User</h3>
+                <span class="close" onclick="closeUserModal()">&times;</span>
+            </div>
+            <form id="userForm">
+                <div class="form-group">
+                    <label for="userId">User ID:</label>
+                    <input type="text" id="userId" name="userId" class="input-field" required>
+                </div>
+                <div class="form-group">
+                    <label for="userDataJson">User Data (JSON):</label>
+                    <textarea id="userDataJson" name="userDataJson" class="textarea-field" 
+                              placeholder='{"username": "example", "email": "user@example.com", "role": "user"}'></textarea>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" onclick="closeUserModal()" class="btn btn-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="submitButton">Add User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let users = {};
+        let currentEditingUser = null;
+        let originalRawData = '';
+
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            alertContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/dashboard/database/json/data');
+                const data = await response.json();
+                
+                if (data.success) {
+                    users = data.data;
+                    displayUsers();
+                    showAlert('Users loaded successfully');
+                } else {
+                    showAlert('Error loading users: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Error loading users: ' + error.message, 'error');
+            }
+        }
+
+        function displayUsers() {
+            const container = document.getElementById('usersContainer');
+            
+            if (Object.keys(users).length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No users found</h3>
+                        <p>Click "Add User" to create your first user</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            Object.entries(users).forEach(([userId, userData]) => {
+                html += `
+                    <div class="user-card" id="user-${userId}">
+                        <div class="user-header">
+                            <div class="user-id">👤 ${userId}</div>
+                            <div class="user-actions">
+                                <button class="btn-small btn-edit" onclick="editUser('${userId}')">✏️ Edit</button>
+                                <button class="btn-small btn-delete" onclick="deleteUser('${userId}')">🗑️ Delete</button>
+                            </div>
+                        </div>
+                        <div class="user-data" id="data-${userId}">
+                            ${generateUserDataFields(userData)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function generateUserDataFields(userData) {
+            let html = '';
+            Object.entries(userData).forEach(([key, value]) => {
+                let displayValue = value;
+                if (typeof value === 'object') {
+                    displayValue = JSON.stringify(value, null, 2);
+                }
+                
+                html += `
+                    <div class="data-field">
+                        <div class="field-label">${key}</div>
+                        <div class="field-value">${displayValue || '<em>empty</em>'}</div>
+                    </div>
+                `;
+            });
+            return html;
+        }
+
+        function openAddUserModal() {
+            currentEditingUser = null;
+            document.getElementById('modalTitle').textContent = 'Add New User';
+            document.getElementById('submitButton').textContent = 'Add User';
+            document.getElementById('userId').value = '';
+            document.getElementById('userId').disabled = false;
+            document.getElementById('userDataJson').value = JSON.stringify({
+                "username": "",
+                "email": "",
+                "role": "user"
+            }, null, 2);
+            document.getElementById('userModal').style.display = 'block';
+        }
+
+        function editUser(userId) {
+            currentEditingUser = userId;
+            document.getElementById('modalTitle').textContent = 'Edit User';
+            document.getElementById('submitButton').textContent = 'Update User';
+            document.getElementById('userId').value = userId;
+            document.getElementById('userId').disabled = true;
+            document.getElementById('userDataJson').value = JSON.stringify(users[userId], null, 2);
+            document.getElementById('userModal').style.display = 'block';
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').style.display = 'none';
+            document.getElementById('userForm').reset();
+            currentEditingUser = null;
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm(`Are you sure you want to delete user "${userId}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/dashboard/database/json/row', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('User deleted successfully');
+                    delete users[userId];
+                    displayUsers();
+                } else {
+                    showAlert('Error deleting user: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Error deleting user: ' + error.message, 'error');
+            }
+        }
+
+        document.getElementById('userForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('userId').value.trim();
+            const userDataJson = document.getElementById('userDataJson').value.trim();
+            
+            if (!userId) {
+                showAlert('User ID is required', 'error');
+                return;
+            }
+
+            let userData;
+            try {
+                userData = JSON.parse(userDataJson);
+            } catch (error) {
+                showAlert('Invalid JSON format in user data', 'error');
+                return;
+            }
+
+            const method = currentEditingUser ? 'PUT' : 'POST';
+            const endpoint = '/dashboard/database/json/row';
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        user_data: userData
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(currentEditingUser ? 'User updated successfully' : 'User added successfully');
+                    users[userId] = userData;
+                    displayUsers();
+                    closeUserModal();
+                } else {
+                    showAlert(`Error ${currentEditingUser ? 'updating' : 'adding'} user: ` + result.error, 'error');
+                }
+            } catch (error) {
+                showAlert(`Error ${currentEditingUser ? 'updating' : 'adding'} user: ` + error.message, 'error');
+            }
+        });
+
+        async function loadRawData() {
+            try {
+                const response = await fetch('/dashboard/database/json/data');
+                const data = await response.json();
+                
+                if (data.success) {
+                    originalRawData = JSON.stringify(data.data, null, 2);
+                    document.getElementById('rawDataTextarea').value = originalRawData;
+                    showAlert('Raw data loaded successfully');
+                    validateJson();
+                } else {
+                    showAlert('Error loading raw data: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Error loading raw data: ' + error.message, 'error');
+            }
+        }
+
+        function resetRawData() {
+            if (confirm('Are you sure you want to reset all changes? This will discard any unsaved modifications.')) {
+                document.getElementById('rawDataTextarea').value = originalRawData;
+                validateJson();
+                showAlert('Raw data reset to original state');
+            }
+        }
+
+        async function saveRawData() {
+            const rawData = document.getElementById('rawDataTextarea').value.trim();
+            
+            if (!rawData) {
+                showAlert('Raw data cannot be empty', 'error');
+                return;
+            }
+
+            let parsedData;
+            try {
+                parsedData = JSON.parse(rawData);
+            } catch (error) {
+                showAlert('Invalid JSON format. Please fix the syntax errors.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/dashboard/database/json/edit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        data: parsedData
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Raw data saved successfully');
+                    originalRawData = rawData;
+                    users = parsedData;
+                    displayUsers();
+                } else {
+                    showAlert('Error saving raw data: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Error saving raw data: ' + error.message, 'error');
+            }
+        }
+
+        function validateJson() {
+            const rawData = document.getElementById('rawDataTextarea').value.trim();
+            const validationDiv = document.getElementById('jsonValidation');
+            
+            if (!rawData) {
+                validationDiv.textContent = '';
+                return;
+            }
+
+            try {
+                JSON.parse(rawData);
+                validationDiv.textContent = '✅ Valid JSON';
+                validationDiv.style.color = '#28a745';
+            } catch (error) {
+                validationDiv.textContent = '❌ Invalid JSON: ' + error.message;
+                validationDiv.style.color = '#dc3545';
+            }
+        }
+
+        document.getElementById('rawDataTextarea').addEventListener('input', validateJson);
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('userModal');
+            if (event.target === modal) {
+                closeUserModal();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUsers();
+            loadRawData();
+        });
+    </script>
+</body>
+</html>

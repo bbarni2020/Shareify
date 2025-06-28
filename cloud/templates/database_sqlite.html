@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQLite Database Management - Shareify</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .table-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        th {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            font-weight: 600;
+            color: #495057;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .row-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-edit {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-save {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-small:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .query-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .query-input {
+            width: 100%;
+            height: 120px;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+
+        .query-input:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SQLite Database Management</h1>
+            <div class="nav-buttons">
+                <a href="/dashboard" class="btn">← Back to Dashboard</a>
+                <a href="/dashboard/database/json" class="btn btn-secondary">JSON Database</a>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <div class="query-section">
+            <h3 class="table-title">Execute SQL Query</h3>
+            <textarea id="queryInput" class="query-input" placeholder="Enter your SQL query here...
+Examples:
+SELECT * FROM users;
+INSERT INTO users (username, email) VALUES ('john', 'john@example.com');
+UPDATE users SET email = 'newemail@example.com' WHERE id = 1;
+DELETE FROM users WHERE id = 1;"></textarea>
+            <button onclick="executeQuery()" class="btn">Execute Query</button>
+        </div>
+
+        <div class="table-container">
+            <div class="table-header">
+                <h3 class="table-title">Database Tables</h3>
+                <button onclick="loadTables()" class="btn btn-secondary">Refresh Tables</button>
+            </div>
+            <div id="tablesContainer">
+                <p>Click "Refresh Tables" to load database tables</p>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div class="table-header">
+                <h3 class="table-title">Query Results</h3>
+            </div>
+            <div id="resultsContainer">
+                <p>Execute a query to see results here</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Row Modal -->
+    <div id="addRowModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Row</h3>
+                <span class="close" onclick="closeAddRowModal()">&times;</span>
+            </div>
+            <form id="addRowForm">
+                <div id="addRowFields"></div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" onclick="closeAddRowModal()" class="btn btn-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add Row</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentTable = '';
+        let editingRow = null;
+
+        function showAlert(message, type = 'success') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            alertContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        async function executeQuery() {
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query) {
+                showAlert('Please enter a query', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/dashboard/database/sqlite/edit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (result.columns && result.rows) {
+                        displayQueryResults(result.columns, result.rows);
+                        showAlert('Query executed successfully');
+                    } else {
+                        showAlert(result.message || 'Query executed successfully');
+                    }
+                    loadTables();
+                } else {
+                    showAlert(result.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Error executing query: ' + error.message, 'error');
+            }
+        }
+
+        function displayQueryResults(columns, rows) {
+            const container = document.getElementById('resultsContainer');
+            
+            if (rows.length === 0) {
+                container.innerHTML = '<p>No results found</p>';
+                return;
+            }
+
+            let html = '<table><thead><tr>';
+            columns.forEach(col => {
+                html += `<th>${col}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            rows.forEach(row => {
+                html += '<tr>';
+                row.forEach(cell => {
+                    html += `<td>${cell || ''}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        async function loadTables() {
+            try {
+                const response = await fetch('/dashboard/database/sqlite/edit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        query: "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;" 
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success && result.rows) {
+                    displayTables(result.rows);
+                } else {
+                    showAlert('Error loading tables: ' + (result.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showAlert('Error loading tables: ' + error.message, 'error');
+            }
+        }
+
+        function displayTables(tables) {
+            const container = document.getElementById('tablesContainer');
+            
+            if (tables.length === 0) {
+                container.innerHTML = '<p>No tables found in database</p>';
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-wrap: wrap; gap: 10px;">';
+            tables.forEach(table => {
+                const tableName = table[0];
+                html += `
+                    <button onclick="loadTableData('${tableName}')" class="btn btn-secondary">
+                        📊 ${tableName}
+                    </button>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function loadTableData(tableName) {
+            currentTable = tableName;
+            try {
+                const response = await fetch('/dashboard/database/sqlite/edit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        query: `SELECT * FROM ${tableName} LIMIT 100;` 
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayTableData(tableName, result.columns, result.rows);
+                    showAlert(`Loaded data from table: ${tableName}`);
+                } else {
+                    showAlert('Error loading table data: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Error loading table data: ' + error.message, 'error');
+            }
+        }
+
+        function displayTableData(tableName, columns, rows) {
+            const container = document.getElementById('resultsContainer');
+            
+            let html = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h4>Table: ${tableName}</h4>
+                    <button onclick="openAddRowModal('${tableName}', ${JSON.stringify(columns).replace(/"/g, '&quot;')})" class="btn btn-success">
+                        ➕ Add Row
+                    </button>
+                </div>
+            `;
+
+            if (rows.length === 0) {
+                html += '<p>No data in this table</p>';
+                container.innerHTML = html;
+                return;
+            }
+
+            html += '<table><thead><tr>';
+            columns.forEach(col => {
+                html += `<th>${col}</th>`;
+            });
+            html += '<th>Actions</th></tr></thead><tbody>';
+
+            rows.forEach((row, rowIndex) => {
+                html += `<tr id="row-${rowIndex}">`;
+                row.forEach((cell, cellIndex) => {
+                    html += `<td>
+                        <span class="cell-display">${cell || ''}</span>
+                        <input type="text" class="cell-edit input-field" style="display: none;" value="${cell || ''}" data-column="${columns[cellIndex]}">
+                    </td>`;
+                });
+                html += `<td class="row-actions">
+                    <button class="btn-small btn-edit" onclick="editRow(${rowIndex})">✏️ Edit</button>
+                    <button class="btn-small btn-delete" onclick="deleteRow('${tableName}', '${row[0]}')">🗑️ Delete</button>
+                    <button class="btn-small btn-save" style="display: none;" onclick="saveRow('${tableName}', '${row[0]}', ${rowIndex})">💾 Save</button>
+                    <button class="btn-small btn-cancel" style="display: none;" onclick="cancelEdit(${rowIndex})">❌ Cancel</button>
+                </td></tr>`;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function editRow(rowIndex) {
+            if (editingRow !== null && editingRow !== rowIndex) {
+                cancelEdit(editingRow);
+            }
+            
+            editingRow = rowIndex;
+            const row = document.getElementById(`row-${rowIndex}`);
+            const displays = row.querySelectorAll('.cell-display');
+            const inputs = row.querySelectorAll('.cell-edit');
+            const editBtn = row.querySelector('.btn-edit');
+            const deleteBtn = row.querySelector('.btn-delete');
+            const saveBtn = row.querySelector('.btn-save');
+            const cancelBtn = row.querySelector('.btn-cancel');
+
+            displays.forEach(display => display.style.display = 'none');
+            inputs.forEach(input => input.style.display = 'block');
+            editBtn.style.display = 'none';
+            deleteBtn.style.display = 'none';
+            saveBtn.style.display = 'inline-block';
+            cancelBtn.style.display = 'inline-block';
+        }
+
+        function cancelEdit(rowIndex) {
+            editingRow = null;
+            const row = document.getElementById(`row-${rowIndex}`);
+            const displays = row.querySelectorAll('.cell-display');
+            const inputs = row.querySelectorAll('.cell-edit');
+            const editBtn = row.querySelector('.btn-edit');
+            const deleteBtn = row.querySelector('.btn-delete');
+            const saveBtn = row.querySelector('.btn-save');
+            const cancelBtn = row.querySelector('.btn-cancel');
+
+            displays.forEach(display => display.style.display = 'block');
+            inputs.forEach((input, index) => {
+                input.style.display = 'none';
+                input.value = displays[index].textContent;
+            });
+            editBtn.style.display = 'inline-block';
+            deleteBtn.style.display = 'inline-block';
+            saveBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+        }
+
+        async function saveRow(tableName, rowId, rowIndex) {
+            const row = document.getElementById(`row-${rowIndex}`);
+            const inputs = row.querySelectorAll('.cell-edit');
+            const updates = {};
+
+            inputs.forEach(input => {
+                const column = input.dataset.column;
+                if (column !== 'id') {
+                    updates[column] = input.value;
+                }
+            });
+
+            try {
+                const response = await fetch('/dashboard/database/sqlite/row', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        table: tableName,
+                        id: rowId,
+                        updates: updates
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Row updated successfully');
+                    cancelEdit(rowIndex);
+                    const displays = row.querySelectorAll('.cell-display');
+                    inputs.forEach((input, index) => {
+                        displays[index].textContent = input.value;
+                    });
+                } else {
+                    showAlert('Error updating row: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Error updating row: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteRow(tableName, rowId) {
+            if (!confirm('Are you sure you want to delete this row? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/dashboard/database/sqlite/row', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        table: tableName,
+                        id: rowId
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Row deleted successfully');
+                    loadTableData(tableName);
+                } else {
+                    showAlert('Error deleting row: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Error deleting row: ' + error.message, 'error');
+            }
+        }
+
+        function openAddRowModal(tableName, columns) {
+            currentTable = tableName;
+            const modal = document.getElementById('addRowModal');
+            const fieldsContainer = document.getElementById('addRowFields');
+            
+            let html = '';
+            columns.forEach(column => {
+                if (column.toLowerCase() !== 'id') {
+                    html += `
+                        <div class="form-group">
+                            <label for="field-${column}">${column}:</label>
+                            <input type="text" id="field-${column}" name="${column}" class="input-field">
+                        </div>
+                    `;
+                }
+            });
+            
+            fieldsContainer.innerHTML = html;
+            modal.style.display = 'block';
+        }
+
+        function closeAddRowModal() {
+            document.getElementById('addRowModal').style.display = 'none';
+            document.getElementById('addRowForm').reset();
+        }
+
+        document.getElementById('addRowForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const columns = [];
+            const values = [];
+            
+            for (let [key, value] of formData.entries()) {
+                columns.push(key);
+                values.push(value);
+            }
+
+            try {
+                const response = await fetch('/dashboard/database/sqlite/row', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        table: currentTable,
+                        columns: columns,
+                        values: values
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Row added successfully');
+                    closeAddRowModal();
+                    loadTableData(currentTable);
+                } else {
+                    showAlert('Error adding row: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Error adding row: ' + error.message, 'error');
+            }
+        });
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('addRowModal');
+            if (event.target === modal) {
+                closeAddRowModal();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTables();
+        });
+    </script>
+</body>
+</html>

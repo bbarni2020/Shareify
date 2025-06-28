@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template_string, redirect, url_for, session
+from flask import Flask, request, jsonify, render_template_string, redirect, url_for, session, render_template
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import uuid
 import time
@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 import threading
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates', static_folder='static')
 app.config['SECRET_KEY'] = 'my-secret-key'
 app.config['JWT_SECRET_KEY'] = 'jwt-secret-key'
 app.config['JWT_EXPIRATION_HOURS'] = 24
@@ -525,7 +525,7 @@ def handle_command_response(data):
         pending_commands[command_id]['completed'] = True
         print(f'Command {command_id} completed')
 
-def send_command_to_server(server_id, command, command_id=None, method='GET', body=None):
+def send_command_to_server(server_id, command, command_id=None, method='GET', body=None, shareify_jwt=None):
     if server_id not in connected_servers:
         return {'error': 'Server not connected'}, 404
     
@@ -545,13 +545,18 @@ def send_command_to_server(server_id, command, command_id=None, method='GET', bo
         'response': None
     }
 
-    socketio.emit('execute_command', {
+    emit_data = {
         'command_id': command_id,
         'command': command,
         'method': method,
         'body': body,
         'timestamp': datetime.now().isoformat()
-    }, room=f'server_{server_id}')
+    }
+    
+    if shareify_jwt:
+        emit_data['shareify_jwt'] = shareify_jwt
+
+    socketio.emit('execute_command', emit_data, room=f'server_{server_id}')
     
     return {
         'command_id': command_id,
@@ -618,6 +623,8 @@ def list_user_servers(auth_token):
 
 @app.route('/cloud', methods=['GET', 'POST'])
 def execute_command_on_all_servers():
+    shareify_jwt = request.headers.get('shareify_jwt')
+    
     jwt_token = request.headers.get('Authorization')
     if jwt_token and jwt_token.startswith('Bearer '):
         jwt_token = jwt_token[7:]
@@ -660,36 +667,17 @@ def execute_command_on_all_servers():
     if not command:
         return jsonify({'error': 'Command parameter required'}), 400
     
-    user_ids = []
-    
-    users_db = load_users_database()
-    for uid, user_info in users_db.items():
-        if user_info.get('auth_token') == auth_token:
-            user_ids.append(uid)
-    
-    conn = sqlite3.connect(user_sqlite_db_path)
-    cursor = conn.cursor()
-    cursor.execute('SELECT id FROM users WHERE auth_token = ?', (auth_token,))
-    rows = cursor.fetchall()
-    conn.close()
-    
-    for row in rows:
-        user_ids.append(row[0])
-    
-    if not user_ids:
-        return jsonify({'error': 'No servers found for this auth token'}), 404
-    
-    auth_token_servers = []
+    user_servers = []
     for server_id, server_info in connected_servers.items():
-        if server_info.get('owner_user_id') in user_ids:
-            auth_token_servers.append(server_id)
+        if server_info.get('owner_user_id') == user_id:
+            user_servers.append(server_id)
     
-    if not auth_token_servers:
-        return jsonify({'error': 'No servers found for this auth token'}), 404
+    if not user_servers:
+        return jsonify({'error': 'No servers found for this user'}), 404
     
     results = []
-    for server_id in auth_token_servers:
-        result = send_command_to_server(server_id, command, method=method, body=body)
+    for server_id in user_servers:
+        result = send_command_to_server(server_id, command, method=method, body=body, shareify_jwt=shareify_jwt)
         results.append({
             'server_id': server_id,
             'server_name': connected_servers[server_id]['name'],
@@ -697,12 +685,11 @@ def execute_command_on_all_servers():
         })
     
     return jsonify({
-        'auth_token': auth_token,
-        'user_ids': user_ids,
+        'user_id': user_id,
         'command': command,
         'method': method,
         'body': body,
-        'servers_targeted': len(auth_token_servers),
+        'servers_targeted': len(user_servers),
         'results': results
     })
 
@@ -873,9 +860,9 @@ def dashboard_login():
             if request.is_json:
                 return jsonify({'error': 'Invalid password'}), 401
             else:
-                return render_template_string(DASHBOARD_LOGIN_TEMPLATE, error="Invalid password")
+                return render_template('dashboard_login.html', error='Invalid password')
     
-    return render_template_string(DASHBOARD_LOGIN_TEMPLATE)
+    return render_template('dashboard_login.html')
 
 @app.route('/dashboard')
 def dashboard():
@@ -888,38 +875,7 @@ def dashboard():
     if not token or not verify_dashboard_jwt(token):
         return redirect('/dashboard/login')
     
-    cleanup_rate_limits()
-    
-    total_servers = len(connected_servers)
-    active_commands = len(pending_commands)
-    total_rate_limits = len(rate_limits)
-    
-    server_details = []
-    for server_id, server_info in connected_servers.items():
-        server_details.append({
-            'id': server_id,
-            'name': server_info.get('name', 'Unknown'),
-            'ip': server_info.get('ip', 'Unknown'),
-            'connected_at': server_info.get('connected_at', 'Unknown'),
-            'last_seen': server_info.get('last_seen', 'Unknown'),
-            'pending_commands': len([cmd for cmd in pending_commands.values() if cmd.get('server_id') == server_id])
-        })
-    
-    rate_limit_details = []
-    for identifier, requests in rate_limits.items():
-        rate_limit_details.append({
-            'identifier': identifier,
-            'request_count': len(requests),
-            'last_request': max(requests).strftime('%Y-%m-%d %H:%M:%S') if requests else 'None'
-        })
-    
-    return render_template_string(DASHBOARD_TEMPLATE, 
-                                  total_servers=total_servers,
-                                  active_commands=active_commands,
-                                  total_rate_limits=total_rate_limits,
-                                  server_details=server_details,
-                                  rate_limit_details=rate_limit_details,
-                                  current_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    return render_template('dashboard.html')
 
 @app.route('/dashboard/api/stats')
 def dashboard_api_stats():
@@ -940,6 +896,594 @@ def dashboard_api_stats():
         'connected_servers': list(connected_servers.keys()),
         'timestamp': datetime.now().isoformat()
     })
+
+@app.route('/dashboard/logout', methods=['POST'])
+def dashboard_logout():
+    response = redirect('/dashboard/login')
+    response.set_cookie('dashboard_token', '', expires=0)
+    return response
+
+@app.route('/dashboard/servers')
+def get_servers():
+    token = request.cookies.get('dashboard_token')
+    if not token or not verify_dashboard_jwt(token):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        server_details = []
+        for server_id, server_info in connected_servers.items():
+            server_details.append({
+                'id': server_id,
+                'name': server_info.get('name', f'Server {server_id[:8]}'),
+                'connected_at': server_info.get('connected_at', 'Unknown'),
+                'last_seen': server_info.get('last_seen', 'Unknown'),
+                'owner_user_id': server_info.get('owner_user_id', 'Unknown'),
+                'status': 'connected'
+            })
+        
+        return jsonify({'success': True, 'servers': server_details})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/dashboard/servers/<server_id>/disconnect', methods=['POST'])
+def disconnect_server(server_id):
+    token = request.cookies.get('dashboard_token')
+    if not token or not verify_dashboard_jwt(token):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    if server_id in connected_servers:
+        server_sid = connected_servers[server_id]['sid']
+        socketio.emit('disconnect_request', room=server_sid)
+        del connected_servers[server_id]
+        return jsonify({'success': True, 'message': f'Server {server_id} disconnected'})
+    
+    return jsonify({'error': 'Server not found'}), 404
+
+@app.route('/dashboard/database/sqlite')
+def view_sqlite_database():
+    token = request.cookies.get('dashboard_token')
+    if not token or not verify_dashboard_jwt(token):
+        return redirect('/dashboard/login')
+    
+    return render_template('database_sqlite.html')
+
+@app.route('/dashboard/database/json')
+def view_json_database():
+    token = request.cookies.get('dashboard_token')
+    if not token or not verify_dashboard_jwt(token):
+        return redirect('/dashboard/login')
+    
+    return render_template('database_json.html')
+
+@app.route('/dashboard/database/json/data')
+def get_json_database_data():
+    token = request.cookies.get('dashboard_token')
+    if not token or not verify_dashboard_jwt(token):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    users_data = load_users_database()
+    return jsonify({'success': True, 'data': users_data})
+
+@app.route('/dashboard/database/sqlite/edit', methods=['POST'])
+def edit_sqlite_database():
+    token = request.cookies.get('dashboard_token')
+    if not token or not verify_dashboard_jwt(token):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    data = request.get_json()
+    query = data.get('query')
+    
+    if not query:
+        return jsonify({'error': 'Query required'}), 400
+    
+    try:
+        conn = sqlite3.connect(user_sqlite_db_path)
+        cursor = conn.cursor()
+        cursor.execute(query)
+        
+        if query.strip().upper().startswith('SELECT'):
+            columns = [description[0] for description in cursor.description]
+            rows = cursor.fetchall()
+            conn.close()
+            return jsonify({'success': True, 'columns': columns, 'rows': rows})
+        else:
+            conn.commit()
+            conn.close()
+            return jsonify({'success': True, 'message': 'Query executed successfully'})
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/dashboard/database/sqlite/row', methods=['POST', 'PUT', 'DELETE'])
+def manage_sqlite_row():
+    token = request.cookies.get('dashboard_token')
+    if not token or not verify_dashboard_jwt(token):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    data = request.get_json()
+    table = data.get('table')
+    
+    if not table:
+        return jsonify({'error': 'Table name required'}), 400
+    
+    try:
+        conn = sqlite3.connect(user_sqlite_db_path)
+        cursor = conn.cursor()
+        
+        if request.method == 'POST':
+            columns = data.get('columns', [])
+            values = data.get('values', [])
+            
+            if not columns or not values:
+                return jsonify({'error': 'Columns and values required'}), 400
+            
+            placeholders = ','.join(['?' for _ in values])
+            column_names = ','.join(columns)
+            query = f"INSERT INTO {table} ({column_names}) VALUES ({placeholders})"
+            cursor.execute(query, values)
+            
+        elif request.method == 'PUT':
+            row_id = data.get('id')
+            updates = data.get('updates', {})
+            
+            if not row_id or not updates:
+                return jsonify({'error': 'Row ID and updates required'}), 400
+            
+            set_clauses = []
+            values = []
+            for column, value in updates.items():
+                set_clauses.append(f"{column} = ?")
+                values.append(value)
+            
+            values.append(row_id)
+            query = f"UPDATE {table} SET {', '.join(set_clauses)} WHERE id = ?"
+            cursor.execute(query, values)
+            
+        elif request.method == 'DELETE':
+            row_id = data.get('id')
+            
+            if not row_id:
+                return jsonify({'error': 'Row ID required'}), 400
+            
+            query = f"DELETE FROM {table} WHERE id = ?"
+            cursor.execute(query, [row_id])
+        
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Operation completed successfully'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/dashboard/database/json/row', methods=['POST', 'PUT', 'DELETE'])
+def manage_json_row():
+    token = request.cookies.get('dashboard_token')
+    if not token or not verify_dashboard_jwt(token):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    data = request.get_json()
+    
+    try:
+        users_data = load_users_database()
+        
+        if request.method == 'POST':
+            user_id = data.get('user_id', str(uuid.uuid4()))
+            user_data = data.get('user_data', {})
+            
+            if user_id in users_data:
+                return jsonify({'error': 'User ID already exists'}), 400
+            
+            users_data[user_id] = user_data
+            
+        elif request.method == 'PUT':
+            user_id = data.get('user_id')
+            user_data = data.get('user_data', {})
+            
+            if not user_id or user_id not in users_data:
+                return jsonify({'error': 'User ID not found'}), 400
+            
+            users_data[user_id] = user_data
+            
+        elif request.method == 'DELETE':
+            user_id = data.get('user_id')
+            
+            if not user_id or user_id not in users_data:
+                return jsonify({'error': 'User ID not found'}), 400
+            
+            del users_data[user_id]
+        
+        save_users_database(users_data)
+        return jsonify({'success': True, 'message': 'Operation completed successfully'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/dashboard/database/json/edit', methods=['POST'])
+def edit_json_database():
+    token = request.cookies.get('dashboard_token')
+    if not token or not verify_dashboard_jwt(token):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    data = request.get_json()
+    new_data = data.get('data')
+    
+    if not new_data:
+        return jsonify({'error': 'Data required'}), 400
+    
+    try:
+        save_users_database(new_data)
+        return jsonify({'success': True, 'message': 'JSON database updated successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+DATABASE_TEMPLATE = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SQLite Database - Shareify Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; padding: 20px; }
+        .header { background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 14px; margin: 2px; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-sm { padding: 4px 8px; font-size: 12px; }
+        .table-container { background: white; border-radius: 15px; margin-bottom: 20px; overflow: hidden; }
+        .table-header { background: #f8f9fa; padding: 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .editable-table { width: 100%; border-collapse: collapse; }
+        .editable-table th, .editable-table td { padding: 8px 12px; text-align: left; border: 1px solid #e9ecef; font-size: 12px; position: relative; }
+        .editable-table th { background: #f8f9fa; font-weight: 600; }
+        .editable-table tbody tr:hover { background: #f8f9fa; }
+        .editable-cell { border: none; background: transparent; width: 100%; padding: 4px; font-size: 12px; }
+        .editable-cell:focus { background: white; border: 1px solid #667eea; outline: none; }
+        .row-actions { display: flex; gap: 4px; }
+        .query-box { background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; }
+        .query-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-family: monospace; resize: vertical; }
+        .result-box { background: white; padding: 20px; border-radius: 15px; margin-top: 20px; }
+        .status { padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .add-row-form { background: #f8f9fa; padding: 15px; border-top: 1px solid #e9ecef; }
+        .form-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .form-input { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; min-width: 100px; }
+        .editing-row { background: #fff3cd !important; }
+        .table-wrapper { overflow-x: auto; max-height: 600px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>SQLite Database Management</h1>
+        <div>
+            <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+            <a href="/dashboard/database/json" class="btn btn-primary">View JSON DB</a>
+        </div>
+    </div>
+    
+    <div class="query-box">
+        <h3>Execute Custom SQL Query</h3>
+        <textarea id="sqlQuery" class="query-input" rows="4" placeholder="Enter SQL query...">SELECT * FROM users LIMIT 10;</textarea>
+        <br><br>
+        <button onclick="executeQuery()" class="btn btn-primary">Execute Query</button>
+    </div>
+    
+    <div id="queryResult" class="result-box" style="display: none;">
+        <h3>Query Result</h3>
+        <div id="resultContent"></div>
+    </div>
+    
+    <div id="statusMessage" class="status" style="display: none;"></div>
+    
+    {% for table_name, table_info in tables.items() %}
+    <div class="table-container">
+        <div class="table-header">
+            <span>Table: {{ table_name }} ({{ table_info.rows|length }} rows)</span>
+            <button onclick="addNewRow('{{ table_name }}')" class="btn btn-success btn-sm">+ Add Row</button>
+        </div>
+        <div class="table-wrapper">
+            <table class="editable-table" id="table-{{ table_name }}">
+                <thead>
+                    <tr>
+                        {% for column in table_info.columns %}
+                        <th>{{ column }}</th>
+                        {% endfor %}
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in table_info.rows %}
+                    <tr data-table="{{ table_name }}" data-original-values="{{ row|tojson|e }}">
+                        {% for i, cell in enumerate(row) %}
+                        <td>
+                            <input type="text" class="editable-cell" 
+                                   value="{{ cell if cell is not none else '' }}" 
+                                   data-column="{{ table_info.columns[i] }}"
+                                   onchange="markRowAsEdited(this)">
+                        </td>
+                        {% endfor %}
+                        <td>
+                            <div class="row-actions">
+                                <button onclick="saveRow(this)" class="btn btn-success btn-sm" style="display: none;">Save</button>
+                                <button onclick="cancelEdit(this)" class="btn btn-secondary btn-sm" style="display: none;">Cancel</button>
+                                <button onclick="deleteRow(this, '{{ table_name }}')" class="btn btn-danger btn-sm">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="add-row-form" id="add-form-{{ table_name }}" style="display: none;">
+            <h4>Add New Row to {{ table_name }}</h4>
+            <div class="form-row">
+                {% for column in table_info.columns %}
+                <input type="text" class="form-input" placeholder="{{ column }}" data-column="{{ column }}">
+                {% endfor %}
+                <button onclick="saveNewRow('{{ table_name }}')" class="btn btn-success">Save</button>
+                <button onclick="cancelNewRow('{{ table_name }}')" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    
+    <script>
+        function showStatus(message, type = 'success') {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.className = 'status ' + type;
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+            setTimeout(() => statusDiv.style.display = 'none', 5000);
+        }
+        
+        function markRowAsEdited(input) {
+            const row = input.closest('tr');
+            row.classList.add('editing-row');
+            const actions = row.querySelector('.row-actions');
+            actions.querySelector('.btn-success').style.display = 'inline-block';
+            actions.querySelector('.btn-secondary').style.display = 'inline-block';
+        }
+        
+        function saveRow(button) {
+            const row = button.closest('tr');
+            const tableName = row.dataset.table;
+            const originalValues = JSON.parse(row.dataset.originalValues);
+            const inputs = row.querySelectorAll('.editable-cell');
+            const columns = Array.from(inputs).map(input => input.dataset.column);
+            const newValues = Array.from(inputs).map(input => input.value);
+            
+            // Build UPDATE query
+            const setParts = columns.map((col, i) => `${col} = ?`).join(', ');
+            const whereClause = columns.map((col, i) => `${col} = ?`).join(' AND ');
+            const query = `UPDATE ${tableName} SET ${setParts} WHERE ${whereClause}`;
+            
+            fetch('/dashboard/database/sqlite/edit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    query: query,
+                    values: [...newValues, ...originalValues]
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    row.classList.remove('editing-row');
+                    row.dataset.originalValues = JSON.stringify(newValues);
+                    const actions = row.querySelector('.row-actions');
+                    actions.querySelector('.btn-success').style.display = 'none';
+                    actions.querySelector('.btn-secondary').style.display = 'none';
+                    showStatus('Row updated successfully');
+                } else {
+                    showStatus('Error updating row: ' + data.error, 'error');
+                }
+            });
+        }
+        
+        function cancelEdit(button) {
+            const row = button.closest('tr');
+            const originalValues = JSON.parse(row.dataset.originalValues);
+            const inputs = row.querySelectorAll('.editable-cell');
+            
+            inputs.forEach((input, i) => {
+                input.value = originalValues[i] || '';
+            });
+            
+            row.classList.remove('editing-row');
+            const actions = row.querySelector('.row-actions');
+            actions.querySelector('.btn-success').style.display = 'none';
+            actions.querySelector('.btn-secondary').style.display = 'none';
+        }
+        
+        function deleteRow(button, tableName) {
+            if (!confirm('Are you sure you want to delete this row?')) return;
+            
+            const row = button.closest('tr');
+            const originalValues = JSON.parse(row.dataset.originalValues);
+            const inputs = row.querySelectorAll('.editable-cell');
+            const columns = Array.from(inputs).map(input => input.dataset.column);
+            
+            const whereClause = columns.map((col, i) => `${col} = ?`).join(' AND ');
+            const query = `DELETE FROM ${tableName} WHERE ${whereClause}`;
+            
+            fetch('/dashboard/database/sqlite/edit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    query: query,
+                    values: originalValues
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    row.remove();
+                    showStatus('Row deleted successfully');
+                } else {
+                    showStatus('Error deleting row: ' + data.error, 'error');
+                }
+            });
+        }
+        
+        function addNewRow(tableName) {
+            const form = document.getElementById('add-form-' + tableName);
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function saveNewRow(tableName) {
+            const form = document.getElementById('add-form-' + tableName);
+            const inputs = form.querySelectorAll('.form-input');
+            const columns = Array.from(inputs).map(input => input.dataset.column);
+            const values = Array.from(inputs).map(input => input.value);
+            
+            const placeholders = values.map(() => '?').join(', ');
+            const query = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`;
+            
+            fetch('/dashboard/database/sqlite/edit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    query: query,
+                    values: values
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus('Row added successfully');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showStatus('Error adding row: ' + data.error, 'error');
+                }
+            });
+        }
+        
+        function cancelNewRow(tableName) {
+            const form = document.getElementById('add-form-' + tableName);
+            form.style.display = 'none';
+            form.querySelectorAll('.form-input').forEach(input => input.value = '');
+        }
+        
+        function executeQuery() {
+            const query = document.getElementById('sqlQuery').value;
+            fetch('/dashboard/database/sqlite/edit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: query })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('queryResult');
+                const contentDiv = document.getElementById('resultContent');
+                
+                if (data.success) {
+                    if (data.columns && data.rows) {
+                        let html = '<div style="overflow-x: auto;"><table class="editable-table"><thead><tr>';
+                        data.columns.forEach(col => html += '<th>' + col + '</th>');
+                        html += '</tr></thead><tbody>';
+                        data.rows.forEach(row => {
+                            html += '<tr>';
+                            row.forEach(cell => html += '<td>' + (cell || '') + '</td>');
+                            html += '</tr>';
+                        });
+                        html += '</tbody></table></div>';
+                        contentDiv.innerHTML = html;
+                    } else {
+                        contentDiv.innerHTML = '<p style="color: green;">' + data.message + '</p>';
+                    }
+                } else {
+                    contentDiv.innerHTML = '<p style="color: red;">Error: ' + data.error + '</p>';
+                }
+                
+                resultDiv.style.display = 'block';
+            });
+        }
+    </script>
+</body>
+</html>
+'''
+
+JSON_DATABASE_TEMPLATE = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JSON Database - Shareify Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; padding: 20px; }
+        .header { background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .editor-container { background: white; padding: 20px; border-radius: 15px; }
+        .json-editor { width: 100%; height: 500px; font-family: monospace; padding: 15px; border: 1px solid #ddd; border-radius: 5px; resize: vertical; }
+        .status { padding: 10px; border-radius: 5px; margin-top: 10px; display: none; }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>JSON Database Management (users_database.json)</h1>
+        <div>
+            <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+            <a href="/dashboard/database/sqlite" class="btn btn-primary">View SQLite DB</a>
+        </div>
+    </div>
+    
+    <div class="editor-container">
+        <h3>Edit JSON Database</h3>
+        <p>Be careful when editing the JSON structure. Invalid JSON will cause errors.</p>
+        <br>
+        <textarea id="jsonEditor" class="json-editor">{{ users_data | tojson(indent=2) }}</textarea>
+        <br>
+        <button onclick="saveJson()" class="btn btn-success">Save Changes</button>
+        <button onclick="location.reload()" class="btn btn-secondary">Reset</button>
+        
+        <div id="status" class="status"></div>
+    </div>
+    
+    <script>
+        function saveJson() {
+            const jsonData = document.getElementById('jsonEditor').value;
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                const parsed = JSON.parse(jsonData);
+                
+                fetch('/dashboard/database/json/edit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: parsed })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = 'Database updated successfully!';
+                    } else {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = 'Error: ' + data.error;
+                    }
+                    statusDiv.style.display = 'block';
+                    setTimeout(() => statusDiv.style.display = 'none', 5000);
+                });
+            } catch (e) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = 'Invalid JSON: ' + e.message;
+                statusDiv.style.display = 'block';
+                setTimeout(() => statusDiv.style.display = 'none', 5000);
+            }
+        }
+    </script>
+</body>
+</html>
+'''
 
 DASHBOARD_LOGIN_TEMPLATE = '''
 <!DOCTYPE html>
@@ -1099,10 +1643,31 @@ DASHBOARD_TEMPLATE = '''
             color: #333;
         }
         
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
         .timestamp {
             color: #666;
             font-size: 14px;
         }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-block;
+        }
+        
+        .btn-primary { background: #667eea; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
         
         .stats-grid {
             display: grid;
@@ -1150,6 +1715,9 @@ DASHBOARD_TEMPLATE = '''
             border-bottom: 1px solid #e9ecef;
             font-weight: 600;
             color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .section-content {
@@ -1204,6 +1772,19 @@ DASHBOARD_TEMPLATE = '''
             background: #5a6fd8;
         }
         
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .server-id {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
         @media (max-width: 768px) {
             .header {
                 flex-direction: column;
@@ -1228,7 +1809,14 @@ DASHBOARD_TEMPLATE = '''
 <body>
     <div class="header">
         <div class="logo">📊 Shareify Dashboard</div>
-        <div class="timestamp">Last updated: {{ current_time }}</div>
+        <div class="header-right">
+            <div class="timestamp">Last updated: {{ current_time }}</div>
+            <a href="/dashboard/database/sqlite" class="btn btn-primary">Manage SQLite DB</a>
+            <a href="/dashboard/database/json" class="btn btn-secondary">Manage JSON DB</a>
+            <form method="POST" action="/dashboard/logout" style="display: inline;">
+                <button type="submit" class="btn btn-danger">Logout</button>
+            </form>
+        </div>
     </div>
     
     <div class="stats-grid">
@@ -1249,7 +1837,9 @@ DASHBOARD_TEMPLATE = '''
     <div class="section">
         <div class="section-header">
             Connected Servers
-            <button class="refresh-btn" onclick="location.reload()">Refresh</button>
+            <div>
+                <button class="refresh-btn" onclick="location.reload()">Refresh</button>
+            </div>
         </div>
         <div class="section-content">
             {% if server_details %}
@@ -1258,21 +1848,27 @@ DASHBOARD_TEMPLATE = '''
                     <tr>
                         <th>Server ID</th>
                         <th>Name</th>
-                        <th>IP Address</th>
+                        <th>Owner</th>
                         <th>Connected At</th>
                         <th>Last Seen</th>
                         <th>Pending Commands</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for server in server_details %}
                     <tr>
-                        <td><code>{{ server.id[:8] }}...</code></td>
+                        <td><span class="server-id">{{ server.id[:12] }}...</span></td>
                         <td>{{ server.name }}</td>
-                        <td>{{ server.ip }}</td>
+                        <td><span class="server-id">{{ server.owner_user_id[:8] }}...</span></td>
                         <td>{{ server.connected_at }}</td>
                         <td class="status-online">{{ server.last_seen }}</td>
                         <td>{{ server.pending_commands }}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-warning" onclick="disconnectServer('{{ server.id }}')">Disconnect</button>
+                            </div>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -1312,7 +1908,24 @@ DASHBOARD_TEMPLATE = '''
     </div>
     
     <script>
-        // Auto-refresh every 30 seconds
+        function disconnectServer(serverId) {
+            if (confirm('Are you sure you want to disconnect this server?')) {
+                fetch('/dashboard/servers/' + serverId + '/disconnect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Server disconnected successfully');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                });
+            }
+        }
+        
         setTimeout(() => {
             location.reload();
         }, 30000);
