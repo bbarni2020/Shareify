@@ -63,7 +63,14 @@ class ShareifyLocalClient:
         self.enabled = self.cloud_config.get('enabled', True)
         self.authenticated = False
         
-        self.sio = socketio.Client()
+        self.sio = socketio.Client(
+            reconnection=True,
+            reconnection_attempts=5,
+            reconnection_delay=1,
+            reconnection_delay_max=5,
+            logger=False,
+            engineio_logger=False
+        )
         self.connected = False
         self.heartbeat_interval = DEFAULT_HEARTBEAT_INTERVAL
         self.command_timeout = DEFAULT_COMMAND_TIMEOUT
@@ -188,10 +195,13 @@ class ShareifyLocalClient:
             except Exception as e:
                 print(f"Failed to handle command: {e}")
                 if self.sio.connected:
-                    self.sio.emit('command_response', {
-                        'command_id': command_id,
-                        'response': {'error': str(e)}
-                    })
+                    try:
+                        self.sio.emit('command_response', {
+                            'command_id': command_id,
+                            'response': {'error': str(e)}
+                        })
+                    except Exception as emit_error:
+                        print(f"Failed to emit command error: {emit_error}")
             
             
         @self.sio.on('pong')
@@ -387,8 +397,8 @@ class ShareifyLocalClient:
                             'timestamp': time.time()
                         })
 
-                        if time.time() - self.last_successful_ping > (self.heartbeat_interval * 3):
-                            print_status("No pong received for too long, connection might be dead", "warning")
+                        if time.time() - self.last_successful_ping > (self.heartbeat_interval * 6):
+                            print_status("No pong received for extended period, connection might be dead", "warning")
                             if self.reconnect_attempts < self.max_reconnect_attempts:
                                 self.reconnect_attempts += 1
                                 print_status(f"Attempting reconnection ({self.reconnect_attempts}/{self.max_reconnect_attempts})", "info")
@@ -404,7 +414,7 @@ class ShareifyLocalClient:
                     time.sleep(self.heartbeat_interval)
                 except Exception as e:
                     print_status(f"Heartbeat error: {e}", "error")
-                    time.sleep(5)
+                    time.sleep(self.heartbeat_interval)
                     if not self.connected:
                         break
         
@@ -432,7 +442,8 @@ class ShareifyLocalClient:
 
                 self.sio.connect(
                     self.cloud_url, 
-                    wait_timeout=10,
+                    wait_timeout=15,
+                    socketio_path='/socket.io/',
                     headers={'User-Agent': f'Shareify-Client/{self.server_id}'}
                 )
                 self.start_heartbeat()
@@ -460,7 +471,8 @@ class ShareifyLocalClient:
     
     def wait(self):
         try:
-            self.sio.wait()
+            while self.connected and self.enabled:
+                time.sleep(1)
         except KeyboardInterrupt:
             print("\nShutting down...")
             self.disconnect()
@@ -478,10 +490,13 @@ class ShareifyLocalClient:
             
             if not (url == '/resources' or url == 'resources' or url == '/is_up' or url == 'is_up' or url == '/user/get_self' or url == 'user/get_self' or url == 'user/login' or url == '/user/login'):
                 if self.sio.connected:
-                    self.sio.emit('command_response', {
-                        'command_id': command_id,
-                        'response': {'error': 'Not allowed (security reasons) to access this endpoint.'}
-                    })
+                    try:
+                        self.sio.emit('command_response', {
+                            'command_id': command_id,
+                            'response': {'error': 'Not allowed (security reasons) to access this endpoint.'}
+                        })
+                    except Exception as emit_error:
+                        print(f"Failed to emit security error: {emit_error}")
                 return
 
             headers = {'Content-Type': 'application/json'}
@@ -510,39 +525,56 @@ class ShareifyLocalClient:
             print(f"Response Headers: {dict(response.headers)}")
             print(f"Response Body: {response.text}")
 
-            # Only emit the raw response body (JSON or text)
             try:
                 response_data = response.json()
             except json.JSONDecodeError:
                 response_data = response.text
-            print(response_data)
             
             if self.sio.connected:
-                self.sio.emit('command_response', {
-                    'command_id': command_id,
-                    'response': response_data
-                })
+                try:
+                    self.sio.emit('command_response', {
+                        'command_id': command_id,
+                        'response': response_data
+                    })
+                    print(f"Successfully emitted response for command {command_id}")
+                    time.sleep(0.1)
+                except Exception as emit_error:
+                    print(f"Failed to emit response: {emit_error}")
+            else:
+                print("Socket not connected, cannot emit response")
             
         except requests.exceptions.Timeout:
+            print(f"API request timeout for command {command_id}")
             if self.sio.connected:
-                self.sio.emit('command_response', {
-                    'command_id': command_id,
-                    'response': {'error': 'API request timeout'}
-                })
+                try:
+                    self.sio.emit('command_response', {
+                        'command_id': command_id,
+                        'response': {'error': 'API request timeout'}
+                    })
+                except Exception as emit_error:
+                    print(f"Failed to emit timeout error: {emit_error}")
             
         except requests.exceptions.ConnectionError:
+            print(f"API connection error for command {command_id}")
             if self.sio.connected:
-                self.sio.emit('command_response', {
-                    'command_id': command_id,
-                    'response': {'error': 'Failed to connect to local API server'}
-                })
+                try:
+                    self.sio.emit('command_response', {
+                        'command_id': command_id,
+                        'response': {'error': 'Failed to connect to local API server'}
+                    })
+                except Exception as emit_error:
+                    print(f"Failed to emit connection error: {emit_error}")
             
         except Exception as e:
+            print(f"General error for command {command_id}: {e}")
             if self.sio.connected:
-                self.sio.emit('command_response', {
-                    'command_id': command_id,
-                    'response': {'error': str(e)}
-                })
+                try:
+                    self.sio.emit('command_response', {
+                        'command_id': command_id,
+                        'response': {'error': str(e)}
+                    })
+                except Exception as emit_error:
+                    print(f"Failed to emit general error: {emit_error}")
     
 def main():
     try:

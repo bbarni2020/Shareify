@@ -291,6 +291,13 @@ def is_jwt_valid(jwt_id):
     
     return result[0] if result else None
 
+def get_json_user_id_from_auth_token(auth_token):
+    users_db = load_users_database()
+    for user_id, user_info in users_db.items():
+        if user_info.get('auth_token') == auth_token:
+            return user_id
+    return None
+
 users_db = load_users_database()
 
 @app.route('/')
@@ -482,6 +489,7 @@ def handle_server_registration(data):
     connected_servers[server_id] = {
         'sid': request.sid,
         'name': server_name,
+        'user_id': user_id,
         'auth_token': auth_token,
         'connected_at': datetime.now().isoformat(),
         'last_ping': datetime.now().isoformat(),
@@ -520,13 +528,11 @@ def handle_ping(data):
 @socketio.on('command_response')
 def handle_command_response(data):
     command_id = data.get('command_id')
+    print(f'Received command_response for command_id: {command_id}')
     if command_id in pending_commands:
         pending_commands[command_id]['response'] = data.get('response')
-        print()
-        print(data.get('response'))
-        print()
         pending_commands[command_id]['completed'] = True
-        print(f'Command {command_id} completed')
+        print(f'Updated pending_commands for command_id: {command_id}')
 
 def send_command_to_server(server_id, command, command_id=None, method='GET', body=None, shareify_jwt=None):
     if server_id not in connected_servers:
@@ -589,8 +595,12 @@ def list_user_servers(auth_token):
         return jsonify({'error': 'Rate limit exceeded. Too many requests.'}), 429
     
     user_servers = []
+    json_user_id = get_json_user_id_from_auth_token(auth_token)
+    
     for server_id, server_info in connected_servers.items():
-        if server_info.get('auth_token') == auth_token:
+        server_user_id = server_info.get('user_id')
+        if (server_info.get('auth_token') == auth_token or 
+            server_user_id == json_user_id):
             user_servers.append({
                 'server_id': server_id,
                 'name': server_info['name'],
@@ -604,7 +614,7 @@ def list_user_servers(auth_token):
         'total_servers': len(user_servers)
     })
 
-@app.route('/cloud', methods=['GET', 'POST'])
+@app.route('/cloud/command', methods=['GET', 'POST'])
 def execute_command_on_all_servers():
     shareify_jwt = request.headers.get('shareify_jwt')
     
@@ -651,8 +661,13 @@ def execute_command_on_all_servers():
         return jsonify({'error': 'Command parameter required'}), 400
     
     user_servers = []
+    json_user_id = get_json_user_id_from_auth_token(auth_token)
+    
     for server_id, server_info in connected_servers.items():
-        if server_info.get('auth_token') == auth_token:
+        server_user_id = server_info.get('user_id')
+        if (server_info.get('auth_token') == auth_token or 
+            server_user_id == user_id or 
+            server_user_id == json_user_id):
             user_servers.append(server_id)
     
     if not user_servers:
@@ -664,10 +679,8 @@ def execute_command_on_all_servers():
     for server_id in user_servers:
         result = send_command_to_server(server_id, command, method=method, body=body, shareify_jwt=shareify_jwt)
         
-        # Handle error case (when server is not connected)
         if isinstance(result, tuple):
             error_dict, status_code = result
-            # Skip servers that are not connected
             continue
             
         command_ids.append(result['command_id'])
@@ -677,41 +690,85 @@ def execute_command_on_all_servers():
             'command_id': result['command_id'],
             'status': result['status']
         })
-    
+
     if not command_ids:
         return jsonify({'error': 'No connected servers found for this user'}), 404
     
-    max_wait_time = 30
-    start_time = time.time()
+    return jsonify({
+        'command_ids': command_ids,
+        'results': results,
+        'message': 'Commands issued successfully'
+    })
+
+@app.route('/cloud/response', methods=['GET'])
+def get_command_responses():
+    jwt_token = request.headers.get('Authorization')
+    if jwt_token and jwt_token.startswith('Bearer '):
+        jwt_token = jwt_token[7:]
     
-    while time.time() - start_time < max_wait_time:
-        all_completed = True
-        for command_id in command_ids:
-            if command_id in pending_commands and not pending_commands[command_id]['completed']:
-                all_completed = False
-                break
-        
-        if all_completed:
-            break
-        
-        time.sleep(0.1)
+    if not jwt_token:
+        jwt_token = request.args.get('jwt_token')
     
-    final_results = []
+    if not jwt_token:
+        return jsonify({'error': 'JWT token required'}), 401
+    
+    user_id = get_user_id_from_jwt(jwt_token)
+    if not user_id:
+        return jsonify({'error': 'Invalid or expired JWT token'}), 401
+    
+    user = get_sqlite_user(user_id=user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+    
+    auth_token = user['auth_token']
+    
+    if not check_rate_limit(f"response_{auth_token}", max_requests=100, window_minutes=1):
+        return jsonify({'error': 'Rate limit exceeded. Too many requests.'}), 429
+    
+    command_ids = request.args.getlist('command_id')
+    if not command_ids:
+        return jsonify({'error': 'At least one command_id parameter required'}), 400
+    
+    responses = {}
+    
     for command_id in command_ids:
         if command_id in pending_commands:
             command_data = pending_commands[command_id]
-            final_results.append({
-                'response': command_data['response'],
-                'completed': command_data['completed']
-            })
+            server_id = command_data['server_id']
+            
+            if server_id in connected_servers:
+                server_info = connected_servers[server_id]
+                json_user_id = get_json_user_id_from_auth_token(auth_token)
+                server_user_id = server_info.get('user_id')
+                
+                if (server_info.get('auth_token') == auth_token or 
+                    server_user_id == user_id or 
+                    server_user_id == json_user_id):
+                    
+                    responses[command_id] = {
+                        'server_id': server_id,
+                        'command': command_data['command'],
+                        'method': command_data['method'],
+                        'timestamp': command_data['timestamp'],
+                        'completed': command_data['completed'],
+                        'response': command_data['response'],
+                        'status': 'completed' if command_data['completed'] else 'pending'
+                    }
+                else:
+                    responses[command_id] = {
+                        'error': 'Unauthorized access to command'
+                    }
+            else:
+                responses[command_id] = {
+                    'error': 'Server not found or disconnected'
+                }
         else:
-            final_results.append({
-                'response': None,
-                'completed': False
-            })
+            responses[command_id] = {
+                'error': 'Command not found'
+            }
     
     return jsonify({
-        'results': final_results
+        'responses': responses
     })
 
 @app.route('/signup', methods=['POST'])
