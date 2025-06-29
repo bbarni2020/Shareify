@@ -148,6 +148,8 @@ struct Home: View {
     
     private func logout() {
         UserDefaults.standard.removeObject(forKey: "jwt_token")
+        UserDefaults.standard.removeObject(forKey: "server_username")
+        UserDefaults.standard.removeObject(forKey: "server_password")
         UserDefaults.standard.synchronize()
         
         withAnimation(.easeInOut(duration: 0.5)) {

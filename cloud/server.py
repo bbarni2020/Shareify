@@ -482,7 +482,7 @@ def handle_server_registration(data):
     connected_servers[server_id] = {
         'sid': request.sid,
         'name': server_name,
-        'owner_user_id': user_id,
+        'auth_token': auth_token,
         'connected_at': datetime.now().isoformat(),
         'last_ping': datetime.now().isoformat(),
         'last_seen': datetime.now().isoformat(),
@@ -521,7 +521,8 @@ def handle_ping(data):
 def handle_command_response(data):
     command_id = data.get('command_id')
     if command_id in pending_commands:
-        pending_commands[command_id]['response'] = data
+        response_data = {k: v for k, v in data.items() if k != 'command_id'}
+        pending_commands[command_id]['response'] = response_data
         pending_commands[command_id]['completed'] = True
         print(f'Command {command_id} completed')
 
@@ -585,38 +586,18 @@ def list_user_servers(auth_token):
     if not check_rate_limit(auth_token, max_requests=30, window_minutes=1):
         return jsonify({'error': 'Rate limit exceeded. Too many requests.'}), 429
     
-    user_ids = []
-
-    users_db = load_users_database()
-    for uid, user_info in users_db.items():
-        if user_info.get('auth_token') == auth_token:
-            user_ids.append(uid)
-
-    conn = sqlite3.connect(user_sqlite_db_path)
-    cursor = conn.cursor()
-    cursor.execute('SELECT id FROM users WHERE auth_token = ?', (auth_token,))
-    rows = cursor.fetchall()
-    conn.close()
-    
-    for row in rows:
-        user_ids.append(row[0])
-    
-    if not user_ids:
-        return jsonify({'error': 'Invalid auth token'}), 401
-    
     user_servers = []
     for server_id, server_info in connected_servers.items():
-        if server_info.get('owner_user_id') in user_ids:
+        if server_info.get('auth_token') == auth_token:
             user_servers.append({
                 'server_id': server_id,
                 'name': server_info['name'],
-                'owner_user_id': server_info['owner_user_id'],
+                'auth_token': server_info['auth_token'],
                 'connected_at': server_info['connected_at'],
                 'last_ping': server_info['last_ping']
             })
     
     return jsonify({
-        'user_ids': user_ids,
         'servers': user_servers,
         'total_servers': len(user_servers)
     })
@@ -669,28 +650,57 @@ def execute_command_on_all_servers():
     
     user_servers = []
     for server_id, server_info in connected_servers.items():
-        if server_info.get('owner_user_id') == user_id:
+        if server_info.get('auth_token') == auth_token:
             user_servers.append(server_id)
     
     if not user_servers:
         return jsonify({'error': 'No servers found for this user'}), 404
     
     results = []
+    command_ids = []
+    
     for server_id in user_servers:
         result = send_command_to_server(server_id, command, method=method, body=body, shareify_jwt=shareify_jwt)
+        command_ids.append(result['command_id'])
         results.append({
             'server_id': server_id,
             'server_name': connected_servers[server_id]['name'],
-            'result': result
+            'command_id': result['command_id'],
+            'status': result['status']
         })
     
+    max_wait_time = 30
+    start_time = time.time()
+    
+    while time.time() - start_time < max_wait_time:
+        all_completed = True
+        for command_id in command_ids:
+            if command_id in pending_commands and not pending_commands[command_id]['completed']:
+                all_completed = False
+                break
+        
+        if all_completed:
+            break
+        
+        time.sleep(0.1)
+    
+    final_results = []
+    for i, server_id in enumerate(user_servers):
+        command_id = command_ids[i]
+        if command_id in pending_commands:
+            command_data = pending_commands[command_id]
+            final_results.append({
+                'response': command_data['response'],
+                'completed': command_data['completed']
+            })
+        else:
+            final_results.append({
+                'response': None,
+                'completed': False
+            })
+    
     return jsonify({
-        'user_id': user_id,
-        'command': command,
-        'method': method,
-        'body': body,
-        'servers_targeted': len(user_servers),
-        'results': results
+        'results': final_results
     })
 
 @app.route('/signup', methods=['POST'])
@@ -917,7 +927,7 @@ def get_servers():
                 'name': server_info.get('name', f'Server {server_id[:8]}'),
                 'connected_at': server_info.get('connected_at', 'Unknown'),
                 'last_seen': server_info.get('last_seen', 'Unknown'),
-                'owner_user_id': server_info.get('owner_user_id', 'Unknown'),
+                'auth_token': server_info.get('auth_token', 'Unknown'),
                 'status': 'connected'
             })
         
@@ -1848,7 +1858,7 @@ DASHBOARD_TEMPLATE = '''
                     <tr>
                         <th>Server ID</th>
                         <th>Name</th>
-                        <th>Owner</th>
+                        <th>Auth Token</th>
                         <th>Connected At</th>
                         <th>Last Seen</th>
                         <th>Pending Commands</th>
@@ -1860,7 +1870,7 @@ DASHBOARD_TEMPLATE = '''
                     <tr>
                         <td><span class="server-id">{{ server.id[:12] }}...</span></td>
                         <td>{{ server.name }}</td>
-                        <td><span class="server-id">{{ server.owner_user_id[:8] }}...</span></td>
+                        <td><span class="server-id">{{ server.auth_token[:8] }}...</span></td>
                         <td>{{ server.connected_at }}</td>
                         <td class="status-online">{{ server.last_seen }}</td>
                         <td>{{ server.pending_commands }}</td>
