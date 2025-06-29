@@ -521,8 +521,10 @@ def handle_ping(data):
 def handle_command_response(data):
     command_id = data.get('command_id')
     if command_id in pending_commands:
-        response_data = {k: v for k, v in data.items() if k != 'command_id'}
-        pending_commands[command_id]['response'] = response_data
+        pending_commands[command_id]['response'] = data.get('response')
+        print()
+        print(data.get('response'))
+        print()
         pending_commands[command_id]['completed'] = True
         print(f'Command {command_id} completed')
 
@@ -661,6 +663,13 @@ def execute_command_on_all_servers():
     
     for server_id in user_servers:
         result = send_command_to_server(server_id, command, method=method, body=body, shareify_jwt=shareify_jwt)
+        
+        # Handle error case (when server is not connected)
+        if isinstance(result, tuple):
+            error_dict, status_code = result
+            # Skip servers that are not connected
+            continue
+            
         command_ids.append(result['command_id'])
         results.append({
             'server_id': server_id,
@@ -668,6 +677,9 @@ def execute_command_on_all_servers():
             'command_id': result['command_id'],
             'status': result['status']
         })
+    
+    if not command_ids:
+        return jsonify({'error': 'No connected servers found for this user'}), 404
     
     max_wait_time = 30
     start_time = time.time()
@@ -685,8 +697,7 @@ def execute_command_on_all_servers():
         time.sleep(0.1)
     
     final_results = []
-    for i, server_id in enumerate(user_servers):
-        command_id = command_ids[i]
+    for command_id in command_ids:
         if command_id in pending_commands:
             command_data = pending_commands[command_id]
             final_results.append({

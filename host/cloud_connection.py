@@ -41,14 +41,14 @@ def save_cloud_config(config_data):
     with open(cloud_config_path, 'w') as f:
         json.dump(config_data, f, indent=2)
 
-DEFAULT_CLOUD_URL = "https://bridge.bbarni.hackclub.app"
+DEFAULT_CLOUD_URL = "http://0.0.0.0:5698"
 DEFAULT_SERVER_ID = None
 DEFAULT_SERVER_NAME = None
 DEFAULT_HEARTBEAT_INTERVAL = 30
 DEFAULT_COMMAND_TIMEOUT = 30
 
 class ShareifyLocalClient:
-    def __init__(self, cloud_url="https://bridge.bbarni.hackclub.app", server_id=None, server_name=None, user_id=None, auth_token=None, username=None, password=None):
+    def __init__(self, cloud_url="http://0.0.0.0:5698", server_id=None, server_name=None, user_id=None, auth_token=None, username=None, password=None):
         self.cloud_url = DEFAULT_CLOUD_URL
         
         self.cloud_config = load_cloud_config()
@@ -184,23 +184,14 @@ class ShareifyLocalClient:
             print(f"Received command {command_id}: {command} (method: {method})")
 
             try:
-                if command.startswith('http://') or command.startswith('https://') or command.startswith('/'):
-                    self.execute_api_request(command_id, command, method, body, shareify_jwt)
-                else:
-                    self.sio.emit('command_response', {
-                    'command_id': command_id,
-                    'success': False,
-                    'error': 'Not a valid API request',
-                    'timestamp': time.time()
-                }) 
+                self.execute_api_request(command_id, command, method, body, shareify_jwt)
             except Exception as e:
                 print(f"Failed to handle command: {e}")
-                self.sio.emit('command_response', {
-                    'command_id': command_id,
-                    'success': False,
-                    'error': str(e),
-                    'timestamp': time.time()
-                })
+                if self.sio.connected:
+                    self.sio.emit('command_response', {
+                        'command_id': command_id,
+                        'response': {'error': str(e)}
+                    })
             
             
         @self.sio.on('pong')
@@ -273,50 +264,6 @@ class ShareifyLocalClient:
             'heartbeat_interval': self.heartbeat_interval,
             'command_timeout': self.command_timeout
         }
-    
-    def execute_command(self, command_id, command, shareify_jwt=None):
-        try:
-            print(f"Executing: {command}")
-            
-            if command.startswith('shareify:'):
-                result = self.handle_shareify_command(command[9:])
-            else:
-                result = subprocess.run(
-                    command,
-                    shell=True,
-                    capture_output=True,
-                    text=True,
-                    timeout=self.command_timeout
-                )
-                
-                response_data = {
-                    'stdout': result.stdout,
-                    'stderr': result.stderr,
-                    'returncode': result.returncode
-                }
-            
-            self.sio.emit('command_response', {
-                'command_id': command_id,
-                'success': True,
-                'result': response_data if 'response_data' in locals() else result,
-                'timestamp': time.time()
-            })
-            
-        except subprocess.TimeoutExpired:
-            self.sio.emit('command_response', {
-                'command_id': command_id,
-                'success': False,
-                'error': 'Command timeout',
-                'timestamp': time.time()
-            })
-            
-        except Exception as e:
-            self.sio.emit('command_response', {
-                'command_id': command_id,
-                'success': False,
-                'error': str(e),
-                'timestamp': time.time()
-            })
     
     def handle_shareify_command(self, command):
         parts = command.split(' ', 1)
@@ -530,6 +477,11 @@ class ShareifyLocalClient:
             print(f"Making {method} request to: {full_url}")
             
             if not (url == '/resources' or url == 'resources' or url == '/is_up' or url == 'is_up' or url == '/user/get_self' or url == 'user/get_self' or url == 'user/login' or url == '/user/login'):
+                if self.sio.connected:
+                    self.sio.emit('command_response', {
+                        'command_id': command_id,
+                        'response': {'error': 'Not allowed (security reasons) to access this endpoint.'}
+                    })
                 return
 
             headers = {'Content-Type': 'application/json'}
@@ -547,51 +499,50 @@ class ShareifyLocalClient:
                 response = requests.delete(full_url, headers=headers, timeout=self.command_timeout)
             elif method.upper() == 'PATCH':
                 response = requests.patch(full_url, json=body, headers=headers, timeout=self.command_timeout)
+            elif method.upper() == 'HEAD':
+                response = requests.head(full_url, headers=headers, timeout=self.command_timeout)
+            elif method.upper() == 'OPTIONS':
+                response = requests.options(full_url, headers=headers, timeout=self.command_timeout)
             else:
                 raise ValueError(f"Unsupported HTTP method: {method}")
             
-            result_data = {
-                'status_code': response.status_code,
-                'headers': dict(response.headers),
-                'url': full_url,
-                'method': method.upper()
-            }
-            
+            print(f"Response Status: {response.status_code}")
+            print(f"Response Headers: {dict(response.headers)}")
+            print(f"Response Body: {response.text}")
+
+            # Only emit the raw response body (JSON or text)
             try:
-                result_data['json'] = response.json()
+                response_data = response.json()
             except json.JSONDecodeError:
-                result_data['text'] = response.text
+                response_data = response.text
+            print(response_data)
             
-            self.sio.emit('command_response', {
-                'command_id': command_id,
-                'success': response.status_code < 400,
-                'result': result_data,
-                'timestamp': time.time()
-            })
+            if self.sio.connected:
+                self.sio.emit('command_response', {
+                    'command_id': command_id,
+                    'response': response_data
+                })
             
         except requests.exceptions.Timeout:
-            self.sio.emit('command_response', {
-                'command_id': command_id,
-                'success': False,
-                'error': 'API request timeout',
-                'timestamp': time.time()
-            })
+            if self.sio.connected:
+                self.sio.emit('command_response', {
+                    'command_id': command_id,
+                    'response': {'error': 'API request timeout'}
+                })
             
         except requests.exceptions.ConnectionError:
-            self.sio.emit('command_response', {
-                'command_id': command_id,
-                'success': False,
-                'error': 'Failed to connect to local API server',
-                'timestamp': time.time()
-            })
+            if self.sio.connected:
+                self.sio.emit('command_response', {
+                    'command_id': command_id,
+                    'response': {'error': 'Failed to connect to local API server'}
+                })
             
         except Exception as e:
-            self.sio.emit('command_response', {
-                'command_id': command_id,
-                'success': False,
-                'error': str(e),
-                'timestamp': time.time()
-            })
+            if self.sio.connected:
+                self.sio.emit('command_response', {
+                    'command_id': command_id,
+                    'response': {'error': str(e)}
+                })
     
 def main():
     try:
