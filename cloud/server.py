@@ -15,8 +15,8 @@ from collections import defaultdict
 import threading
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
-app.config['SECRET_KEY'] = 'my-secret-key'
-app.config['JWT_SECRET_KEY'] = 'jwt-secret-key'
+app.config['SECRET_KEY'] = ''
+app.config['JWT_SECRET_KEY'] = ''
 app.config['JWT_EXPIRATION_HOURS'] = 24
 DASHBOARD_PASSWORD = "pass"
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
@@ -774,7 +774,7 @@ def get_command_responses():
 
 @app.route('/cloud', methods=['GET', 'POST'])
 def cloud():
-    return "Cloud Bridge API is running. Use the endpoints to interact with the cloud bridge."
+    return "hello"
     
 @app.route('/signup', methods=['POST'])
 def signup():
@@ -1015,12 +1015,24 @@ def disconnect_server(server_id):
         return jsonify({'error': 'Unauthorized'}), 401
     
     if server_id in connected_servers:
-        server_sid = connected_servers[server_id]['sid']
-        socketio.emit('disconnect_request', room=server_sid)
-        del connected_servers[server_id]
+        server_info = connected_servers[server_id]
+        server_sid = server_info.get('sid')
+        
+        try:
+            if server_sid:
+                socketio.emit('disconnect_request', {'reason': 'Manual disconnect'}, room=server_sid)
+                socketio.server.disconnect(server_sid)
+        except Exception as e:
+            print(f"Error disconnecting server {server_id}: {e}")
+        
+        try:
+            del connected_servers[server_id]
+        except KeyError:
+            pass
+        
         return jsonify({'success': True, 'message': f'Server {server_id} disconnected'})
     
-    return jsonify({'error': 'Server not found'}), 404
+    return jsonify({'error': 'Server not found or already disconnected'}), 404
 
 @app.route('/dashboard/database/sqlite')
 def view_sqlite_database():
@@ -1207,7 +1219,7 @@ DATABASE_TEMPLATE = '''
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; padding: 20px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; padding: 20px; max-width: 100vw; overflow-x: hidden; }
         .header { background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 14px; margin: 2px; }
         .btn-primary { background: #667eea; color: white; }
@@ -1216,15 +1228,15 @@ DATABASE_TEMPLATE = '''
         .btn-danger { background: #dc3545; color: white; }
         .btn-warning { background: #ffc107; color: black; }
         .btn-sm { padding: 4px 8px; font-size: 12px; }
-        .table-container { background: white; border-radius: 15px; margin-bottom: 20px; overflow: hidden; }
+        .table-container { background: white; border-radius: 15px; margin-bottom: 20px; overflow: hidden; max-width: 100%; }
         .table-header { background: #f8f9fa; padding: 15px; border-bottom: 1px solid #e9ecef; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
-        .editable-table { width: 100%; border-collapse: collapse; }
-        .editable-table th, .editable-table td { padding: 8px 12px; text-align: left; border: 1px solid #e9ecef; font-size: 12px; position: relative; }
+        .editable-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .editable-table th, .editable-table td { padding: 4px 8px; text-align: left; border: 1px solid #e9ecef; font-size: 11px; position: relative; word-wrap: break-word; overflow: hidden; }
         .editable-table th { background: #f8f9fa; font-weight: 600; }
         .editable-table tbody tr:hover { background: #f8f9fa; }
-        .editable-cell { border: none; background: transparent; width: 100%; padding: 4px; font-size: 12px; }
+        .editable-cell { border: none; background: transparent; width: 100%; padding: 2px; font-size: 11px; box-sizing: border-box; }
         .editable-cell:focus { background: white; border: 1px solid #667eea; outline: none; }
-        .row-actions { display: flex; gap: 4px; }
+        .row-actions { display: flex; gap: 4px; flex-wrap: wrap; }
         .query-box { background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; }
         .query-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-family: monospace; resize: vertical; }
         .result-box { background: white; padding: 20px; border-radius: 15px; margin-top: 20px; }
@@ -1235,7 +1247,12 @@ DATABASE_TEMPLATE = '''
         .form-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         .form-input { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; min-width: 100px; }
         .editing-row { background: #fff3cd !important; }
-        .table-wrapper { overflow-x: auto; max-height: 600px; }
+        .table-wrapper { overflow: auto; max-height: 400px; max-width: 100%; }
+        @media (max-width: 768px) {
+            .editable-table th, .editable-table td { font-size: 10px; padding: 2px 4px; }
+            .form-row { flex-direction: column; align-items: stretch; }
+            .form-input { margin-bottom: 5px; }
+        }
     </style>
 </head>
 <body>
@@ -1272,9 +1289,9 @@ DATABASE_TEMPLATE = '''
                 <thead>
                     <tr>
                         {% for column in table_info.columns %}
-                        <th>{{ column }}</th>
+                        <th style="width: {{ (100 / (table_info.columns|length + 1))|round }}%;">{{ column }}</th>
                         {% endfor %}
-                        <th>Actions</th>
+                        <th style="width: {{ (100 / (table_info.columns|length + 1))|round }}%;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1338,7 +1355,6 @@ DATABASE_TEMPLATE = '''
             const columns = Array.from(inputs).map(input => input.dataset.column);
             const newValues = Array.from(inputs).map(input => input.value);
             
-            // Build UPDATE query
             const setParts = columns.map((col, i) => `${col} = ?`).join(', ');
             const whereClause = columns.map((col, i) => `${col} = ?`).join(' AND ');
             const query = `UPDATE ${tableName} SET ${setParts} WHERE ${whereClause}`;
@@ -1464,7 +1480,7 @@ DATABASE_TEMPLATE = '''
                 
                 if (data.success) {
                     if (data.columns && data.rows) {
-                        let html = '<div style="overflow-x: auto;"><table class="editable-table"><thead><tr>';
+                        let html = '<div style="overflow: auto; max-height: 400px;"><table class="editable-table"><thead><tr>';
                         data.columns.forEach(col => html += '<th>' + col + '</th>');
                         html += '</tr></thead><tbody>';
                         data.rows.forEach(row => {

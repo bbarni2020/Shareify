@@ -344,8 +344,8 @@
             <h1>🚀 Shareify Cloud Dashboard</h1>
             <div class="header-actions">
                 <div class="user-info">
-                    <div class="user-avatar">A</div>
-                    <span>Admin User</span>
+                    <div class="user-avatar">B</div>
+                    <span>Barnabás</span>
                 </div>
                 <button onclick="logout()" class="btn btn-danger">Logout</button>
             </div>
@@ -360,7 +360,7 @@
             </div>
             <div class="stat-card">
                 <div class="stat-number" id="userCount">-</div>
-                <div class="stat-label">Total Users</div>
+                <div class="stat-label">Total Servers</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number" id="activeConnections">-</div>
@@ -459,7 +459,7 @@
                     <div class="server-card">
                         <div class="server-info" style="text-align: center; padding: 20px;">
                             <h3>No servers connected</h3>
-                            <p>Connect your first Shareify server to get started</p>
+                            <p>No servers connected currently</p>
                         </div>
                     </div>
                 `;
@@ -482,9 +482,6 @@
                         <div class="server-actions">
                             <button onclick="disconnectServer('${server.id}')" class="btn-small btn-danger">
                                 🔌 Disconnect
-                            </button>
-                            <button onclick="viewServerLogs('${server.id}')" class="btn-small btn-secondary">
-                                📋 Logs
                             </button>
                         </div>
                     </div>
@@ -520,10 +517,6 @@
             } catch (error) {
                 showAlert('Error disconnecting server: ' + error.message, 'error');
             }
-        }
-
-        function viewServerLogs(serverId) {
-            showAlert('Server logs feature coming soon!');
         }
 
         async function loadUserCount() {

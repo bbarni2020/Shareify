@@ -41,14 +41,14 @@ def save_cloud_config(config_data):
     with open(cloud_config_path, 'w') as f:
         json.dump(config_data, f, indent=2)
 
-DEFAULT_CLOUD_URL = "http://0.0.0.0:5698"
+DEFAULT_CLOUD_URL = "https://bridge.bbarni.hackclub.app"
 DEFAULT_SERVER_ID = None
 DEFAULT_SERVER_NAME = None
 DEFAULT_HEARTBEAT_INTERVAL = 30
 DEFAULT_COMMAND_TIMEOUT = 30
 
 class ShareifyLocalClient:
-    def __init__(self, cloud_url="http://0.0.0.0:5698", server_id=None, server_name=None, user_id=None, auth_token=None, username=None, password=None):
+    def __init__(self, cloud_url="https://bridge.bbarni.hackclub.app", server_id=None, server_name=None, user_id=None, auth_token=None, username=None, password=None):
         self.cloud_url = DEFAULT_CLOUD_URL
         
         self.cloud_config = load_cloud_config()
