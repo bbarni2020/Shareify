@@ -5,3 +5,5 @@ host/db/logs.db-wal
 host/settings/settings.json
 *.db
 *.DS_Store
+/shareify_env
+/venv
