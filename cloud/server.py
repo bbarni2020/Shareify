@@ -8,6 +8,7 @@ import hashlib
 import bcrypt
 import jwt
 import sqlite3
+import requests
 import threading
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict
@@ -616,7 +617,7 @@ def list_user_servers(auth_token):
 
 @app.route('/cloud/command', methods=['GET', 'POST'])
 def execute_command_on_all_servers():
-    shareify_jwt = request.headers.get('shareify_jwt')
+    shareify_jwt = request.headers.get('X-Shareify-JWT')
     
     jwt_token = request.headers.get('Authorization')
     if jwt_token and jwt_token.startswith('Bearer '):
@@ -771,6 +772,10 @@ def get_command_responses():
         'responses': responses
     })
 
+@app.route('/cloud', methods=['GET', 'POST'])
+def cloud():
+    return "Cloud Bridge API is running. Use the endpoints to interact with the cloud bridge."
+    
 @app.route('/signup', methods=['POST'])
 def signup():
     if not check_rate_limit(request.environ.get('REMOTE_ADDR', 'unknown'), max_requests=5, window_minutes=10):
