@@ -13,6 +13,7 @@ struct OnboardingView: View {
     @State private var animationOpacity: Double = 0
     @State private var logoScale: CGFloat = 0.8
     @Binding var isOnboardingComplete: Bool
+    @StateObject private var backgroundManager = BackgroundManager.shared
     
     let steps = [
         OnboardingStep(
@@ -186,7 +187,7 @@ struct OnboardingView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
                 GeometryReader { geometry in
-                    AsyncImage(url: URL(string: "https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/ios_app/background/back1.png")) { image in
+                    AsyncImage(url: URL(string: backgroundManager.backgroundURL)) { image in
                         image
                             .resizable()
                             .aspectRatio(contentMode: .fill)

@@ -16,6 +16,7 @@ struct ServerLogin: View {
     @State private var navigateToHome = false
     @State private var loginCardOpacity: Double = 0
     @State private var loginCardOffset: CGFloat = 50
+    @StateObject private var backgroundManager = BackgroundManager.shared
     
     var body: some View {
         if navigateToHome {
@@ -153,7 +154,7 @@ struct ServerLogin: View {
         }
         .background(
             GeometryReader { geometry in
-                AsyncImage(url: URL(string: "https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/ios_app/background/back1.png")) { image in
+                AsyncImage(url: URL(string: backgroundManager.backgroundURL)) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)

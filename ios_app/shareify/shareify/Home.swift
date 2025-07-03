@@ -23,8 +23,11 @@ struct Home: View {
     @State private var hasServerError = false
     @State private var showStatusPopup = false
     @State private var lastSuccessfulCall: Date?
+    @State private var showSettings = false
+    @StateObject private var backgroundManager = BackgroundManager.shared
     
     var body: some View {
+        NavigationStack {
         GeometryReader { geometry in
             VStack(spacing: 0) {  
                 HStack(alignment: .center, spacing: 10) {
@@ -56,18 +59,22 @@ struct Home: View {
                     }
                     Spacer()
                     Button(action: {
-                        logout()
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                        impactFeedback.impactOccurred()
+                        showSettings = true
                     }) {
                         Rectangle()
                           .foregroundColor(.clear)
                           .frame(width: 50, height: 50)
                           .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
                           .overlay(
-                            Image(systemName: "power")
+                            Text("U")
                                 .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(Color.red)
+                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
                           )
+                          .scaleEffect(1.0)
                     }
+
                 }
                 .opacity(topBarOpacity)
                 .offset(y: topBarOffset)
@@ -132,13 +139,16 @@ struct Home: View {
                             Spacer()
                         }
                         .padding(.horizontal, min(containerGeometry.size.width * 0.05, 20))
-                    }
-                  )
+                    }                    )
             }
+        }
+        .navigationDestination(isPresented: $showSettings) {
+            Settings()
+                .navigationBarBackButtonHidden(true)
         }
         .background(
             GeometryReader { geometry in
-                AsyncImage(url: URL(string: "https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/ios_app/background/back1.png")) { image in
+                AsyncImage(url: URL(string: backgroundManager.backgroundURL)) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -232,6 +242,7 @@ struct Home: View {
             }
         )
         .animation(.spring(response: 0.6, dampingFraction: 0.8), value: showStatusPopup)
+        }
     }
     
     private func resetServerErrorState() {
@@ -307,7 +318,7 @@ struct Home: View {
                         }
                     }
                 }
-            case .failure(let error):
+            case .failure(_):
                 withAnimation(.easeInOut(duration: 0.3)) {
                     hasServerError = true
                     isFlickering = false
@@ -363,7 +374,7 @@ struct Home: View {
                     }
                 }
                 
-            case .failure(let error):
+            case .failure(_):
                 withAnimation(.easeInOut(duration: 0.3)) {
                     hasServerError = true
                     isFlickering = false

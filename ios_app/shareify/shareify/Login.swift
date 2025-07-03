@@ -19,6 +19,7 @@ struct Login: View {
     @State private var showAppLoad = true
     @State private var loginCardOpacity: Double = 0
     @State private var loginCardOffset: CGFloat = 50
+    @StateObject private var backgroundManager = BackgroundManager.shared
     
     var body: some View {
         if showAppLoad {
@@ -153,7 +154,7 @@ struct Login: View {
         }
         .background(
             GeometryReader { geometry in
-                AsyncImage(url: URL(string: "https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/ios_app/background/back1.png")) { image in
+                AsyncImage(url: URL(string: backgroundManager.backgroundURL)) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
