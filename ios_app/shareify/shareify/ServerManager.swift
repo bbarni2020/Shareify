@@ -155,11 +155,17 @@ class ServerManager: ObservableObject {
                     switch result {
                     case .success(_):
                         print("DEBUG: Re-authentication successful, retrying original command: \(originalCommand)")
-                        // Retry the original command
                         self.executeServerCommand(command: originalCommand, method: originalMethod, body: originalBody, completion: completion)
                     case .failure(let error):
                         print("DEBUG: Re-authentication failed: \(error)")
-                        completion(.failure(ServerError.serverError(errorMessage)))
+                        if let serverError = error as? ServerError,
+                           case .serverError(let message) = serverError,
+                           message.lowercased().contains("unauthorized") {
+                            NotificationCenter.default.post(name: NSNotification.Name("RedirectToLogin"), object: nil)
+                        } else {
+                            NotificationCenter.default.post(name: NSNotification.Name("ShowServerError"), object: nil)
+                        }
+                        completion(.failure(error))
                     }
                 }
             } else {
@@ -168,6 +174,7 @@ class ServerManager: ObservableObject {
             }
         } else {
             print("DEBUG: Non-auth error, passing through: \(errorMessage)")
+            NotificationCenter.default.post(name: NSNotification.Name("ShowServerError"), object: nil)
             completion(.failure(ServerError.serverError(errorMessage)))
         }
     }

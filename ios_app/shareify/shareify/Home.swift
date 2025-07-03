@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 struct Home: View {
     @State private var isFlickering = false
@@ -19,31 +20,40 @@ struct Home: View {
     @State private var mainCardOffset: CGFloat = 50
     @State private var navigateToLogin = false
     @State private var logs: [ServerLogEntry] = []
+    @State private var hasServerError = false
+    @State private var showStatusPopup = false
+    @State private var lastSuccessfulCall: Date?
     
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {  
                 HStack(alignment: .center, spacing: 10) {
-                    Rectangle()
-                        .foregroundColor(.clear)
-                        .frame(width: 238 * (50 / 62), height: 50)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
-                        .overlay(
-                            HStack(spacing: 10) {
-                                Circle()
-                                    .fill(Color(red: 0x6F/255, green: 0xE6/255, blue: 0x8A/255))
-                                    .frame(width: 13, height: 13)
-                                    .opacity(isFlickering ? 0.0 : 1.0)
-                                    .animation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true), value: isFlickering)
-                                    .onAppear {
-                                        isFlickering = true
-                                    }
-                                Text("Shareify 2.")
-                                    .foregroundColor(Color(red: 0x6F/255, green: 0xE6/255, blue: 0x8A/255))
-                                    .font(.system(size: 16, weight: .medium))
-                            }
-                            .frame(maxWidth: .infinity)
-                        )
+                    Button(action: {
+                        showStatusPopup = true
+                    }) {
+                        Rectangle()
+                            .foregroundColor(.clear)
+                            .frame(width: 238 * (50 / 62), height: 50)
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
+                            .overlay(
+                                HStack(spacing: 10) {
+                                    Circle()
+                                        .fill(hasServerError ? Color.red : Color(red: 0x6F/255, green: 0xE6/255, blue: 0x8A/255))
+                                        .frame(width: 13, height: 13)
+                                        .opacity(hasServerError ? 1.0 : (isFlickering ? 0.0 : 1.0))
+                                        .animation(hasServerError ? .none : .easeInOut(duration: 1.8).repeatForever(autoreverses: true), value: isFlickering)
+                                        .onAppear {
+                                            if !hasServerError {
+                                                isFlickering = true
+                                            }
+                                        }
+                                    Text("Shareify 2.")
+                                        .foregroundColor(hasServerError ? Color.red : Color(red: 0x6F/255, green: 0xE6/255, blue: 0x8A/255))
+                                        .font(.system(size: 16, weight: .medium))
+                                }
+                                .frame(maxWidth: .infinity)
+                            )
+                    }
                     Spacer()
                     Button(action: {
                         logout()
@@ -147,6 +157,95 @@ struct Home: View {
         .fullScreenCover(isPresented: $navigateToLogin) {
             Login()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("RedirectToLogin"))) { _ in
+            navigateToLogin = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowServerError"))) { _ in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                hasServerError = true
+                isFlickering = false
+            }
+        }
+        .overlay(
+            Group {
+                if showStatusPopup {
+                    Color.black.opacity(0.3)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            showStatusPopup = false
+                        }
+                    
+                    VStack(spacing: 20) {
+                        HStack {
+                            Text("Server Status")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
+                            Spacer()
+                            Button(action: {
+                                showStatusPopup = false
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.5))
+                            }
+                        }
+                        
+                        VStack(spacing: 15) {
+                            HStack(spacing: 10) {
+                                Circle()
+                                    .fill(hasServerError ? Color.red : Color(red: 0x6F/255, green: 0xE6/255, blue: 0x8A/255))
+                                    .frame(width: 12, height: 12)
+                                
+                                Text(hasServerError ? "Your Shareify server isn't running or isn't accessible from the internet" : "Your Shareify server is accessible and running fine")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(hasServerError ? Color.red : Color(red: 0x6F/255, green: 0xE6/255, blue: 0x8A/255))
+                                    .multilineTextAlignment(.leading)
+                                Spacer()
+                            }
+                            
+                            if let lastCall = lastSuccessfulCall {
+                                HStack {
+                                    Text("Last successful call:")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.7))
+                                    Spacer()
+                                    Text(formatDate(lastCall))
+                                        .font(.system(size: 14, weight: .medium, design: .monospaced))
+                                        .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
+                                }
+                            } else {
+                                HStack {
+                                    Text("No successful calls yet")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.7))
+                                    Spacer()
+                                }
+                            }
+                        }
+                    }
+                    .padding(25)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+                    .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                    .padding(.horizontal, 40)
+                    .transition(.scale.combined(with: .opacity))
+                }
+            }
+        )
+        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: showStatusPopup)
+    }
+    
+    private func resetServerErrorState() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            hasServerError = false
+            isFlickering = true
+        }
+        lastSuccessfulCall = Date()
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM/dd HH:mm:ss"
+        return formatter.string(from: date)
     }
     
     private func logout() {
@@ -190,6 +289,7 @@ struct Home: View {
             switch result {
             case .success(let response):
                 print("DEBUG: Resources loaded successfully")
+                resetServerErrorState()
                 DispatchQueue.main.async {
                     if let responseDict = response as? [String: Any] {
                         if let cpu = responseDict["cpu"] as? Int {
@@ -210,7 +310,11 @@ struct Home: View {
                     }
                 }
             case .failure(let error):
-                print("DEBUG: Logs loading failed with error: \(error)")
+                print("DEBUG: Resources loading failed with error: \(error)")
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    hasServerError = true
+                    isFlickering = false
+                }
                 break
             }
         }
@@ -223,6 +327,7 @@ struct Home: View {
             switch result {
             case .success(let response):
                 print("DEBUG: Logs loaded successfully")
+                resetServerErrorState()
                 var logsArray: [[String: Any]] = []
                 
                 if let directArray = response as? [[String: Any]] {
@@ -264,7 +369,11 @@ struct Home: View {
                 }
                 
             case .failure(let error):
-                print("DEBUG: Resources loading failed with error: \(error)")
+                print("DEBUG: Logs loading failed with error: \(error)")
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    hasServerError = true
+                    isFlickering = false
+                }
                 break
             }
         }
