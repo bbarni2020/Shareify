@@ -284,11 +284,9 @@ struct Home: View {
     }
     
     private func loadResources() {
-        print("DEBUG: Home.loadResources() called")
         ServerManager.shared.executeServerCommand(command: "/resources", method: "GET") { result in
             switch result {
             case .success(let response):
-                print("DEBUG: Resources loaded successfully")
                 resetServerErrorState()
                 DispatchQueue.main.async {
                     if let responseDict = response as? [String: Any] {
@@ -310,7 +308,6 @@ struct Home: View {
                     }
                 }
             case .failure(let error):
-                print("DEBUG: Resources loading failed with error: \(error)")
                 withAnimation(.easeInOut(duration: 0.3)) {
                     hasServerError = true
                     isFlickering = false
@@ -321,12 +318,10 @@ struct Home: View {
     }
     
     private func loadLogs() {
-        print("DEBUG: Home.loadLogs() called")
         let requestBody = ["wait_time": 5]
         ServerManager.shared.executeServerCommand(command: "/get_logs", method: "GET", body: requestBody) { result in
             switch result {
             case .success(let response):
-                print("DEBUG: Logs loaded successfully")
                 resetServerErrorState()
                 var logsArray: [[String: Any]] = []
                 
@@ -369,7 +364,6 @@ struct Home: View {
                 }
                 
             case .failure(let error):
-                print("DEBUG: Logs loading failed with error: \(error)")
                 withAnimation(.easeInOut(duration: 0.3)) {
                     hasServerError = true
                     isFlickering = false
