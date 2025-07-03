@@ -212,7 +212,7 @@ struct Login: View {
     }
     
     private func performLogin() {
-        guard let url = URL(string: "http://localhost:5698/login") else {
+        guard let url = URL(string: "https://bridge.bbarni.hackclub.app/login") else {
             handleLoginError("Invalid server URL")
             return
         }

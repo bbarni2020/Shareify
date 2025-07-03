@@ -21,7 +21,10 @@ def cloud_full(base_url, jwt_token, command, method, shareify_jwt, wait_time, bo
         "body": body
     }
 
+    print(payload)
+
     r = requests.post(f"{base_url}/cloud/command", json=payload, headers=headers)
+    print(r.text)
     command_ids = r.json().get("command_ids", [])
     
     if not command_ids:
@@ -41,21 +44,28 @@ def cloud_full(base_url, jwt_token, command, method, shareify_jwt, wait_time, bo
         else:
             return command_response
 
-@app.route('/', methods=['GET'])
+@app.route('/', methods=['POST'])
 def index():
     try:
-        if request.method == 'POST':
-            data = request.get_json() or {}
-        else:
-            data = request.args.to_dict()
+        data = request.get_json() or {}
         
         base_url = 'https://bridge.bbarni.hackclub.app'
+        
         jwt_token = data.get('jwt_token')
+        if not jwt_token:
+            auth_header = request.headers.get('Authorization', '')
+            if auth_header.startswith('Bearer '):
+                jwt_token = auth_header[7:]
+        
+        shareify_jwt = data.get('shareify_jwt')
+        if not shareify_jwt:
+            shareify_jwt = request.headers.get('X-Shareify-JWT')
+        
         command = data.get('command')
         method = data.get('method')
-        shareify_jwt = data.get('shareify_jwt')
         wait_time = int(data.get('wait_time', 2))
         body = data.get('body', {})
+        
         result = cloud_full(base_url, jwt_token, command, method, shareify_jwt, wait_time, body)
         
         return jsonify(result)
@@ -67,3 +77,5 @@ def index():
         }), 500
 
 application = app
+
+application.run(port=25841, host='0.0.0.0')
