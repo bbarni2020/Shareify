@@ -18,6 +18,7 @@ struct Home: View {
     @State private var mainCardOpacity: Double = 0
     @State private var mainCardOffset: CGFloat = 50
     @State private var navigateToLogin = false
+    @State private var logs: [ServerLogEntry] = []
     
     var body: some View {
         GeometryReader { geometry in
@@ -100,6 +101,8 @@ struct Home: View {
                             .onAppear {
                                 startLoadingAnimation()
                                 startValueUpdates()
+                                loadResources()
+                                loadLogs()
                             }
                             
                             Spacer().frame(height: min(containerGeometry.size.height * 0.05, 30))
@@ -112,7 +115,7 @@ struct Home: View {
                             }
                             .padding(.bottom, min(containerGeometry.size.height * 0.02, 10))
                             
-                            LogsTableView()
+                            LogsTableView(logs: logs)
                                 .frame(maxHeight: min(containerGeometry.size.height * 0.6, 250))
                             
                             Spacer()
@@ -171,20 +174,110 @@ struct Home: View {
     
     private func startLoadingAnimation() {
         withAnimation(.easeInOut(duration: 2.0)) {
-            cpuValue = 45
-            memoryValue = 67
-            diskValue = 23
             isLoaded = true
         }
     }
     
     private func startValueUpdates() {
-        Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
-            withAnimation(.easeInOut(duration: 1.5)) {
-                cpuValue = Double.random(in: 15...85)
-                memoryValue = Double.random(in: 30...90)
-                diskValue = Double.random(in: 10...70)
+        Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
+            loadResources()
+        }
+    }
+    
+    private func loadResources() {
+        ServerManager.shared.executeServerCommand(command: "/resources", method: "GET") { result in
+            switch result {
+            case .success(let response):
+                DispatchQueue.main.async {
+                    if let responseDict = response as? [String: Any] {
+                        if let cpu = responseDict["cpu"] as? Int {
+                            withAnimation(.easeInOut(duration: 1.5)) {
+                                self.cpuValue = Double(cpu)
+                            }
+                        }
+                        if let memory = responseDict["memory"] as? Int {
+                            withAnimation(.easeInOut(duration: 1.5)) {
+                                self.memoryValue = Double(memory)
+                            }
+                        }
+                        if let disk = responseDict["disk"] as? Int {
+                            withAnimation(.easeInOut(duration: 1.5)) {
+                                self.diskValue = Double(disk)
+                            }
+                        }
+                    }
+                }
+                print("Resources loaded successfully: \(response)")
+            case .failure(let error):
+                print("Failed to load resources: \(error.localizedDescription)")
             }
+        }
+    }
+    
+    private func loadLogs() {
+        let requestBody = ["wait_time": 5]
+        ServerManager.shared.executeServerCommand(command: "/get_logs", method: "GET", body: requestBody) { result in
+            switch result {
+            case .success(let response):
+                print("Raw logs response: \(response)")
+                
+                var logsArray: [[String: Any]] = []
+                
+                if let directArray = response as? [[String: Any]] {
+                    logsArray = directArray
+                } else if let responseDict = response as? [String: Any],
+                          let nestedArray = responseDict["logs"] as? [[String: Any]] {
+                    logsArray = nestedArray
+                }
+                
+                let serverLogs = logsArray.compactMap { logDict -> ServerLogEntry? in
+                    guard let action = logDict["action"] as? String,
+                          let timestamp = logDict["timestamp"] as? String,
+                          let id = logDict["id"] as? Int,
+                          let ip = logDict["ip"] as? String else {
+                        return nil
+                    }
+                    
+                    let dateFormatter = DateFormatter()
+                    dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+                    
+                    let displayDateTime: String
+                    if let date = dateFormatter.date(from: timestamp) {
+                        let displayFormatter = DateFormatter()
+                        displayFormatter.dateFormat = "MM/dd HH:mm:ss"
+                        displayDateTime = displayFormatter.string(from: date)
+                    } else {
+                        displayDateTime = timestamp
+                    }
+                    
+                    let level = determineLogLevel(action: action)
+                    
+                    return ServerLogEntry(time: displayDateTime, action: action, ipAddress: ip, level: level, id: id)
+                }
+                
+                DispatchQueue.main.async {
+                    withAnimation(.easeInOut(duration: 0.5)) {
+                        self.logs = serverLogs
+                    }
+                }
+                
+                print("Parsed \(serverLogs.count) logs")
+            case .failure(let error):
+                print("Failed to load logs: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func determineLogLevel(action: String) -> LogLevel {
+        let lowercasedAction = action.lowercased()
+        if lowercasedAction.contains("error") || lowercasedAction.contains("unauthorized") || lowercasedAction.contains("failed") {
+            return .error
+        } else if lowercasedAction.contains("warning") || lowercasedAction.contains("attempt") {
+            return .warning
+        } else if lowercasedAction.contains("logged in") || lowercasedAction.contains("success") {
+            return .success
+        } else {
+            return .info
         }
     }
 }
@@ -235,6 +328,14 @@ struct SpeedometerView: View {
     }
 }
 
+struct ServerLogEntry {
+    let time: String
+    let action: String
+    let ipAddress: String
+    let level: LogLevel
+    let id: Int
+}
+
 struct LogEntry {
     let time: String
     let action: String
@@ -273,22 +374,15 @@ enum LogLevel {
 }
 
 struct LogsTableView: View {
-    private let sampleLogs = [
-        LogEntry(time: "14:32:18", action: "Server started", ipAddress: "127.0.0.1", level: .success),
-        LogEntry(time: "14:32:25", action: "Client connected", ipAddress: "192.168.1.100", level: .info),
-        LogEntry(time: "14:33:02", action: "File uploaded", ipAddress: "192.168.1.105", level: .success),
-        LogEntry(time: "14:33:15", action: "Authentication failed", ipAddress: "192.168.1.200", level: .warning),
-        LogEntry(time: "14:33:28", action: "Connection timeout", ipAddress: "10.0.0.50", level: .error),
-        LogEntry(time: "14:34:01", action: "File downloaded", ipAddress: "192.168.1.100", level: .info)
-    ]
+    let logs: [ServerLogEntry]
     
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                Text("Time")
+                Text("Date & Time")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.8))
-                    .frame(width: 60, alignment: .leading)
+                    .frame(width: 100, alignment: .leading)
                 
                 Text("Action")
                     .font(.system(size: 12, weight: .semibold))
@@ -304,33 +398,44 @@ struct LogsTableView: View {
             .padding(.vertical, 8)
             .background(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.08))
             
-            ScrollView {
-                LazyVStack(spacing: 1) {
-                    ForEach(Array(sampleLogs.enumerated()), id: \.offset) { index, log in
-                        HStack(spacing: 12) {
-                            Text(log.time)
-                                .font(.system(size: 12, weight: .medium, design: .monospaced))
-                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.7))
-                                .frame(width: 60, alignment: .leading)
-                            
-                            Text(log.action)
-                                .font(.system(size: 13, weight: .regular))
-                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .lineLimit(1)
-                            
-                            Text(log.ipAddress)
-                                .font(.system(size: 12, weight: .medium, design: .monospaced))
-                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.6))
-                                .frame(width: 100, alignment: .trailing)
+            if logs.isEmpty {
+                VStack {
+                    Spacer()
+                    Text("Loading logs...")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.6))
+                    Spacer()
+                }
+                .frame(height: 100)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 1) {
+                        ForEach(Array(logs.enumerated()), id: \.element.id) { index, log in
+                            HStack(spacing: 12) {
+                                Text(log.time)
+                                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                    .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.7))
+                                    .frame(width: 100, alignment: .leading)
+                                
+                                Text(log.action)
+                                    .font(.system(size: 13, weight: .regular))
+                                    .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .lineLimit(1)
+                                
+                                Text(log.ipAddress)
+                                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                                    .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.6))
+                                    .frame(width: 100, alignment: .trailing)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(
+                                index % 2 == 0 
+                                ? Color.clear 
+                                : Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.02)
+                            )
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            index % 2 == 0 
-                            ? Color.clear 
-                            : Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.02)
-                        )
                     }
                 }
             }

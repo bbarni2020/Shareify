@@ -488,7 +488,7 @@ class ShareifyLocalClient:
             
             print(f"Making {method} request to: {full_url}")
             
-            if not (url == '/resources' or url == 'resources' or url == '/is_up' or url == 'is_up' or url == '/user/get_self' or url == 'user/get_self' or url == 'user/login' or url == '/user/login'):
+            if not (url == '/resources' or url == 'resources' or url == '/is_up' or url == 'is_up' or url == '/user/get_self' or url == 'user/get_self' or url == 'user/login' or url == '/user/login' or url == '/get_logs'):
                 if self.sio.connected:
                     try:
                         self.sio.emit('command_response', {
@@ -520,10 +520,6 @@ class ShareifyLocalClient:
                 response = requests.options(full_url, headers=headers, timeout=self.command_timeout)
             else:
                 raise ValueError(f"Unsupported HTTP method: {method}")
-            
-            print(f"Response Status: {response.status_code}")
-            print(f"Response Headers: {dict(response.headers)}")
-            print(f"Response Body: {response.text}")
 
             try:
                 response_data = response.json()

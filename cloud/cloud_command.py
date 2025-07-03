@@ -77,5 +77,3 @@ def index():
         }), 500
 
 application = app
-
-application.run(port=25841, host='0.0.0.0')

@@ -12,7 +12,7 @@ class ServerManager: ObservableObject {
     
     private init() {}
     
-    func executeServerCommand(command: String, method: String = "GET", body: [String: Any] = [:], completion: @escaping (Result<[String: Any], Error>) -> Void) {
+    func executeServerCommand(command: String, method: String = "GET", body: [String: Any] = [:], completion: @escaping (Result<Any, Error>) -> Void) {
         
         print("ServerManager: Executing command: \(command) with method: \(method)")
         print("ServerManager: Request body: \(body)")
@@ -25,7 +25,7 @@ class ServerManager: ObservableObject {
         
         print("ServerManager: JWT token found: \(jwtToken.prefix(20))...")
         
-        guard let url = URL(string: "http://localhost:25841/") else {
+        guard let url = URL(string: "https://command.bbarni.hackclub.app/") else {
             print("ServerManager: Invalid URL")
             completion(.failure(ServerError.invalidURL))
             return
@@ -34,7 +34,7 @@ class ServerManager: ObservableObject {
         print("ServerManager: Making request to: \(url.absoluteString)")
         
         var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
         
@@ -99,12 +99,13 @@ class ServerManager: ObservableObject {
                 }
                 
                 do {
-                    if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                        print("ServerManager: Parsed JSON response: \(json)")
-                        
-                        if let success = json["success"] as? Bool, !success {
-                            let errorMessage = json["error"] as? String ?? "Unknown server error"
-                            let timestamp = json["timestamp"] as? String ?? "Unknown time"
+                    let json = try JSONSerialization.jsonObject(with: data)
+                    print("ServerManager: Parsed JSON response: \(json)")
+                    
+                    if let jsonDict = json as? [String: Any] {
+                        if let success = jsonDict["success"] as? Bool, !success {
+                            let errorMessage = jsonDict["error"] as? String ?? "Unknown server error"
+                            let timestamp = jsonDict["timestamp"] as? String ?? "Unknown time"
                             print("ServerManager: Server returned error - Message: \(errorMessage), Timestamp: \(timestamp)")
                             completion(.failure(ServerError.serverError(errorMessage)))
                             return
@@ -112,11 +113,19 @@ class ServerManager: ObservableObject {
                         
                         if httpResponse.statusCode == 200 {
                             print("ServerManager: Request successful, returning response")
-                            completion(.success(json))
+                            completion(.success(jsonDict))
                         } else {
-                            let errorMessage = json["error"] as? String ?? "Unknown server error"
+                            let errorMessage = jsonDict["error"] as? String ?? "Unknown server error"
                             print("ServerManager: HTTP error \(httpResponse.statusCode): \(errorMessage)")
                             completion(.failure(ServerError.serverError(errorMessage)))
+                        }
+                    } else if json is [Any] {
+                        if httpResponse.statusCode == 200 {
+                            print("ServerManager: Request successful, returning array response")
+                            completion(.success(json))
+                        } else {
+                            print("ServerManager: HTTP error \(httpResponse.statusCode) with array response")
+                            completion(.failure(ServerError.serverError("HTTP \(httpResponse.statusCode)")))
                         }
                     } else {
                         print("ServerManager: Failed to parse JSON response")
@@ -145,7 +154,13 @@ class ServerManager: ObservableObject {
             case .success(let response):
                 print("ServerManager: Login successful, response: \(response)")
                 
-                if let token = response["token"] as? String {
+                guard let responseDict = response as? [String: Any] else {
+                    print("ServerManager: Login response is not a dictionary")
+                    completion(.failure(ServerError.invalidJSONResponse))
+                    return
+                }
+                
+                if let token = responseDict["token"] as? String {
                     print("ServerManager: JWT token received: \(token.prefix(20))...")
                     UserDefaults.standard.set(token, forKey: "shareify_jwt")
                     UserDefaults.standard.synchronize()
@@ -154,15 +169,15 @@ class ServerManager: ObservableObject {
                     print("ServerManager: Warning - No token found in successful response")
                 }
                 
-                completion(.success(response))
+                completion(.success(responseDict))
                 
             case .failure(let error):
                 print("ServerManager: Login failed with error: \(error.localizedDescription)")
                 completion(.failure(error))
             }
+            }
         }
     }
-}
 
 enum ServerError: LocalizedError {
     case noJWTToken
