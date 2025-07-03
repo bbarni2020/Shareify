@@ -185,9 +185,11 @@ struct Home: View {
     }
     
     private func loadResources() {
+        print("DEBUG: Home.loadResources() called")
         ServerManager.shared.executeServerCommand(command: "/resources", method: "GET") { result in
             switch result {
             case .success(let response):
+                print("DEBUG: Resources loaded successfully")
                 DispatchQueue.main.async {
                     if let responseDict = response as? [String: Any] {
                         if let cpu = responseDict["cpu"] as? Int {
@@ -207,20 +209,20 @@ struct Home: View {
                         }
                     }
                 }
-                print("Resources loaded successfully: \(response)")
             case .failure(let error):
-                print("Failed to load resources: \(error.localizedDescription)")
+                print("DEBUG: Logs loading failed with error: \(error)")
+                break
             }
         }
     }
     
     private func loadLogs() {
+        print("DEBUG: Home.loadLogs() called")
         let requestBody = ["wait_time": 5]
         ServerManager.shared.executeServerCommand(command: "/get_logs", method: "GET", body: requestBody) { result in
             switch result {
             case .success(let response):
-                print("Raw logs response: \(response)")
-                
+                print("DEBUG: Logs loaded successfully")
                 var logsArray: [[String: Any]] = []
                 
                 if let directArray = response as? [[String: Any]] {
@@ -261,9 +263,9 @@ struct Home: View {
                     }
                 }
                 
-                print("Parsed \(serverLogs.count) logs")
             case .failure(let error):
-                print("Failed to load logs: \(error.localizedDescription)")
+                print("DEBUG: Resources loading failed with error: \(error)")
+                break
             }
         }
     }

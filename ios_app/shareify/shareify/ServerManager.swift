@@ -14,24 +14,19 @@ class ServerManager: ObservableObject {
     
     func executeServerCommand(command: String, method: String = "GET", body: [String: Any] = [:], completion: @escaping (Result<Any, Error>) -> Void) {
         
-        print("ServerManager: Executing command: \(command) with method: \(method)")
-        print("ServerManager: Request body: \(body)")
+        print("DEBUG: executeServerCommand called - command: \(command), method: \(method)")
         
         guard let jwtToken = UserDefaults.standard.string(forKey: "jwt_token"), !jwtToken.isEmpty else {
-            print("ServerManager: JWT token not found in UserDefaults")
+            print("DEBUG: No JWT token found")
             completion(.failure(ServerError.noJWTToken))
             return
         }
         
-        print("ServerManager: JWT token found: \(jwtToken.prefix(20))...")
-        
         guard let url = URL(string: "https://command.bbarni.hackclub.app/") else {
-            print("ServerManager: Invalid URL")
+            print("DEBUG: Invalid URL")
             completion(.failure(ServerError.invalidURL))
             return
         }
-        
-        print("ServerManager: Making request to: \(url.absoluteString)")
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -39,10 +34,10 @@ class ServerManager: ObservableObject {
         request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
         
         if let shareifyJWT = UserDefaults.standard.string(forKey: "shareify_jwt"), !shareifyJWT.isEmpty {
-            print("ServerManager: Adding X-Shareify-JWT header: \(shareifyJWT.prefix(20))...")
+            print("DEBUG: Adding shareify JWT header")
             request.setValue(shareifyJWT, forHTTPHeaderField: "X-Shareify-JWT")
         } else {
-            print("ServerManager: No Shareify JWT found in UserDefaults")
+            print("DEBUG: No shareify JWT found")
         }
         
         var requestBody: [String: Any] = [
@@ -55,128 +50,229 @@ class ServerManager: ObservableObject {
             requestBody["body"] = body
         }
         
-        print("ServerManager: Full request body: \(requestBody)")
+        print("DEBUG: Request body: \(requestBody)")
         
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-            print("ServerManager: Request body serialized successfully")
         } catch {
-            print("ServerManager: Failed to serialize request body: \(error.localizedDescription)")
+            print("DEBUG: Failed to serialize request body: \(error)")
             completion(.failure(error))
             return
         }
         
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
-                print("ServerManager: Request completed for command: \(command)")
-                
                 if let error = error {
-                    print("ServerManager: Network error occurred: \(error.localizedDescription)")
+                    print("DEBUG: Network error: \(error)")
                     completion(.failure(error))
                     return
                 }
                 
                 guard let httpResponse = response as? HTTPURLResponse else {
-                    print("ServerManager: Invalid HTTP response received")
+                    print("DEBUG: Invalid HTTP response")
                     completion(.failure(ServerError.invalidResponse))
                     return
                 }
                 
-                print("ServerManager: HTTP Status Code: \(httpResponse.statusCode)")
+                print("DEBUG: HTTP status code: \(httpResponse.statusCode)")
                 
                 guard let data = data else {
-                    print("ServerManager: No data received from server")
+                    print("DEBUG: No data received")
                     completion(.failure(ServerError.noData))
                     return
                 }
                 
-                print("ServerManager: Received data length: \(data.count) bytes")
-                
                 if let responseString = String(data: data, encoding: .utf8) {
-                    print("ServerManager: Raw cloud response: \(responseString)")
-                } else {
-                    print("ServerManager: Unable to convert response data to string")
+                    print("DEBUG: Raw response: \(responseString)")
                 }
                 
                 do {
                     let json = try JSONSerialization.jsonObject(with: data)
-                    print("ServerManager: Parsed JSON response: \(json)")
+                    print("DEBUG: Parsed JSON: \(json)")
                     
                     if let jsonDict = json as? [String: Any] {
+                        if let errorMessage = jsonDict["error"] as? String {
+                            print("DEBUG: Server error detected: \(errorMessage)")
+                            self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, completion: completion)
+                            return
+                        }
+                        
                         if let success = jsonDict["success"] as? Bool, !success {
                             let errorMessage = jsonDict["error"] as? String ?? "Unknown server error"
-                            let timestamp = jsonDict["timestamp"] as? String ?? "Unknown time"
-                            print("ServerManager: Server returned error - Message: \(errorMessage), Timestamp: \(timestamp)")
-                            completion(.failure(ServerError.serverError(errorMessage)))
+                            print("DEBUG: Server error detected: \(errorMessage)")
+                            self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, completion: completion)
                             return
                         }
                         
                         if httpResponse.statusCode == 200 {
-                            print("ServerManager: Request successful, returning response")
+                            print("DEBUG: Request successful")
                             completion(.success(jsonDict))
                         } else {
                             let errorMessage = jsonDict["error"] as? String ?? "Unknown server error"
-                            print("ServerManager: HTTP error \(httpResponse.statusCode): \(errorMessage)")
-                            completion(.failure(ServerError.serverError(errorMessage)))
+                            print("DEBUG: HTTP error with message: \(errorMessage)")
+                            self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, completion: completion)
                         }
                     } else if json is [Any] {
                         if httpResponse.statusCode == 200 {
-                            print("ServerManager: Request successful, returning array response")
+                            print("DEBUG: Array response successful")
                             completion(.success(json))
                         } else {
-                            print("ServerManager: HTTP error \(httpResponse.statusCode) with array response")
-                            completion(.failure(ServerError.serverError("HTTP \(httpResponse.statusCode)")))
+                            print("DEBUG: HTTP error with array response")
+                            self.handleServerError(errorMessage: "HTTP \(httpResponse.statusCode)", originalCommand: command, originalMethod: method, originalBody: body, completion: completion)
                         }
                     } else {
-                        print("ServerManager: Failed to parse JSON response")
+                        print("DEBUG: Invalid JSON format")
                         completion(.failure(ServerError.invalidJSONResponse))
                     }
                 } catch {
-                    print("ServerManager: JSON parsing error: \(error.localizedDescription)")
+                    print("DEBUG: JSON parsing error: \(error)")
                     completion(.failure(error))
                 }
             }
         }.resume()
     }
     
-    func loginToServer(username: String, password: String, completion: @escaping (Result<[String: Any], Error>) -> Void) {
-        print("ServerManager: Starting login process for user: \(username)")
+    private func handleServerError(errorMessage: String, originalCommand: String, originalMethod: String, originalBody: [String: Any], completion: @escaping (Result<Any, Error>) -> Void) {
+        print("DEBUG: handleServerError called with message: '\(errorMessage)'")
+        print("DEBUG: Checking if error is auth-related...")
         
-        let loginBody = [
-            "username": username,
-            "password": password
+        let isAuthError = errorMessage.lowercased().contains("unauthorized") || 
+                         errorMessage.lowercased().contains("token") || 
+                         errorMessage.lowercased().contains("auth") || 
+                         errorMessage == "Unauthorized" || 
+                         errorMessage == "Invalid token"
+        
+        print("DEBUG: Is auth error: \(isAuthError)")
+        
+        if isAuthError {
+            print("DEBUG: Unauthorized error detected, attempting re-authentication")
+            if let username = UserDefaults.standard.string(forKey: "server_username"),
+               let password = UserDefaults.standard.string(forKey: "server_password"),
+               !username.isEmpty, !password.isEmpty {
+                
+                print("DEBUG: Found saved credentials, logging in with username: \(username)")
+                loginToServer(username: username, password: password) { result in
+                    switch result {
+                    case .success(_):
+                        print("DEBUG: Re-authentication successful, retrying original command: \(originalCommand)")
+                        // Retry the original command
+                        self.executeServerCommand(command: originalCommand, method: originalMethod, body: originalBody, completion: completion)
+                    case .failure(let error):
+                        print("DEBUG: Re-authentication failed: \(error)")
+                        completion(.failure(ServerError.serverError(errorMessage)))
+                    }
+                }
+            } else {
+                print("DEBUG: No saved credentials found")
+                completion(.failure(ServerError.serverError(errorMessage)))
+            }
+        } else {
+            print("DEBUG: Non-auth error, passing through: \(errorMessage)")
+            completion(.failure(ServerError.serverError(errorMessage)))
+        }
+    }
+    
+    func loginToServer(username: String, password: String, completion: @escaping (Result<[String: Any], Error>) -> Void) {
+        print("DEBUG: loginToServer called with username: \(username)")
+        guard let jwtToken = UserDefaults.standard.string(forKey: "jwt_token"), !jwtToken.isEmpty else {
+            print("DEBUG: No JWT token for login")
+            completion(.failure(ServerError.noJWTToken))
+            return
+        }
+        
+        guard let url = URL(string: "https://command.bbarni.hackclub.app/") else {
+            print("DEBUG: Invalid URL for login")
+            completion(.failure(ServerError.invalidURL))
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
+        
+        let requestBody: [String: Any] = [
+            "command": "/user/login",
+            "method": "POST",
+            "wait_time": 2,
+            "body": [
+                "username": username,
+                "password": password
+            ]
         ]
         
-        print("ServerManager: Login body prepared: \(loginBody)")
+        print("DEBUG: Login request body: \(requestBody)")
         
-        executeServerCommand(command: "/user/login", method: "POST", body: loginBody) { result in
-            switch result {
-            case .success(let response):
-                print("ServerManager: Login successful, response: \(response)")
-                
-                guard let responseDict = response as? [String: Any] else {
-                    print("ServerManager: Login response is not a dictionary")
-                    completion(.failure(ServerError.invalidJSONResponse))
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        } catch {
+            print("DEBUG: Failed to serialize login request: \(error)")
+            completion(.failure(error))
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("DEBUG: Login network error: \(error)")
+                    completion(.failure(error))
                     return
                 }
                 
-                if let token = responseDict["token"] as? String {
-                    print("ServerManager: JWT token received: \(token.prefix(20))...")
-                    UserDefaults.standard.set(token, forKey: "shareify_jwt")
-                    UserDefaults.standard.synchronize()
-                    print("ServerManager: JWT token saved to UserDefaults")
-                } else {
-                    print("ServerManager: Warning - No token found in successful response")
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    print("DEBUG: Invalid login HTTP response")
+                    completion(.failure(ServerError.invalidResponse))
+                    return
                 }
                 
-                completion(.success(responseDict))
+                print("DEBUG: Login HTTP status: \(httpResponse.statusCode)")
                 
-            case .failure(let error):
-                print("ServerManager: Login failed with error: \(error.localizedDescription)")
-                completion(.failure(error))
+                guard let data = data else {
+                    print("DEBUG: No login data received")
+                    completion(.failure(ServerError.noData))
+                    return
+                }
+                
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("DEBUG: Login raw response: \(responseString)")
+                }
+                
+                do {
+                    let json = try JSONSerialization.jsonObject(with: data)
+                    print("DEBUG: Login parsed JSON: \(json)")
+                    
+                    if let jsonDict = json as? [String: Any] {
+                        if let errorMessage = jsonDict["error"] as? String {
+                            print("DEBUG: Login failed with error: \(errorMessage)")
+                            completion(.failure(ServerError.serverError(errorMessage)))
+                            return
+                        }
+                        
+                        if httpResponse.statusCode == 200 {
+                            if let token = jsonDict["token"] as? String {
+                                print("DEBUG: Login successful, saving new token")
+                                UserDefaults.standard.set(token, forKey: "shareify_jwt")
+                                UserDefaults.standard.synchronize()
+                            } else {
+                                print("DEBUG: Login successful but no token in response")
+                            }
+                            completion(.success(jsonDict))
+                        } else {
+                            let errorMessage = jsonDict["error"] as? String ?? "Login failed"
+                            print("DEBUG: Login failed with error: \(errorMessage)")
+                            completion(.failure(ServerError.serverError(errorMessage)))
+                        }
+                    } else {
+                        print("DEBUG: Invalid login JSON format")
+                        completion(.failure(ServerError.invalidJSONResponse))
+                    }
+                } catch {
+                    print("DEBUG: Login JSON parsing error: \(error)")
+                    completion(.failure(error))
+                }
             }
-            }
-        }
+        }.resume()
+    }
     }
 
 enum ServerError: LocalizedError {
