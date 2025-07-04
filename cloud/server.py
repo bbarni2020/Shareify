@@ -906,6 +906,32 @@ def user_settings():
             'settings': updated_user['settings']
         })
 
+@app.route('/user/profile', methods=['GET'])
+def get_user_profile():
+    jwt_token = request.headers.get('Authorization')
+    if jwt_token and jwt_token.startswith('Bearer '):
+        jwt_token = jwt_token[7:]
+    
+    if not jwt_token:
+        return jsonify({'error': 'JWT token required'}), 401
+    
+    user_id = get_user_id_from_jwt(jwt_token)
+    if not user_id:
+        return jsonify({'error': 'Invalid or expired JWT token'}), 401
+    
+    user = get_sqlite_user(user_id=user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+    
+    return jsonify({
+        'username': user['username'],
+        'email': user['email'],
+        'settings': user.get('settings', {}),
+        'created_at': user['created_at'],
+        'last_activity': user['last_activity'],
+        'status': user['status']
+    })
+
 def generate_dashboard_jwt():
     expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
     payload = {
@@ -1071,6 +1097,15 @@ def edit_sqlite_database():
     if not query:
         return jsonify({'error': 'Query required'}), 400
     
+    allowed_operations = ['SELECT', 'INSERT', 'UPDATE', 'DELETE']
+    query_upper = query.strip().upper()
+    
+    if not any(query_upper.startswith(op) for op in allowed_operations):
+        return jsonify({'error': 'Only SELECT, INSERT, UPDATE, DELETE operations are allowed'}), 400
+    
+    if any(dangerous in query_upper for dangerous in ['DROP', 'CREATE', 'ALTER', 'EXEC', 'UNION', '--', ';']):
+        return jsonify({'error': 'Dangerous SQL operations are not allowed'}), 400
+    
     try:
         conn = sqlite3.connect(user_sqlite_db_path)
         cursor = conn.cursor()
@@ -1098,8 +1133,17 @@ def manage_sqlite_row():
     data = request.get_json()
     table = data.get('table')
     
+    allowed_tables = {'users', 'jwt_sessions'}
     if not table:
         return jsonify({'error': 'Table name required'}), 400
+    
+    if table not in allowed_tables:
+        return jsonify({'error': 'Table not allowed'}), 400
+    
+    allowed_columns = {
+        'users': {'id', 'username', 'email', 'password', 'auth_token', 'created_at', 'last_activity', 'status', 'settings'},
+        'jwt_sessions': {'jwt_id', 'user_id', 'expires_at', 'created_at'}
+    }
     
     try:
         conn = sqlite3.connect(user_sqlite_db_path)
@@ -1112,6 +1156,9 @@ def manage_sqlite_row():
             if not columns or not values:
                 return jsonify({'error': 'Columns and values required'}), 400
             
+            if not all(col in allowed_columns[table] for col in columns):
+                return jsonify({'error': 'Invalid column names'}), 400
+            
             placeholders = ','.join(['?' for _ in values])
             column_names = ','.join(columns)
             query = f"INSERT INTO {table} ({column_names}) VALUES ({placeholders})"
@@ -1123,6 +1170,9 @@ def manage_sqlite_row():
             
             if not row_id or not updates:
                 return jsonify({'error': 'Row ID and updates required'}), 400
+            
+            if not all(col in allowed_columns[table] for col in updates.keys()):
+                return jsonify({'error': 'Invalid column names'}), 400
             
             set_clauses = []
             values = []
