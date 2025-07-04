@@ -86,7 +86,7 @@ struct Settings: View {
                                     VStack(spacing: 15) {
                                         HStack {
                                             Text("Email:")
-                                                .font(.system(size: 16, weight: .medium))
+                                                .font(.system(size: 14, weight: .medium))
                                                 .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
                                                 .frame(width: 80, alignment: .leading)
                                             if isLoadingCloudData {
@@ -95,7 +95,7 @@ struct Settings: View {
                                                     .frame(height: 20)
                                             } else {
                                                 Text(email)
-                                                    .font(.system(size: 16, weight: .regular))
+                                                    .font(.system(size: 14, weight: .regular))
                                                     .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.7))
                                             }
                                             Spacer()
@@ -103,7 +103,7 @@ struct Settings: View {
                                         
                                         HStack {
                                             Text("Username:")
-                                                .font(.system(size: 16, weight: .medium))
+                                                .font(.system(size: 14, weight: .medium))
                                                 .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
                                                 .frame(width: 80, alignment: .leading)
                                             if isLoadingCloudData {
@@ -112,7 +112,7 @@ struct Settings: View {
                                                     .frame(height: 20)
                                             } else {
                                                 Text(username)
-                                                    .font(.system(size: 16, weight: .regular))
+                                                    .font(.system(size: 14, weight: .regular))
                                                     .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.7))
                                             }
                                             Spacer()
@@ -168,6 +168,7 @@ struct Settings: View {
                                                 .cornerRadius(25)
                                                 .shadow(color: Color.red.opacity(0.3), radius: 8, x: 0, y: 4)
                                         }
+                                        }
                                     }
                                 }
                                 .padding(20)
@@ -184,7 +185,7 @@ struct Settings: View {
                                     VStack(spacing: 15) {
                                         HStack {
                                             Text("Username:")
-                                                .font(.system(size: 16, weight: .medium))
+                                                .font(.system(size: 14, weight: .medium))
                                                 .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
                                                 .frame(width: 80, alignment: .leading)
                                             if isLoadingShareifyData {
@@ -193,7 +194,7 @@ struct Settings: View {
                                                     .frame(height: 20)
                                             } else {
                                                 Text(localUsername)
-                                                    .font(.system(size: 16, weight: .regular))
+                                                    .font(.system(size: 14, weight: .regular))
                                                     .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.7))
                                             }
                                             Spacer()
@@ -235,27 +236,20 @@ struct Settings: View {
                                             ScrollView(.horizontal, showsIndicators: false) {
                                                 HStack(spacing: 15) {
                                                     ForEach(backgroundOptions, id: \.self) { backgroundNumber in
-                                                        AsyncImage(url: URL(string: "https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/ios_app/background/back\(backgroundNumber).png")) { image in
-                                                            image
-                                                                .resizable()
-                                                                .aspectRatio(contentMode: .fill)
-                                                                .frame(width: 80, height: 60)
-                                                                .clipped()
-                                                                .cornerRadius(15)
-                                                                .overlay(
-                                                                    RoundedRectangle(cornerRadius: 15)
-                                                                        .stroke(backgroundManager.selectedBackground == backgroundNumber ? Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255) : Color.clear, lineWidth: 3)
-                                                                )
-                                                                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-                                                        } placeholder: {
-                                                            Rectangle()
-                                                                .fill(Color.gray.opacity(0.3))
-                                                                .frame(width: 80, height: 60)
-                                                                .cornerRadius(15)
-                                                        }
-                                                        .onTapGesture {
-                                                            backgroundManager.saveSelectedBackground(backgroundNumber)
-                                                        }
+                                                        Image("back\(backgroundNumber)")
+                                                            .resizable()
+                                                            .aspectRatio(contentMode: .fill)
+                                                            .frame(width: 80, height: 60)
+                                                            .clipped()
+                                                            .cornerRadius(15)
+                                                            .overlay(
+                                                                RoundedRectangle(cornerRadius: 15)
+                                                                    .stroke(backgroundManager.selectedBackground == backgroundNumber ? Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255) : Color.clear, lineWidth: 3)
+                                                            )
+                                                            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                                                            .onTapGesture {
+                                                                backgroundManager.saveSelectedBackground(backgroundNumber)
+                                                            }
                                                     }
                                                 }
                                                 .padding(.horizontal, 5)
@@ -332,34 +326,44 @@ struct Settings: View {
         }
         .background(
             GeometryReader { geometry in
-                AsyncImage(url: URL(string: backgroundManager.backgroundURL)) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geometry.size.height * (1533/862), height: geometry.size.height)
-                        .offset(x: -geometry.size.height * (1533/862) * 0.274)
-                        .clipped()
-                } placeholder: {
-                    Color.black
-                }
+                Image(backgroundManager.backgroundImageName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: geometry.size.height * (1533/862), height: geometry.size.height)
+                    .offset(x: -geometry.size.height * (1533/862) * 0.274)
+                    .clipped()
             }
             .ignoresSafeArea(.all)
         )
         .onAppear {
             loadUserData()
         }
-        .sheet(isPresented: $showingCloudPasswordReset) {
-            PasswordReset(isCloudAccount: true)
-        }
-        .sheet(isPresented: $showingLocalPasswordReset) {
-            PasswordReset(isCloudAccount: false)
-        }
+        .overlay(
+            Group {
+                if showingCloudPasswordReset {
+                    PasswordResetWrapper(isCloudAccount: true) {
+                        showingCloudPasswordReset = false
+                    }
+                    .transition(.move(edge: .trailing))
+                    .zIndex(1)
+                }
+                if showingLocalPasswordReset {
+                    PasswordResetWrapper(isCloudAccount: false) {
+                        showingLocalPasswordReset = false
+                    }
+                    .transition(.move(edge: .trailing))
+                    .zIndex(1)
+                }
+            }
+        )
         .fullScreenCover(isPresented: $navigateToLogin) {
             Login()
         }
         .fullScreenCover(isPresented: $navigateToServerLogin) {
             ServerLogin()
         }
+        .animation(.easeInOut(duration: 0.3), value: showingCloudPasswordReset)
+        .animation(.easeInOut(duration: 0.3), value: showingLocalPasswordReset)
     }
     
     private func loadUserData() {
@@ -594,6 +598,26 @@ struct Settings: View {
                 completion()
             }
         }.resume()
+    }
+}
+
+
+struct PasswordResetWrapper: View {
+    let isCloudAccount: Bool
+    let onDismiss: () -> Void
+    
+    var body: some View {
+        ZStack {
+            PasswordReset(isCloudAccount: isCloudAccount)
+        }
+        .gesture(
+            DragGesture()
+                .onEnded { value in
+                    if value.translation.width > 100 {
+                        onDismiss()
+                    }
+                }
+        )
     }
 }
 

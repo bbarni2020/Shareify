@@ -24,6 +24,7 @@ struct Home: View {
     @State private var showStatusPopup = false
     @State private var lastSuccessfulCall: Date?
     @State private var showSettings = false
+    @State private var username: String = ""
     @StateObject private var backgroundManager = BackgroundManager.shared
     
     var body: some View {
@@ -68,7 +69,7 @@ struct Home: View {
                           .frame(width: 50, height: 50)
                           .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
                           .overlay(
-                            Text("U")
+                            Text(String(username.prefix(1).uppercased()))
                                 .font(.system(size: 18, weight: .medium))
                                 .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
                           )
@@ -120,6 +121,7 @@ struct Home: View {
                                 startValueUpdates()
                                 loadResources()
                                 loadLogs()
+                                loadUsername()
                             }
                             
                             Spacer().frame(height: min(containerGeometry.size.height * 0.05, 30))
@@ -148,16 +150,12 @@ struct Home: View {
         }
         .background(
             GeometryReader { geometry in
-                AsyncImage(url: URL(string: backgroundManager.backgroundURL)) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geometry.size.height * (1533/862), height: geometry.size.height)
-                        .offset(x: -geometry.size.height * (1533/862) * 0.274)
-                        .clipped()
-                } placeholder: {
-                    Color.black
-                }
+                Image(backgroundManager.backgroundImageName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: geometry.size.height * (1533/862), height: geometry.size.height)
+                    .offset(x: -geometry.size.height * (1533/862) * 0.274)
+                    .clipped()
             }
             .ignoresSafeArea(.all)
             .onAppear {
@@ -395,6 +393,10 @@ struct Home: View {
         } else {
             return .info
         }
+    }
+    
+    private func loadUsername() {
+        username = UserDefaults.standard.string(forKey: "server_username") ?? "U"
     }
 }
 

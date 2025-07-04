@@ -23,7 +23,7 @@ class BackgroundManager: ObservableObject {
         UserDefaults.standard.synchronize()
     }
     
-    var backgroundURL: String {
-        return "https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/ios_app/background/back\(selectedBackground).png"
+    var backgroundImageName: String {
+        return "back\(selectedBackground)"
     }
 }

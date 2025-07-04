@@ -154,16 +154,12 @@ struct Login: View {
         }
         .background(
             GeometryReader { geometry in
-                AsyncImage(url: URL(string: backgroundManager.backgroundURL)) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geometry.size.height * (1533/862), height: geometry.size.height)
-                        .offset(x: -geometry.size.height * (1533/862) * 0.274)
-                        .clipped()
-                } placeholder: {
-                    Color.black
-                }
+                Image(backgroundManager.backgroundImageName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: geometry.size.height * (1533/862), height: geometry.size.height)
+                    .offset(x: -geometry.size.height * (1533/862) * 0.274)
+                    .clipped()
             }
             .ignoresSafeArea(.all)
         )

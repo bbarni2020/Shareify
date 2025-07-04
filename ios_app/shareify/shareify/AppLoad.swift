@@ -104,16 +104,12 @@ struct AppLoad: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
                 GeometryReader { geometry in
-                    AsyncImage(url: URL(string: "https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/ios_app/background/back1.png")) { image in
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: geometry.size.height * (1533/862), height: geometry.size.height)
-                            .offset(x: -geometry.size.height * (1533/862) * 0.274)
-                            .clipped()
-                    } placeholder: {
-                        Color.black
-                    }
+                    Image("back1")
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geometry.size.height * (1533/862), height: geometry.size.height)
+                        .offset(x: -geometry.size.height * (1533/862) * 0.274)
+                        .clipped()
                 }
                 .ignoresSafeArea(.all)
             )

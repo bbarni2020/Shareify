@@ -1,0 +1,84 @@
+{
+  "images" : [
+    {
+      "filename" : "back1.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back2.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back3.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back4.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back5.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back6.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back7.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back8.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back9.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back10.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back11.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back12.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back13.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back14.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back15.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back16.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back17.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back18.png",
+      "idiom" : "universal"
+    },
+    {
+      "filename" : "back19.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
