@@ -67,6 +67,15 @@ class ServerManager: ObservableObject {
                     return
                 }
                 
+                if httpResponse.statusCode == 401 {
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let errorMessage = json["error"] as? String,
+                       errorMessage == "Invalid or expired JWT token" {
+                        self.refreshJWTTokenAndRetry(originalCommand: command, originalMethod: method, originalBody: body, completion: completion)
+                        return
+                    }
+                }
+                
                 do {
                     let json = try JSONSerialization.jsonObject(with: data)
                     
@@ -218,7 +227,55 @@ class ServerManager: ObservableObject {
             }
         }.resume()
     }
+    
+    private func refreshJWTTokenAndRetry(originalCommand: String, originalMethod: String, originalBody: [String: Any], completion: @escaping (Result<Any, Error>) -> Void) {
+        guard let email = UserDefaults.standard.string(forKey: "user_email"),
+              let password = UserDefaults.standard.string(forKey: "user_password"),
+              !email.isEmpty, !password.isEmpty else {
+            completion(.failure(ServerError.serverError("Login credentials not available")))
+            return
+        }
+        
+        guard let url = URL(string: "https://bridge.bbarni.hackclub.app/login") else {
+            completion(.failure(ServerError.invalidURL))
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let requestBody: [String: Any] = [
+            "email": email,
+            "password": password
+        ]
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        } catch {
+            completion(.failure(error))
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                guard let data = data,
+                      let httpResponse = response as? HTTPURLResponse,
+                      httpResponse.statusCode == 200,
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let newJwtToken = json["jwt_token"] as? String else {
+                    completion(.failure(ServerError.serverError("Failed to refresh login")))
+                    return
+                }
+                
+                UserDefaults.standard.set(newJwtToken, forKey: "jwt_token")
+                UserDefaults.standard.synchronize()
+                
+                self.executeServerCommand(command: originalCommand, method: originalMethod, body: originalBody, completion: completion)
+            }
+        }.resume()
     }
+}
 
 enum ServerError: LocalizedError {
     case noJWTToken

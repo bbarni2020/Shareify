@@ -251,6 +251,8 @@ struct Login: View {
                        let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                        let jwtToken = json["jwt_token"] as? String {
                         UserDefaults.standard.set(jwtToken, forKey: "jwt_token")
+                        UserDefaults.standard.set(username, forKey: "user_email")
+                        UserDefaults.standard.set(password, forKey: "user_password")
                         UserDefaults.standard.synchronize()
                     }
                     

@@ -131,15 +131,6 @@ struct ServerLogin: View {
                                     .opacity((serverUsername.isEmpty || serverPassword.isEmpty) ? 0.6 : 1.0)
                                     .animation(.easeInOut(duration: 0.3), value: serverUsername.isEmpty || serverPassword.isEmpty)
                                     .padding(.top, min(containerGeometry.size.height * 0.02, 10))
-                                    
-                                    Button(action: {
-                                        skipServerLogin()
-                                    }) {
-                                        Text("Skip for now")
-                                            .font(.system(size: min(containerGeometry.size.width * 0.04, 16), weight: .medium))
-                                            .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
-                                    }
-                                    .padding(.top, 10)
                                 }
                                 .padding(.horizontal, min(containerGeometry.size.width * 0.08, 30))
                             }

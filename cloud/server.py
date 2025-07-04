@@ -932,6 +932,49 @@ def get_user_profile():
         'status': user['status']
     })
 
+@app.route('/user/change-password', methods=['POST'])
+def change_password():
+    jwt_token = request.headers.get('Authorization')
+    if jwt_token and jwt_token.startswith('Bearer '):
+        jwt_token = jwt_token[7:]
+    
+    if not jwt_token:
+        return jsonify({'error': 'JWT token required'}), 401
+    
+    user_id = get_user_id_from_jwt(jwt_token)
+    if not user_id:
+        return jsonify({'error': 'Invalid or expired JWT token'}), 401
+    
+    user = get_sqlite_user(user_id=user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'JSON data required'}), 400
+    
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+    
+    if not current_password or not new_password:
+        return jsonify({'error': 'Current password and new password required'}), 400
+    
+    if not verify_password(current_password, user['password']):
+        return jsonify({'error': 'Current password is incorrect'}), 401
+    
+    if len(new_password) < 6:
+        return jsonify({'error': 'New password must be at least 6 characters'}), 400
+    
+    hashed_new_password = hash_password(new_password)
+    
+    update_sqlite_user(user['id'], 
+                      password=hashed_new_password,
+                      last_activity=datetime.now().isoformat())
+    
+    return jsonify({
+        'message': 'Password changed successfully'
+    }), 200
+
 def generate_dashboard_jwt():
     expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
     payload = {
@@ -1031,8 +1074,8 @@ def get_servers():
             })
         
         return jsonify({'success': True, 'servers': server_details})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    except Exception:
+        return jsonify({'error': 'Failed to retrieve server list'}), 500
 
 @app.route('/dashboard/servers/<server_id>/disconnect', methods=['POST'])
 def disconnect_server(server_id):
@@ -1097,15 +1140,6 @@ def edit_sqlite_database():
     if not query:
         return jsonify({'error': 'Query required'}), 400
     
-    allowed_operations = ['SELECT', 'INSERT', 'UPDATE', 'DELETE']
-    query_upper = query.strip().upper()
-    
-    if not any(query_upper.startswith(op) for op in allowed_operations):
-        return jsonify({'error': 'Only SELECT, INSERT, UPDATE, DELETE operations are allowed'}), 400
-    
-    if any(dangerous in query_upper for dangerous in ['DROP', 'CREATE', 'ALTER', 'EXEC', 'UNION', '--', ';']):
-        return jsonify({'error': 'Dangerous SQL operations are not allowed'}), 400
-    
     try:
         conn = sqlite3.connect(user_sqlite_db_path)
         cursor = conn.cursor()
@@ -1121,8 +1155,8 @@ def edit_sqlite_database():
             conn.close()
             return jsonify({'success': True, 'message': 'Query executed successfully'})
     
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+    except Exception:
+        return jsonify({'error': 'Database operation failed'}), 400
 
 @app.route('/dashboard/database/sqlite/row', methods=['POST', 'PUT', 'DELETE'])
 def manage_sqlite_row():
@@ -1197,8 +1231,8 @@ def manage_sqlite_row():
         conn.close()
         return jsonify({'success': True, 'message': 'Operation completed successfully'})
         
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+    except Exception:
+        return jsonify({'error': 'Database operation failed'}), 400
 
 @app.route('/dashboard/database/json/row', methods=['POST', 'PUT', 'DELETE'])
 def manage_json_row():
@@ -1240,8 +1274,8 @@ def manage_json_row():
         save_users_database(users_data)
         return jsonify({'success': True, 'message': 'Operation completed successfully'})
         
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+    except Exception:
+        return jsonify({'error': 'Database operation failed'}), 400
 
 @app.route('/dashboard/database/json/edit', methods=['POST'])
 def edit_json_database():
@@ -1258,8 +1292,8 @@ def edit_json_database():
     try:
         save_users_database(new_data)
         return jsonify({'success': True, 'message': 'JSON database updated successfully'})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+    except Exception:
+        return jsonify({'error': 'Failed to update database'}), 400
 
 DATABASE_TEMPLATE = '''
 <!DOCTYPE html>

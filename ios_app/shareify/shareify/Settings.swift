@@ -10,16 +10,15 @@ import SwiftUI
 struct Settings: View {
     @State private var email: String = ""
     @State private var username: String = ""
-    @State private var newPassword: String = ""
-    @State private var confirmPassword: String = ""
-    @State private var localUsername: String = ""
-    @State private var newLocalPassword: String = ""
-    @State private var confirmLocalPassword: String = ""
+    @State private var localUsername: String = UserDefaults.standard.string(forKey: "server_username") ?? "Loading..."
     @State private var selectedBackground: Int = 1
-    @State private var showingPasswordAlert = false
-    @State private var showingLocalPasswordAlert = false
     @State private var alertMessage = ""
     @State private var navigateToLogin = false
+    @State private var navigateToServerLogin = false
+    @State private var showingCloudPasswordReset = false
+    @State private var showingLocalPasswordReset = false
+    @State private var isLoadingCloudData = false
+    @State private var isLoadingShareifyData = false
     @StateObject private var backgroundManager = BackgroundManager.shared
     @Environment(\.dismiss) private var dismiss
     
@@ -90,9 +89,15 @@ struct Settings: View {
                                                 .font(.system(size: 16, weight: .medium))
                                                 .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
                                                 .frame(width: 80, alignment: .leading)
-                                            Text(email)
-                                                .font(.system(size: 16, weight: .regular))
-                                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.7))
+                                            if isLoadingCloudData {
+                                                ProgressView()
+                                                    .scaleEffect(0.8)
+                                                    .frame(height: 20)
+                                            } else {
+                                                Text(email)
+                                                    .font(.system(size: 16, weight: .regular))
+                                                    .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.7))
+                                            }
                                             Spacer()
                                         }
                                         
@@ -101,36 +106,24 @@ struct Settings: View {
                                                 .font(.system(size: 16, weight: .medium))
                                                 .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
                                                 .frame(width: 80, alignment: .leading)
-                                            Text(username)
-                                                .font(.system(size: 16, weight: .regular))
-                                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.7))
+                                            if isLoadingCloudData {
+                                                ProgressView()
+                                                    .scaleEffect(0.8)
+                                                    .frame(height: 20)
+                                            } else {
+                                                Text(username)
+                                                    .font(.system(size: 16, weight: .regular))
+                                                    .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.7))
+                                            }
                                             Spacer()
                                         }
                                         
                                         VStack(spacing: 10) {
-                                            SecureField("New Password", text: $newPassword)
-                                                .padding(.horizontal, 15)
-                                                .padding(.vertical, 12)
-                                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 25)
-                                                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                                                )
-                                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
-                                            
-                                            SecureField("Confirm Password", text: $confirmPassword)
-                                                .padding(.horizontal, 15)
-                                                .padding(.vertical, 12)
-                                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 25)
-                                                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                                                )
-                                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
-                                            
-                                            Button(action: changeCloudPassword) {
+                                            Button(action: {
+                                                showingCloudPasswordReset = true
+                                            }) {
                                                 Text("Change Password")
-                                                    .font(.system(size: 16, weight: .medium))
+                                                    .font(.system(size: 14, weight: .medium))
                                                     .foregroundColor(.white)
                                                     .frame(maxWidth: .infinity)
                                                     .padding(.vertical, 14)
@@ -151,12 +144,10 @@ struct Settings: View {
                                                     )
                                                     .shadow(color: Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255).opacity(0.3), radius: 8, x: 0, y: 4)
                                             }
-                                            .disabled(newPassword.isEmpty || confirmPassword.isEmpty)
-                                        }
                                         
                                         Button(action: logoutCloud) {
                                             Text("Logout Cloud Account")
-                                                .font(.system(size: 16, weight: .medium))
+                                                .font(.system(size: 14, weight: .medium))
                                                 .foregroundColor(.white)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, 15)
@@ -196,38 +187,24 @@ struct Settings: View {
                                                 .font(.system(size: 16, weight: .medium))
                                                 .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
                                                 .frame(width: 80, alignment: .leading)
-                                            Text(localUsername)
-                                                .font(.system(size: 16, weight: .regular))
-                                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.7))
+                                            if isLoadingShareifyData {
+                                                ProgressView()
+                                                    .scaleEffect(0.8)
+                                                    .frame(height: 20)
+                                            } else {
+                                                Text(localUsername)
+                                                    .font(.system(size: 16, weight: .regular))
+                                                    .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.7))
+                                            }
                                             Spacer()
                                         }
                                         
                                         VStack(spacing: 10) {
-                                            SecureField("New Local Password", text: $newLocalPassword)
-                                                .padding(.horizontal, 15)
-                                                .padding(.vertical, 12)
-                                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 20)
-                                                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                                                )
-                                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
-                                                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
-                                            
-                                            SecureField("Confirm Local Password", text: $confirmLocalPassword)
-                                                .padding(.horizontal, 15)
-                                                .padding(.vertical, 12)
-                                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 20)
-                                                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                                                )
-                                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
-                                                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
-                                            
-                                            Button(action: changeLocalPassword) {
+                                            Button(action: {
+                                                showingLocalPasswordReset = true
+                                            }) {
                                                 Text("Change Local Password")
-                                                    .font(.system(size: 16, weight: .medium))
+                                                    .font(.system(size: 14, weight: .medium))
                                                     .foregroundColor(.white)
                                                     .frame(maxWidth: .infinity)
                                                     .padding(.vertical, 15)
@@ -248,8 +225,6 @@ struct Settings: View {
                                                     .cornerRadius(25)
                                                     .shadow(color: Color(red: 0x65/255, green: 0xdc/255, blue: 0x50/255).opacity(0.3), radius: 8, x: 0, y: 4)
                                             }
-                                            .disabled(newLocalPassword.isEmpty || confirmLocalPassword.isEmpty)
-                                            .opacity(newLocalPassword.isEmpty || confirmLocalPassword.isEmpty ? 0.6 : 1.0)
                                         }
                                         
                                         VStack(alignment: .leading, spacing: 10) {
@@ -289,7 +264,7 @@ struct Settings: View {
                                         
                                         Button(action: logoutLocal) {
                                             Text("Logout Local Server")
-                                                .font(.system(size: 16, weight: .medium))
+                                                .font(.system(size: 14, weight: .medium))
                                                 .foregroundColor(.white)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, 15)
@@ -373,74 +348,191 @@ struct Settings: View {
         .onAppear {
             loadUserData()
         }
-        .alert("Password Change", isPresented: $showingPasswordAlert) {
-            Button("OK") { }
-        } message: {
-            Text(alertMessage)
+        .sheet(isPresented: $showingCloudPasswordReset) {
+            PasswordReset(isCloudAccount: true)
         }
-        .alert("Local Password Change", isPresented: $showingLocalPasswordAlert) {
-            Button("OK") { }
-        } message: {
-            Text(alertMessage)
+        .sheet(isPresented: $showingLocalPasswordReset) {
+            PasswordReset(isCloudAccount: false)
         }
         .fullScreenCover(isPresented: $navigateToLogin) {
             Login()
         }
+        .fullScreenCover(isPresented: $navigateToServerLogin) {
+            ServerLogin()
+        }
     }
     
     private func loadUserData() {
-        email = UserDefaults.standard.string(forKey: "user_email") ?? "Not available"
-        username = UserDefaults.standard.string(forKey: "user_username") ?? "Not available"
-        localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Not available"
+        email = UserDefaults.standard.string(forKey: "user_email") ?? "Loading..."
+        username = UserDefaults.standard.string(forKey: "user_username") ?? "Loading..."
+        localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Loading..."
+        
+        fetchCloudSettings()
+        fetchShareifySettings()
     }
     
-    private func changeCloudPassword() {
-        guard newPassword == confirmPassword else {
-            alertMessage = "Passwords do not match"
-            showingPasswordAlert = true
+    private func fetchCloudSettings() {
+        guard let jwtToken = UserDefaults.standard.string(forKey: "jwt_token"), !jwtToken.isEmpty else {
+            email = "Not available"
+            username = "Not available"
             return
         }
         
-        guard newPassword.count >= 6 else {
-            alertMessage = "Password must be at least 6 characters"
-            showingPasswordAlert = true
+        isLoadingCloudData = true
+        
+        guard let url = URL(string: "https://bridge.bbarni.hackclub.app/user/profile") else {
+            email = "Error loading"
+            username = "Error loading"
+            isLoadingCloudData = false
             return
         }
         
-        alertMessage = "Password change functionality will be implemented"
-        showingPasswordAlert = true
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        newPassword = ""
-        confirmPassword = ""
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                self.isLoadingCloudData = false
+                
+                if error != nil {
+                    self.email = "Error loading"
+                    self.username = "Error loading"
+                    return
+                }
+                
+                guard let data = data else {
+                    self.email = "No data"
+                    self.username = "No data"
+                    return
+                }
+                
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    self.email = "Error loading"
+                    self.username = "Error loading"
+                    return
+                }
+                
+                if httpResponse.statusCode == 401 {
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let errorMessage = json["error"] as? String,
+                       errorMessage == "Invalid or expired JWT token" {
+                        self.refreshJWTTokenAndRetry {
+                            self.fetchCloudSettings()
+                        }
+                        return
+                    }
+                }
+                
+                do {
+                    if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        if let userEmail = json["email"] as? String {
+                            self.email = userEmail
+                            UserDefaults.standard.set(userEmail, forKey: "user_email")
+                        }
+                        if let userName = json["username"] as? String {
+                            self.username = userName
+                            UserDefaults.standard.set(userName, forKey: "user_username")
+                        }
+                        UserDefaults.standard.synchronize()
+                    }
+                } catch {
+                    self.email = "Parse error"
+                    self.username = "Parse error"
+                }
+            }
+        }.resume()
     }
     
-    private func changeLocalPassword() {
-        guard newLocalPassword == confirmLocalPassword else {
-            alertMessage = "Passwords do not match"
-            showingLocalPasswordAlert = true
+    private func fetchShareifySettings() {
+        guard let jwtToken = UserDefaults.standard.string(forKey: "jwt_token"), !jwtToken.isEmpty,
+              let shareifyJWT = UserDefaults.standard.string(forKey: "shareify_jwt"), !shareifyJWT.isEmpty else {
+            localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Not available"
             return
         }
         
-        guard newLocalPassword.count >= 6 else {
-            alertMessage = "Password must be at least 6 characters"
-            showingLocalPasswordAlert = true
+        isLoadingShareifyData = true
+        
+        guard let url = URL(string: "https://command.bbarni.hackclub.app/") else {
+            localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Error loading"
+            isLoadingShareifyData = false
             return
         }
         
-        UserDefaults.standard.set(newLocalPassword, forKey: "server_password")
-        UserDefaults.standard.synchronize()
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
+        request.setValue(shareifyJWT, forHTTPHeaderField: "X-Shareify-JWT")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        alertMessage = "Local password updated successfully"
-        showingLocalPasswordAlert = true
+        let requestBody: [String: Any] = [
+            "command": "/user/get_self"
+        ]
         
-        newLocalPassword = ""
-        confirmLocalPassword = ""
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        } catch {
+            localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Request error"
+            isLoadingShareifyData = false
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                self.isLoadingShareifyData = false
+                
+                if error != nil {
+                    self.localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Error loading"
+                    return
+                }
+                
+                guard let data = data else {
+                    self.localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "No data"
+                    return
+                }
+                
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    self.localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Error loading"
+                    return
+                }
+                
+                if httpResponse.statusCode == 401 {
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let errorMessage = json["error"] as? String,
+                       errorMessage == "Invalid or expired JWT token" {
+                        self.refreshJWTTokenAndRetry {
+                            self.fetchShareifySettings()
+                        }
+                        return
+                    }
+                }
+                
+                do {
+                    if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        if let userName = json["username"] as? String {
+                            self.localUsername = userName
+                            UserDefaults.standard.set(userName, forKey: "server_username")
+                            UserDefaults.standard.synchronize()
+                        } else {
+                            self.localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Not available"
+                        }
+                    }
+                } catch {
+                    self.localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Not available"
+                }
+            }
+        }.resume()
     }
     
     private func logoutCloud() {
         UserDefaults.standard.removeObject(forKey: "jwt_token")
         UserDefaults.standard.removeObject(forKey: "user_email")
         UserDefaults.standard.removeObject(forKey: "user_username")
+        UserDefaults.standard.removeObject(forKey: "user_password")
+        UserDefaults.standard.removeObject(forKey: "server_username")
+        UserDefaults.standard.removeObject(forKey: "server_password")
+        UserDefaults.standard.removeObject(forKey: "shareify_jwt")
         UserDefaults.standard.synchronize()
         
         navigateToLogin = true
@@ -452,13 +544,56 @@ struct Settings: View {
         UserDefaults.standard.removeObject(forKey: "shareify_jwt")
         UserDefaults.standard.synchronize()
         
-        navigateToLogin = true
+        navigateToServerLogin = true
     }
     
     private func openGitHubGuides() {
         if let url = URL(string: "https://github.com/bbarni2020/Shareify/tree/main/guides") {
             UIApplication.shared.open(url)
         }
+    }
+    
+    private func refreshJWTTokenAndRetry(completion: @escaping () -> Void) {
+        guard let email = UserDefaults.standard.string(forKey: "user_email"),
+              let password = UserDefaults.standard.string(forKey: "user_password"),
+              !email.isEmpty, !password.isEmpty else {
+            return
+        }
+        
+        guard let url = URL(string: "https://bridge.bbarni.hackclub.app/login") else {
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let requestBody: [String: Any] = [
+            "email": email,
+            "password": password
+        ]
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        } catch {
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                guard let data = data,
+                      let httpResponse = response as? HTTPURLResponse,
+                      httpResponse.statusCode == 200,
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let newJwtToken = json["jwt_token"] as? String else {
+                    return
+                }
+                
+                UserDefaults.standard.set(newJwtToken, forKey: "jwt_token")
+                UserDefaults.standard.synchronize()
+                completion()
+            }
+        }.resume()
     }
 }
 
