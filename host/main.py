@@ -25,6 +25,7 @@ import zipfile
 import tempfile
 import shutil
 import jwt
+import requests
 
 def is_admin():
     try:
@@ -1356,6 +1357,91 @@ def download_file():
                 return jsonify({"error": "Internal server error"}), 500
     
     return jsonify({"error": "File or folder does not exist"}), 404
+
+@app.route('/api/cloud/manage', methods=['POST'])
+def manage_cloud():
+    action = request.json.get('action')
+    cloud_path = os.path.join(os.path.dirname(__file__), 'settings', 'cloud.json')
+    
+    if action == 'enable':
+        enabled = request.json.get('enabled', False)
+        try:
+            if os.path.exists(cloud_path):
+                with open(cloud_path, 'r') as f:
+                    cloud_settings = json.load(f)
+            else:
+                cloud_settings = {}
+            
+            cloud_settings['enabled'] = enabled
+            
+            with open(cloud_path, 'w') as f:
+                json.dump(cloud_settings, f, indent=2)
+            
+            log(f"Cloud {'enabled' if enabled else 'disabled'}", request.remote_addr)
+            return jsonify({"status": f"Cloud {'enabled' if enabled else 'disabled'}"}), 200
+        except Exception as e:
+            return jsonify({"error": "Internal server error"}), 500
+    
+    elif action == 'delete_auth':
+        try:
+            if os.path.exists(cloud_path):
+                with open(cloud_path, 'r') as f:
+                    cloud_settings = json.load(f)
+                
+                keys_to_remove = ['user_id', 'auth_token', 'username', 'server_id', 'server_name', 'last_authentication', 'server_registered', 'registration_timestamp']
+                for key in keys_to_remove:
+                    cloud_settings.pop(key, None)
+                
+                with open(cloud_path, 'w') as f:
+                    json.dump(cloud_settings, f, indent=2)
+                
+                log("Cloud authentication data deleted", request.remote_addr)
+                return jsonify({"status": "Authentication data deleted"}), 200
+            else:
+                return jsonify({"error": "Cloud settings file not found"}), 404
+        except Exception as e:
+            return jsonify({"error": "Internal server error"}), 500
+    
+    elif action == 'signup':
+        email = request.json.get('email')
+        username = request.json.get('username')
+        password = request.json.get('password')
+        
+        if not email or not username or not password:
+            return jsonify({"error": "Email, username and password required"}), 400
+        
+        try:
+            if os.path.exists(cloud_path):
+                with open(cloud_path, 'r') as f:
+                    cloud_settings = json.load(f)
+                auth_token = cloud_settings.get('auth_token', '')
+            else:
+                return jsonify({"error": "Cloud settings not found"}), 404
+            
+            if not auth_token:
+                return jsonify({"error": "Auth token not found in cloud settings"}), 400
+            
+            signup_data = {
+                'email': email,
+                'username': username,
+                'password': password,
+                'auth_token': auth_token
+            }
+            
+            response = requests.post('https://bridge.bbarni.hackclub.app/signup', json=signup_data, timeout=30)
+            
+            if response.status_code == 200:
+                log(f"Cloud signup successful for {username}", request.remote_addr)
+                return jsonify({"status": "Signup successful", "data": response.json()}), 200
+            else:
+                return jsonify({"error": "Signup failed", "details": response.text}), response.status_code
+        except requests.RequestException as e:
+            return jsonify({"error": "Network error", "details": str(e)}), 500
+        except Exception as e:
+            return jsonify({"error": "Internal server error"}), 500
+    
+    else:
+        return jsonify({"error": "Invalid action"}), 400
 
 def create_app():
     if settings:
