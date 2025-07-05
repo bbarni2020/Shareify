@@ -28,6 +28,7 @@ struct Home: View {
     @State private var showNotification = false
     @State private var notificationMessage = ""
     @State private var notificationType = "info"
+    @State private var hasShownNotificationThisSession = false
     @StateObject private var backgroundManager = BackgroundManager.shared
     
     var body: some View {
@@ -449,6 +450,61 @@ struct Home: View {
     
     private func loadUsername() {
         username = UserDefaults.standard.string(forKey: "server_username") ?? "U"
+    }
+    
+    private func checkForNotifications() {
+        if hasShownNotificationThisSession {
+            return
+        }
+        
+        guard let url = URL(string: "https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/msg.json") else {
+            return
+        }
+        
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            guard let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let active = json["active"] as? Bool,
+                  let message = json["message"] as? String,
+                  let type = json["type"] as? String else {
+                return
+            }
+            
+            if active {
+                DispatchQueue.main.async {
+                    self.notificationMessage = message
+                    self.notificationType = type
+                    self.showNotification = true
+                    self.hasShownNotificationThisSession = true
+                }
+            }
+        }.resume()
+    }
+    
+    private func getNotificationIcon(type: String) -> String {
+        switch type {
+        case "success":
+            return "checkmark.circle.fill"
+        case "error":
+            return "xmark.circle.fill"
+        case "warning":
+            return "exclamationmark.triangle.fill"
+        default:
+            return "info.circle.fill"
+        }
+    }
+    
+    private func getNotificationColor(type: String) -> Color {
+        switch type {
+        case "success":
+            return Color(red: 0x65/255, green: 0xdc/255, blue: 0x50/255)
+        case "error":
+            return Color.red
+        case "warning":
+            return Color(red: 0xf5/255, green: 0x9e/255, blue: 0x42/255)
+        default:
+            return Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255)
+        }
     }
 }
 
