@@ -3,6 +3,7 @@ import sys
 import os
 import platform
 import socket
+import startup
 
 def install_pip():
     try:
@@ -83,6 +84,10 @@ def main():
     
     upgrade_pip()
     print()
+
+    print("Configureing startup...")
+    startup.setup_startup()
+    print("Startup configured successfully.")
 
     if install_requirements():
         print("\nInstallation completed successfully!")
