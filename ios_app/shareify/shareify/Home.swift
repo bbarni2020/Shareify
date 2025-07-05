@@ -25,6 +25,9 @@ struct Home: View {
     @State private var lastSuccessfulCall: Date?
     @State private var showSettings = false
     @State private var username: String = ""
+    @State private var showNotification = false
+    @State private var notificationMessage = ""
+    @State private var notificationType = "info"
     @StateObject private var backgroundManager = BackgroundManager.shared
     
     var body: some View {
@@ -125,6 +128,7 @@ struct Home: View {
                                 loadResources()
                                 loadLogs()
                                 loadUsername()
+                                checkForNotifications()
                             }
                             
                             Spacer().frame(height: min(containerGeometry.size.height * 0.05, 30))
@@ -244,6 +248,50 @@ struct Home: View {
             }
         )
         .animation(.spring(response: 0.6, dampingFraction: 0.8), value: showStatusPopup)
+        .overlay(
+            Group {
+                if showNotification {
+                    Color.black.opacity(0.3)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            showNotification = false
+                        }
+                    
+                    VStack(spacing: 20) {
+                        HStack {
+                            Image(systemName: getNotificationIcon(type: notificationType))
+                                .font(.system(size: 20))
+                                .foregroundColor(getNotificationColor(type: notificationType))
+                            
+                            Text("Notification")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
+                            Spacer()
+                            Button(action: {
+                                showNotification = false
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.5))
+                            }
+                        }
+                        
+                        Text(notificationMessage)
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(25)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+                    .colorScheme(.light)
+                    .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                    .padding(.horizontal, 40)
+                    .transition(.scale.combined(with: .opacity))
+                }
+            }
+        )
+        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: showNotification)
         }
     }
     

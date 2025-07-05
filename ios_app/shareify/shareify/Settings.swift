@@ -366,6 +366,21 @@ struct Settings: View {
                                 .padding(20)
                                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 15))
                                 .colorScheme(.light)
+                                
+                                VStack(spacing: 10) {
+                                    Text("Shareify iOS App")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
+                                    
+                                    Text("Version 1.0.0")
+                                        .font(.system(size: 12, weight: .regular))
+                                        .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.7))
+                                    
+                                    Text("© 2025 Balogh Barnabás")
+                                        .font(.system(size: 12, weight: .regular))
+                                        .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.5))
+                                }
+                                .padding(.vertical, 20)
                             }
                             .padding(.horizontal, 20)
                             .padding(.vertical, 20)
