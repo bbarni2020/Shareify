@@ -39,6 +39,7 @@ struct Home: View {
                             .foregroundColor(.clear)
                             .frame(width: 238 * (50 / 62), height: 50)
                             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
+                            .colorScheme(.light)
                             .overlay(
                                 HStack(spacing: 10) {
                                     Circle()
@@ -68,6 +69,7 @@ struct Home: View {
                           .foregroundColor(.clear)
                           .frame(width: 50, height: 50)
                           .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
+                          .colorScheme(.light)
                           .overlay(
                             Text(String(username.prefix(1).uppercased()))
                                 .font(.system(size: 18, weight: .medium))
@@ -93,6 +95,7 @@ struct Home: View {
                     bottomTrailingRadius: 0,
                     topTrailingRadius: 40
                   ))
+                  .colorScheme(.light)
                   .shadow(color: .white.opacity(0.25), radius: 2.5, x: 0, y: 4)
                   .opacity(mainCardOpacity)
                   .offset(y: mainCardOffset)
@@ -233,6 +236,7 @@ struct Home: View {
                     }
                     .padding(25)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+                    .colorScheme(.light)
                     .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
                     .padding(.horizontal, 40)
                     .transition(.scale.combined(with: .opacity))

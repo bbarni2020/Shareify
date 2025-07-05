@@ -37,6 +37,7 @@ struct Settings: View {
                             .foregroundColor(.clear)
                             .frame(width: 50, height: 50)
                             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
+                            .colorScheme(.light)
                             .overlay(
                                 Image(systemName: "chevron.left")
                                     .font(.system(size: 18, weight: .medium))
@@ -48,6 +49,7 @@ struct Settings: View {
                         .foregroundColor(.clear)
                         .frame(width: 238 * (50 / 62), height: 50)
                         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
+                        .colorScheme(.light)
                         .overlay(
                             Text("Settings")
                                 .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
@@ -70,6 +72,7 @@ struct Settings: View {
                         bottomTrailingRadius: 0,
                         topTrailingRadius: 40
                     ))
+                    .colorScheme(.light)
                     .shadow(color: .white.opacity(0.25), radius: 2.5, x: 0, y: 4)
                     .ignoresSafeArea(.all, edges: [.bottom, .leading, .trailing])
                     .overlay(
@@ -173,6 +176,7 @@ struct Settings: View {
                                 }
                                 .padding(20)
                                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 15))
+                                .colorScheme(.light)
                                 
                                 VStack(alignment: .leading, spacing: 20) {
                                     HStack {
@@ -283,6 +287,7 @@ struct Settings: View {
                                 }
                                 .padding(20)
                                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 15))
+                                .colorScheme(.light)
                                 
                                 VStack(alignment: .leading, spacing: 20) {
                                     HStack {
@@ -308,6 +313,7 @@ struct Settings: View {
                                         .padding(.vertical, 15)
                                         .padding(.horizontal, 20)
                                         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+                                        .colorScheme(.light)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 20)
                                                 .stroke(Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255).opacity(0.4), lineWidth: 1)
@@ -317,6 +323,7 @@ struct Settings: View {
                                 }
                                 .padding(20)
                                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 15))
+                                .colorScheme(.light)
                             }
                             .padding(.horizontal, 20)
                             .padding(.vertical, 20)
@@ -364,6 +371,16 @@ struct Settings: View {
         }
         .animation(.easeInOut(duration: 0.3), value: showingCloudPasswordReset)
         .animation(.easeInOut(duration: 0.3), value: showingLocalPasswordReset)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button("Done") {
+                                    showingWebView = false
+                                }
+                            }
+                        }
+                }
+            }
+        }
     }
     
     private func loadUserData() {
@@ -549,12 +566,6 @@ struct Settings: View {
         UserDefaults.standard.synchronize()
         
         navigateToServerLogin = true
-    }
-    
-    private func openGitHubGuides() {
-        if let url = URL(string: "https://github.com/bbarni2020/Shareify/tree/main/guides") {
-            UIApplication.shared.open(url)
-        }
     }
     
     private func refreshJWTTokenAndRetry(completion: @escaping () -> Void) {

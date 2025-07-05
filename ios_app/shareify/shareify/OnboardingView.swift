@@ -47,6 +47,7 @@ struct OnboardingView: View {
                     .foregroundColor(.clear)
                     .frame(width: min(geometry.size.width * 0.9, 380), height: min(geometry.size.height * 0.7, 500))
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 30))
+                    .colorScheme(.light)
                     .shadow(color: .white.opacity(0.25), radius: 10, x: 0, y: 8)
                     .overlay(
                         VStack(spacing: 0) {

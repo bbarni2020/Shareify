@@ -33,6 +33,7 @@ struct PasswordReset: View {
                             .foregroundColor(.clear)
                             .frame(width: 50, height: 50)
                             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
+                            .colorScheme(.light)
                             .overlay(
                                 Image(systemName: "chevron.left")
                                     .font(.system(size: 18, weight: .medium))
@@ -44,6 +45,7 @@ struct PasswordReset: View {
                         .foregroundColor(.clear)
                         .frame(width: 238 * (50 / 62), height: 50)
                         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
+                        .colorScheme(.light)
                         .overlay(
                             Text(isCloudAccount ? "Cloud Password" : "Local Password")
                                 .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
@@ -66,6 +68,7 @@ struct PasswordReset: View {
                         bottomTrailingRadius: 0,
                         topTrailingRadius: 40
                     ))
+                    .colorScheme(.light)
                     .shadow(color: .white.opacity(0.25), radius: 2.5, x: 0, y: 4)
                     .ignoresSafeArea(.all, edges: [.bottom, .leading, .trailing])
                     .overlay(
@@ -92,6 +95,7 @@ struct PasswordReset: View {
                                                 .padding(.horizontal, 15)
                                                 .padding(.vertical, 12)
                                                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+                                                .colorScheme(.light)
                                                 .overlay(
                                                     RoundedRectangle(cornerRadius: 20)
                                                         .stroke(Color.white.opacity(0.3), lineWidth: 1)
@@ -109,6 +113,7 @@ struct PasswordReset: View {
                                             .padding(.horizontal, 15)
                                             .padding(.vertical, 12)
                                             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+                                            .colorScheme(.light)
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 20)
                                                     .stroke(Color.white.opacity(0.3), lineWidth: 1)
@@ -125,6 +130,7 @@ struct PasswordReset: View {
                                             .padding(.horizontal, 15)
                                             .padding(.vertical, 12)
                                             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+                                            .colorScheme(.light)
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 20)
                                                     .stroke(Color.white.opacity(0.3), lineWidth: 1)

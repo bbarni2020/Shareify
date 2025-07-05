@@ -22,6 +22,7 @@ struct LoadingView: View {
                     .foregroundColor(.clear)
                     .frame(width: min(geometry.size.width * 0.8, 320), height: 200)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
+                    .colorScheme(.light)
                     .shadow(color: .white.opacity(0.25), radius: 8, x: 0, y: 4)
                     .scaleEffect(cardScale)
                     .opacity(cardOpacity)

@@ -44,6 +44,7 @@ struct ServerLogin: View {
                     bottomTrailingRadius: 0,
                     topTrailingRadius: 40
                   ))
+                  .colorScheme(.light)
                   .shadow(color: .white.opacity(0.25), radius: 2.5, x: 0, y: 4)
                   .opacity(loginCardOpacity)
                   .offset(y: loginCardOffset)
