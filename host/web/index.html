@@ -1329,6 +1329,50 @@
                     </div>
                 </div>
             </div>
+            <div class="section" id="cloud-section">
+                <div class="section_title">
+                    <p>Cloud settings</p>
+                    <div class="dropdown_icon"></div>
+                </div>
+                <div class="section_content">
+                    <p style="font-size: 17px;">Manage your cloud connectivity and data synchronization.</p>
+                    <div class="horizontal-align">
+                        <label for="cloud-enable">Cloud sync:</label>
+                        <select id="cloud-enable">
+                            <option>Enabled</option>
+                            <option>Disabled</option>
+                        </select>
+                    </div>
+                    <div class="horizontal-align" style="margin-top: 15px;">
+                        <label style="font-size: 16px; font-weight: 600;">Register Cloud Account</label>
+                    </div>
+                    <div class="horizontal-align">
+                        <label for="cloud-email">Email:</label>
+                        <input type="email" name="cloud-email" id="cloud-email" class="textbox">
+                    </div>
+                    <div class="horizontal-align">
+                        <label for="cloud-username">Username:</label>
+                        <input type="text" name="cloud-username" id="cloud-username" class="textbox">
+                    </div>
+                    <div class="horizontal-align">
+                        <label for="cloud-password">Password:</label>
+                        <input type="password" name="cloud-password" id="cloud-password" class="textbox">
+                    </div>
+                    <div class="horizontal-align" style="margin-top: 15px;">
+                        <div style="width: 100%;"></div>
+                        <div id="cloud_saved" class="saved_text">Account created</div>
+                        <div class="accept_btn" id="cloud_accept"><img src="web/assets/pipe.png" alt="pipe" class="centered-img"></div>
+                    </div>
+                    <div class="horizontal-align" style="margin-top: 15px; border-top: 1px solid #333; padding-top: 15px;">
+                        <label style="font-size: 16px; font-weight: 600; color: #e74c3c;">Danger Zone</label>
+                    </div>
+                    <div class="horizontal-align" style="margin-top: 10px;">
+                        <label style="font-size: 14px;">Re-authenticate cloud connection</label>
+                        <div style="width: 20px;"></div>
+                        <div class="accept_btn" id="cloud_reauth" style="background-color: #f39c12;"><img src="web/assets/pipe.png" alt="pipe" class="centered-img"></div>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="resize_handle"></div>
     </div>
@@ -5717,6 +5761,175 @@ function createCodeViewer(container, content, fileExtension, filePath) {
         }
     }, 100);
 }
+
+async function loadCloudSettings() {
+    try {
+        const response = await fetch(`${baseURL}/api/cloud/get`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+        });
+        
+        if (response.ok) {
+            const settings = await response.json();
+            
+            document.getElementById('cloud-enable').value = settings.enabled ? 'Enabled' : 'Disabled';
+            
+            if (settings.email) {
+                document.getElementById('cloud-email').value = settings.email;
+            }
+            if (settings.username) {
+                document.getElementById('cloud-username').value = settings.username;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading cloud settings:', error);
+    }
+}
+
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+async function saveCloudSettings() {
+    const enabled = document.getElementById('cloud-enable').value === 'Enabled';
+    
+    try {
+        const response = await fetch(`${baseURL}/api/cloud/manage`, {
+            method: 'POST',
+            headers: {
+                ...getAuthHeaders(),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'enable',
+                enabled: enabled
+            })
+        });
+        
+        if (response.ok) {
+            const savedDiv = document.getElementById('cloud_saved');
+            if (savedDiv) {
+                savedDiv.classList.add('visible');
+                clearTimeout(savedDiv._hideTimeout);
+                savedDiv._hideTimeout = setTimeout(() => {
+                    savedDiv.classList.remove('visible');
+                }, 5000);
+            }
+        } else {
+            const errorData = await response.json();
+            showNotification(`Failed to save cloud settings: ${errorData.error}`, 'error');
+        }
+    } catch (error) {
+        showNotification('Failed to save cloud settings', 'error');
+    }
+}
+
+async function signupCloudAccount() {
+    const email = document.getElementById('cloud-email').value.trim();
+    const username = document.getElementById('cloud-username').value.trim();
+    const password = document.getElementById('cloud-password').value;
+    
+    if (!email || !username || !password) {
+        showNotification('Please fill in all fields for cloud signup', 'warning');
+        return;
+    }
+    
+    if (!isValidEmail(email)) {
+        showNotification('Please enter a valid email address', 'warning');
+        return;
+    }
+    
+    if (password.length < 6) {
+        showNotification('Password must be at least 6 characters long', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${baseURL}/api/cloud/manage`, {
+            method: 'POST',
+            headers: {
+                ...getAuthHeaders(),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'signup',
+                email: email,
+                username: username,
+                password: password
+            })
+        });
+        
+        if (response.ok) {
+            showNotification('Cloud account signup successful', 'success');
+            document.getElementById('cloud-password').value = '';
+        } else {
+            const errorData = await response.json();
+            showNotification(`Cloud signup failed: ${errorData.error}`, 'error');
+        }
+    } catch (error) {
+        showNotification('Failed to signup for cloud account', 'error');
+    }
+}
+
+async function reauthenticateCloud() {
+    if (!confirm('This will delete all current cloud authentication data and require re-authentication. Continue?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${baseURL}/api/cloud/manage`, {
+            method: 'POST',
+            headers: {
+                ...getAuthHeaders(),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'delete_auth'
+            })
+        });
+        
+        if (response.ok) {
+            showNotification('Cloud authentication data cleared successfully', 'success');
+            document.getElementById('cloud-email').value = '';
+            document.getElementById('cloud-username').value = '';
+            document.getElementById('cloud-password').value = '';
+        } else {
+            const errorData = await response.json();
+            showNotification(`Failed to clear cloud data: ${errorData.error}`, 'error');
+        }
+    } catch (error) {
+        showNotification('Failed to clear cloud authentication data', 'error');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadCloudSettings();
+
+    document.getElementById('cloud_accept')?.addEventListener('click', saveCloudSettings);
+
+    document.getElementById('cloud-enable')?.addEventListener('change', saveCloudSettings);
+
+    document.getElementById('cloud_reauth')?.addEventListener('click', reauthenticateCloud);
+});
+
+document.querySelectorAll('.accept_btn, .update_btn').forEach(btn => {
+    btn.addEventListener('click', async function () {
+        
+        if (this.id === 'cloud_accept') {
+            const email = document.getElementById('cloud-email').value.trim();
+            const username = document.getElementById('cloud-username').value.trim();
+            const password = document.getElementById('cloud-password').value.trim();
+            
+            if (email && username && password) {
+                await signupCloudAccount();
+            } else {
+                await saveCloudSettings();
+            }
+        }
+        
+    });
+});
 
 </script>
 </html>
