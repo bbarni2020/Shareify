@@ -153,5 +153,10 @@
     "method": "🟠 Medium risk",
     "name": "Get All Users",
     "description": "Retrieve all user accounts and their details."
+  },
+  "/api/cloud/manage": {
+    "method": "🔴 High risk",
+    "name": "Manage Cloud Settings",
+    "description": "Manage cloud configuration including enable/disable, authentication data deletion, and signup functionality."
   }
 }
