@@ -337,7 +337,7 @@ struct Settings: View {
                                     }
                                     
                                     Button(action: {
-                                        webViewURL = URL(string: "https://github.com/bbarni2020/Shareify/tree/main/guides")
+                                        webViewURL = URL(string: "https://bbarni2020.github.io/Shareify/guides/")
                                         showingWebView = true
                                     }) {
                                         HStack {
