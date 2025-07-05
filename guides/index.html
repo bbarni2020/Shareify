@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shareify Documentation</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif;
+            background: #1c1c1e;
+            color: #ffffff;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            background: #2c2c2e;
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #8e8e93;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .tab-button.active {
+            background: #3a3a3c;
+            color: #ffffff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .markdown-content h1 {
+            color: #ffffff;
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin: 24px 0 16px 0;
+        }
+
+        .markdown-content h2 {
+            color: #ffffff;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 20px 0 12px 0;
+        }
+
+        .markdown-content h3 {
+            color: #ffffff;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 16px 0 8px 0;
+        }
+
+        .markdown-content h4 {
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 12px 0 6px 0;
+        }
+
+        .markdown-content p {
+            color: #ffffff;
+            margin: 12px 0;
+            font-size: 16px;
+        }
+
+        .markdown-content ul, .markdown-content ol {
+            color: #ffffff;
+            margin: 12px 0;
+            padding-left: 24px;
+        }
+
+        .markdown-content li {
+            margin: 6px 0;
+        }
+
+        .markdown-content code {
+            background: #2c2c2e;
+            color: #ffffff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 14px;
+        }
+
+        .markdown-content pre {
+            background: #2c2c2e;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            overflow-x: auto;
+        }
+
+        .markdown-content pre code {
+            background: none;
+            padding: 0;
+            color: #ffffff;
+        }
+
+        .markdown-content blockquote {
+            border-left: 3px solid #48484a;
+            margin: 16px 0;
+            padding: 0 16px;
+            color: #8e8e93;
+        }
+
+        .markdown-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            background: #2c2c2e;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .markdown-content th, .markdown-content td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #48484a;
+        }
+
+        .markdown-content th {
+            background: #3a3a3c;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .markdown-content td {
+            color: #ffffff;
+        }
+
+        .markdown-content a {
+            color: #007aff;
+            text-decoration: none;
+        }
+
+        .markdown-content a:hover {
+            text-decoration: underline;
+        }
+
+        .markdown-content strong {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .markdown-content em {
+            color: #8e8e93;
+        }
+
+        .markdown-content hr {
+            border: none;
+            height: 1px;
+            background: #48484a;
+            margin: 24px 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+
+            .markdown-content h1 {
+                font-size: 1.5rem;
+            }
+
+            .markdown-content h2 {
+                font-size: 1.3rem;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            color: #8e8e93;
+            padding: 40px;
+        }
+
+        .error {
+            color: #ff3b30;
+            text-align: center;
+            padding: 20px;
+            background: #2c2c2e;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('api')">API Documentation</button>
+            <button class="tab-button" onclick="showTab('install')">Installation Guide</button>
+        </div>
+
+        <div id="api-tab" class="tab-content active">
+            <div class="loading">Loading...</div>
+        </div>
+
+        <div id="install-tab" class="tab-content">
+            <div class="loading">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        async function loadMarkdown(filename, containerId) {
+            try {
+                const response = await fetch(filename);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const text = await response.text();
+                const html = marked.parse(text);
+                
+                document.getElementById(containerId).innerHTML = `<div class="markdown-content">${html}</div>`;
+            } catch (error) {
+                document.getElementById(containerId).innerHTML = `<div class="error">Error loading ${filename}: ${error.message}</div>`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadMarkdown('API.md', 'api-tab');
+            loadMarkdown('Install.md', 'install-tab');
+        });
+    </script>
+</body>
+</html>

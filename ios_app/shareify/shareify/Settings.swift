@@ -434,6 +434,7 @@ struct Settings: View {
                     }
                 }
             }
+            .colorScheme(.dark)
         }
     }
     

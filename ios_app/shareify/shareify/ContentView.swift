@@ -8,19 +8,13 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     
     var body: some View {
         if hasCompletedOnboarding {
             Login()
         } else {
             OnboardingView(isOnboardingComplete: $hasCompletedOnboarding)
-                .onChange(of: hasCompletedOnboarding) {
-                    if hasCompletedOnboarding {
-                        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
-                        UserDefaults.standard.synchronize()
-                    }
-                }
         }
     }
 }
