@@ -15,8 +15,8 @@ struct ContentView: View {
             Login()
         } else {
             OnboardingView(isOnboardingComplete: $hasCompletedOnboarding)
-                .onChange(of: hasCompletedOnboarding) { newValue in
-                    if newValue {
+                .onChange(of: hasCompletedOnboarding) {
+                    if hasCompletedOnboarding {
                         UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
                         UserDefaults.standard.synchronize()
                     }

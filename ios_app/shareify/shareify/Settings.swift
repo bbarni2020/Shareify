@@ -6,6 +6,43 @@
 //
 
 import SwiftUI
+import WebKit
+
+struct WebView: UIViewRepresentable {
+    let url: URL
+    @Binding var isPresented: Bool
+    
+    func makeUIView(context: Context) -> WKWebView {
+        let webView = WKWebView()
+        webView.navigationDelegate = context.coordinator
+        return webView
+    }
+    
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        if webView.url != url {
+            let request = URLRequest(url: url)
+            webView.load(request)
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, WKNavigationDelegate {
+        let parent: WebView
+        
+        init(_ parent: WebView) {
+            self.parent = parent
+        }
+        
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        }
+        
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        }
+    }
+}
 
 struct Settings: View {
     @State private var email: String = ""
@@ -19,6 +56,8 @@ struct Settings: View {
     @State private var showingLocalPasswordReset = false
     @State private var isLoadingCloudData = false
     @State private var isLoadingShareifyData = false
+    @State private var showingWebView = false
+    @State private var webViewURL: URL?
     @StateObject private var backgroundManager = BackgroundManager.shared
     @Environment(\.dismiss) private var dismiss
     
@@ -297,12 +336,15 @@ struct Settings: View {
                                         Spacer()
                                     }
                                     
-                                    Button(action: openGitHubGuides) {
+                                    Button(action: {
+                                        webViewURL = URL(string: "https://github.com/bbarni2020/Shareify/tree/main/guides")
+                                        showingWebView = true
+                                    }) {
                                         HStack {
                                             Image(systemName: "book.fill")
                                                 .font(.system(size: 16))
                                                 .foregroundColor(Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255))
-                                            Text("GitHub Guides")
+                                            Text("Guides")
                                                 .font(.system(size: 16, weight: .medium))
                                                 .foregroundColor(Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255))
                                             Spacer()
@@ -371,13 +413,25 @@ struct Settings: View {
         }
         .animation(.easeInOut(duration: 0.3), value: showingCloudPasswordReset)
         .animation(.easeInOut(duration: 0.3), value: showingLocalPasswordReset)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("Done") {
-                                    showingWebView = false
-                                }
-                            }
+        .sheet(isPresented: $showingWebView) {
+            NavigationView {
+                Group {
+                    if let url = webViewURL {
+                        WebView(url: url, isPresented: $showingWebView)
+                    } else {
+                        Text("Loading...")
+                            .foregroundColor(.gray)
+                    }
+                }
+                .navigationTitle("Guides")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Done") {
+                            showingWebView = false
                         }
+                        .foregroundColor(.blue)
+                    }
                 }
             }
         }
