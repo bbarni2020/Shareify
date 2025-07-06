@@ -255,8 +255,8 @@ struct Settings: View {
                                                     .background(
                                                         LinearGradient(
                                                             gradient: Gradient(colors: [
-                                                                Color(red: 0x65/255, green: 0xdc/255, blue: 0x50/255),
-                                                                Color(red: 0x4a/255, green: 0xc1/255, blue: 0x3a/255)
+                                                                Color.gray.opacity(0.5),
+                                                                Color.gray.opacity(0.6)
                                                             ]),
                                                             startPoint: .topLeading,
                                                             endPoint: .bottomTrailing
@@ -267,8 +267,8 @@ struct Settings: View {
                                                             .stroke(Color.white.opacity(0.3), lineWidth: 1)
                                                     )
                                                     .cornerRadius(25)
-                                                    .shadow(color: Color(red: 0x65/255, green: 0xdc/255, blue: 0x50/255).opacity(0.3), radius: 8, x: 0, y: 4)
                                             }
+                                            .disabled(true)
                                         }
                                         
                                         VStack(alignment: .leading, spacing: 10) {

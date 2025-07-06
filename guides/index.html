@@ -215,17 +215,23 @@
 <body>
     <div class="container">
         <div class="tabs">
-            <button class="tab-button active" onclick="showTab('api')">API Documentation</button>
-            <button class="tab-button" onclick="showTab('install')">Installation Guide</button>
+            <button class="tab-button active" onclick="showTab('ios')">iOS App</button>
+            <button class="tab-button" onclick="showTab('install')">Install Guide</button>
+            <button class="tab-button" onclick="showTab('api')">API Docs</button>
         </div>
 
-        <div id="install-tab" class="tab-content">
+        <div id="ios-tab" class="tab-content active">
             <div class="loading">Loading...</div>
         </div>
 
-        <div id="api-tab" class="tab-content active">
+        <div id="install-tab" class="tab-content ">
             <div class="loading">Loading...</div>
         </div>
+
+        <div id="api-tab" class="tab-content">
+            <div class="loading">Loading...</div>
+        </div>
+
     </div>
 
     <script>
@@ -245,7 +251,7 @@
             try {
                 const response = await fetch(filename);
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTPS error! status: ${response.status}`);
                 }
                 const text = await response.text();
                 const html = marked.parse(text);
@@ -259,6 +265,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadMarkdown('Install.md', 'install-tab');
             loadMarkdown('API.md', 'api-tab');
+            loadMarkdown('ios_app.md', 'ios-tab');
         });
     </script>
 </body>

@@ -19,22 +19,22 @@ struct OnboardingView: View {
         OnboardingStep(
             icon: "cloud.fill",
             title: "Welcome to Shareify",
-            description: "Your personal cloud storage solution that keeps your files safe and accessible anywhere"
+            description: "Your personal cloud storage solution that keeps your files safe and easily accessible"
         ),
         OnboardingStep(
             icon: "lock.shield.fill",
             title: "Secure & Private",
-            description: "Advanced encryption ensures your data remains private and secure with enterprise-grade protection"
+            description: "Advanced encryption ensures your data remains private"
         ),
         OnboardingStep(
             icon: "macbook.and.iphone",
             title: "Access Anywhere",
-            description: "Sync your files across all devices and access them from anywhere in the world"
+            description: "Sync your files across all devices and access them from anywhere in the world (not yet available)"
         ),
         OnboardingStep(
-            icon: "person.2.fill",
-            title: "Share with Ease",
-            description: "Collaborate with friends and colleagues by sharing files and folders seamlessly"
+            icon: "gearshape.fill",
+            title: "Manage the server",
+            description: "Manage your server from just the dashboard"
         )
     ]
     
