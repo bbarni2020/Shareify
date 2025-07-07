@@ -1436,7 +1436,7 @@ def manage_cloud():
             else:
                 return jsonify({"error": "Signup failed", "details": response.text}), response.status_code
         except requests.RequestException as e:
-            return jsonify({"error": "Network error", "details": str(e)}), 500
+            return jsonify({"error": "Network error"}), 500
         except Exception as e:
             return jsonify({"error": "Internal server error"}), 500
     
