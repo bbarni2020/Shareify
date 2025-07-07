@@ -64,34 +64,44 @@ struct FinderView: View {
     }
     
     var body: some View {
-        NavigationStack {
-            GeometryReader { geometry in
-                Image(backgroundManager.backgroundImageName)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                    .clipped()
-                    .ignoresSafeArea(.all)
-                    .overlay(
-                        VStack(spacing: 0) {
-                            topNavigationBar
-                            
-                            searchBar
-                            
-                            pathBreadcrumb
-                            
-                            toolBar
-                            
-                            if isGridView {
-                                gridView
-                            } else {
-                                listView
+        GeometryReader { geometry in
+            Image(backgroundManager.backgroundImageName)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
+                .ignoresSafeArea(.all)
+                .overlay(
+                    Rectangle()
+                        .foregroundColor(.clear)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(.ultraThinMaterial)
+                        .colorScheme(.light)
+                        .ignoresSafeArea(.all)
+                        .overlay(
+                            NavigationStack {
+                                VStack(spacing: 0) {
+                                    topNavigationBar
+                                    
+                                    searchBar
+                                    
+                                    pathBreadcrumb
+                                    
+                                    toolBar
+                                    
+                                    if isGridView {
+                                        gridView
+                                    } else {
+                                        listView
+                                    }
+                                }
+                                .padding(.top, 50)
                             }
-                        }
-                    )
-            }
+                            .navigationBarHidden(true)
+                        )
+                )
         }
-        .navigationBarHidden(true)
+        .ignoresSafeArea(.all)
     }
     
     private var topNavigationBar: some View {
@@ -99,7 +109,7 @@ struct FinderView: View {
             Button(action: {
                 if currentPath.count > 1 {
                     withAnimation(.easeInOut(duration: 0.3)) {
-                        currentPath.removeLast()
+                        _ = currentPath.removeLast()
                     }
                 } else {
                     dismiss()
@@ -148,8 +158,7 @@ struct FinderView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .colorScheme(.light)
+        .background(.clear)
         .padding(.horizontal, 20)
         .padding(.top, 15)
     }
@@ -199,8 +208,7 @@ struct FinderView: View {
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
                     .frame(width: 44, height: 44)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-                    .colorScheme(.light)
+                    .background(.clear)
             }
             
             Spacer()
@@ -216,8 +224,7 @@ struct FinderView: View {
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
                     .frame(width: 44, height: 44)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-                    .colorScheme(.light)
+                    .background(.clear)
             }
         }
         .padding(.horizontal, 20)
@@ -288,8 +295,7 @@ struct FinderView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .colorScheme(.light)
+        .background(.clear)
         .onTapGesture {
             if item.isFolder {
                 let hasContent = dummyItems.keys.contains(item.name)
@@ -324,8 +330,7 @@ struct FinderView: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 8)
         .padding(.vertical, 12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .colorScheme(.light)
+        .background(.clear)
         .onTapGesture {
             if item.isFolder {
                 let hasContent = dummyItems.keys.contains(item.name)

@@ -30,8 +30,6 @@ def cloud_full(base_url, jwt_token, command, method, shareify_jwt, wait_time, bo
     if not command_ids:
         return {"error": "No command_ids returned"}
     
-    time.sleep(wait_time)
-    
     params = [("command_id", cid) for cid in command_ids]
     params.append(("jwt_token", jwt_token))
     
