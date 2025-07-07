@@ -1188,13 +1188,19 @@ body {
             <source src="/website/music.mp3" type="audio/mpeg">
             Your browser does not support the audio element.
         </audio>
+        <audio id="hoverSound" preload="auto">
+            <source src="/website/whoosh.wav" type="audio/wav">
+            Your browser does not support the audio element.
+        </audio>
         <button id="musicToggle" class="music-toggle" aria-label="Toggle background music">
             <svg class="music-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 3V21M9 9L20.5 4L19 17L9 13V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M11 5L6 9H2V15H6L11 19V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M19.07 4.93A10 10 0 0 1 19.07 19.07M15.54 8.46A5 5 0 0 1 15.54 15.54" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             <svg class="mute-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: none;">
                 <path d="M11 5L6 9H2V15H6L11 19V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M23 9L17 15M17 9L23 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
         </button>
 
@@ -1375,7 +1381,6 @@ body {
                     <a href="https://bbarni2020.github.io/Shareify/guides/API.html" class="footer-link" target="_blank">API Reference</a>
                     <a href="https://github.com/bbarni2020/Shareify" class="footer-link" target="_blank">GitHub</a>
                     <a href="https://github.com/bbarni2020/Shareify/releases" class="footer-link" target="_blank">Releases</a>
-                    <a href="#" class="footer-link" onclick="comingSoonAlert()">Support</a>
                 </div>
                 <p class="footer-text">
                     © 2025 Shareify. Open Source File Sharing Solution.
@@ -1591,6 +1596,24 @@ body {
             });
         }
 
+        function handleHoverSounds() {
+            const hoverSound = document.getElementById('hoverSound');
+            const musicToggle = document.getElementById('musicToggle');
+            const downloadButtons = document.querySelectorAll('.download-btn');
+
+            function playHoverSound() {
+                if (!musicToggle.classList.contains('muted')) {
+                    hoverSound.currentTime = 0;
+                    hoverSound.play().catch(() => {
+                    });
+                }
+            }
+
+            downloadButtons.forEach(button => {
+                button.addEventListener('mouseenter', playHoverSound);
+            });
+        }
+
         function comingSoonAlert() {
             const alertDiv = document.createElement('div');
             alertDiv.style.cssText = `
@@ -1661,6 +1684,7 @@ body {
             handleScrollAnimations();
             handleMouseInteractions();
             handleBackgroundMusic();
+            handleHoverSounds();
             smoothScroll();
             handleActiveNav();
             handleNavbarScroll();
