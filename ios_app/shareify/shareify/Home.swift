@@ -24,6 +24,7 @@ struct Home: View {
     @State private var showStatusPopup = false
     @State private var lastSuccessfulCall: Date?
     @State private var showSettings = false
+    @State private var showFinder = false
     @State private var username: String = ""
     @State private var showNotification = false
     @State private var notificationMessage = ""
@@ -63,6 +64,24 @@ struct Home: View {
                                 .frame(maxWidth: .infinity)
                             )
                     }
+                    
+                    Button(action: {
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                        impactFeedback.impactOccurred()
+                        showFinder = true
+                    }) {
+                        Rectangle()
+                          .foregroundColor(.clear)
+                          .frame(width: 50, height: 50)
+                          .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
+                          .colorScheme(.light)
+                          .overlay(
+                            Image(systemName: "folder.fill")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
+                          )
+                    }
+                    
                     Spacer()
                     Button(action: {
                         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
@@ -154,6 +173,10 @@ struct Home: View {
         }
         .navigationDestination(isPresented: $showSettings) {
             Settings()
+                .navigationBarBackButtonHidden(true)
+        }
+        .navigationDestination(isPresented: $showFinder) {
+            FinderView()
                 .navigationBarBackButtonHidden(true)
         }
         .background(
