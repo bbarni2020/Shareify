@@ -2,7 +2,7 @@
 
 This document provides an overview of all the API endpoints available in the `main.py` file, including their parameters and responses.
 
-**Authentication:** Most endpoints require JWT authentication via the `Authorization: Bearer <token>` header (except login, is_up, root, and static file endpoints). Tokens are obtained via the `/api/user/login` endpoint and are valid for 24 hours.
+**Authentication:** Most endpoints require JWT authentication via the `Authorization: Bearer <token>` header (except login, is_up, root, serve_static, serve_assets, auth, and preview endpoints). Tokens are obtained via the `/api/user/login` endpoint and are valid for 24 hours.
 
 ---
 
@@ -11,6 +11,7 @@ This document provides an overview of all the API endpoints available in the `ma
 ### `/api/is_up` [GET]
 **Description:** Check if the server is running.  
 **Authentication:** None required  
+**Rate Limiting:** 1 request per second
 **Response:**
 - `200 OK`: `{ "status": "Server is up" }`
 
@@ -92,19 +93,21 @@ This document provides an overview of all the API endpoints available in the `ma
 ### `/api/get_file` [GET]
 **Description:** Retrieve the content of a file.  
 **Authentication:** JWT token required  
-**Request Body:**
-- `file_path` (string): Path of the file to retrieve.  
+**Parameters:**
+- `file_path` (query): Path of the file to retrieve.  
 **Response:**
-- `200 OK`: `{ "status": "File content retrieved", "content": "..." }`
+- `200 OK`: 
+  - For text files: `{ "status": "File content retrieved", "content": "...", "type": "text" }`
+  - For binary files (images/videos): `{ "status": "File content retrieved", "content": "...", "type": "binary" }` (content is base64 encoded)
 - `404 Not Found`: `{ "error": "Path does not exist" }`
 - `401 Unauthorized`: `{ "error": "Unauthorized" }`
 - `400 Bad Request`: `{ "error": "No file path provided" }`
 - `500 Internal Server Error`: `{ "error": "..." }`
-**Note:** Binary files (images, videos) are encoded in latin1 format.
+**Note:** Binary files (images, videos) are automatically detected by MIME type and encoded in base64 format.
 
 ---
 
-### `/api/rename_file` [GET]
+### `/api/rename_file` [POST]
 **Description:** Rename a file.  
 **Authentication:** JWT token required  
 **Request Body:**
@@ -248,7 +251,7 @@ This document provides an overview of all the API endpoints available in the `ma
 - `400 Bad Request`: `{ "error": "No username provided" }`
 - `500 Internal Server Error`: `{ "error": "..." }`
 
-**Note:** When a user is deleted, their role will be automatically removed from all endpoints in the roles configuration file (except for admin roles).
+**Note:** When a user is deleted, their role will be automatically removed from all endpoints in the roles configuration file (except for admin roles). The system also updates the roles.json file and reloads configurations automatically.
 
 ---
 
@@ -257,15 +260,14 @@ This document provides an overview of all the API endpoints available in the `ma
 **Authentication:** JWT token required  
 **Request Body:**
 - `username` (string): Username.
-- `password` (string): Password.
+- `password` (string, optional): Password. If not provided, password remains unchanged.
 - `name` (string): Full name.
-- `role` (string): User role.
-- `paths` (string): Accessible paths.
-- `paths_write` (string): Writable paths.  
+- `paths` (string): Accessible paths (JSON format).
+- `paths_write` (string): Writable paths (JSON format).  
 - `id` (string): User ID.
 **Response:**
 - `200 OK`: `{ "status": "User edited" }`
-- `400 Bad Request`: `{ "error": "No username, password, name, role or paths provided" }`
+- `400 Bad Request`: `{ "error": "No username, name, role or id provided" }`
 - `500 Internal Server Error`: `{ "error": "..." }`
 
 ---
@@ -273,6 +275,7 @@ This document provides an overview of all the API endpoints available in the `ma
 ### `/api/user/login` [POST]
 **Description:** Login a user and receive a JWT token.  
 **Authentication:** None required  
+**Rate Limiting:** 1 request per second
 **Request Body:**
 - `username` (string): Username.
 - `password` (string): Password.  
@@ -365,12 +368,12 @@ This document provides an overview of all the API endpoints available in the `ma
 **Authentication:** JWT token required  
 **Request Body:**
 - `username` (string): FTP username.
-- `password` (string, optional): New password.
+- `password` (string, optional): New password. If not provided or empty, uses existing password from database.
 - `path` (string, optional): New home directory.
 - `permissions` (string, optional): New permissions.  
 **Response:**
 - `200 OK`: `{ "status": "FTP user edited" }`
-- `404 Not Found`: `{ "error": "User not found" }` or `{ "error": "Path does not exist" }`
+- `404 Not Found`: `{ "error": "Internal server error" }` (when user not found) or `{ "error": "Path does not exist" }`
 - `400 Bad Request`: `{ "error": "No username provided" }`
 - `500 Internal Server Error`: `{ "error": "..." }`
 
@@ -423,7 +426,7 @@ This document provides an overview of all the API endpoints available in the `ma
 - `200 OK`: `{ "status": "Settings updated" }`
 - `400 Bad Request`: `{ "error": "No settings provided" }`
 - `500 Internal Server Error`: `{ "error": "..." }`
-**Note:** This endpoint reloads the JSON configuration files after updating.
+**Note:** This endpoint reloads the JSON configuration files after updating. The `com_password` field is automatically preserved from existing settings if present.
 
 ---
 
@@ -450,6 +453,49 @@ This document provides an overview of all the API endpoints available in the `ma
 - `200 OK`: `{ "status": "Update started" }`
 
 ---
+
+## Cloud Management Endpoints
+
+### `/api/cloud/manage` [POST]
+**Description:** Manage cloud integration settings and operations.  
+**Authentication:** JWT token required  
+**Request Body:** JSON object with action and additional parameters:
+
+#### Enable/Disable Cloud
+- `action` (string): "enable"
+- `enabled` (boolean): True to enable, false to disable cloud integration
+
+#### Delete Authentication Data  
+- `action` (string): "delete_auth"
+
+#### Cloud Signup
+- `action` (string): "signup"  
+- `email` (string): User email address
+- `username` (string): Desired username
+- `password` (string): User password
+
+**Response:**
+- `200 OK`: 
+  - For enable: `{ "status": "Cloud enabled" }` or `{ "status": "Cloud disabled" }`
+  - For delete_auth: `{ "status": "Authentication data deleted" }`
+  - For signup: `{ "status": "Signup successful", "data": {...} }`
+- `400 Bad Request`: 
+  - `{ "error": "Invalid action" }`
+  - `{ "error": "Email, username and password required" }` (for signup)
+  - `{ "error": "Auth token not found in cloud settings" }` (for signup)
+- `404 Not Found`: 
+  - `{ "error": "Cloud settings file not found" }`
+  - `{ "error": "Cloud settings not found" }` (for signup)
+- `500 Internal Server Error`: 
+  - `{ "error": "Internal server error" }`
+  - `{ "error": "Network error", "details": "..." }` (for signup)
+  - `{ "error": "Signup failed", "details": "..." }` (for signup)
+
+**Note:** The signup action requires an existing auth token in cloud settings and communicates with the cloud bridge server.
+
+---
+
+## Role Management Endpoints
 
 ### `/api/role/get` [GET]
 **Description:** Retrieve all roles from roles.json.  
@@ -482,6 +528,12 @@ This document provides an overview of all the API endpoints available in the `ma
 
 ### `/auth` [GET]
 **Description:** Serve the login.html page.  
+**Authentication:** None required
+
+---
+
+### `/preview` [GET]
+**Description:** Serve the preview.html page for file previews.  
 **Authentication:** None required
 
 ---
