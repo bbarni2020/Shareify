@@ -28,7 +28,7 @@ body {
   position: relative;
 }
 .nav-bar {
-  animation: navSlideDown 1s ease-out 0.5s both;
+  animation: navSlideDown 1.5s ease-out 0.8s both;
   backdrop-filter: blur(20px);
   background: linear-gradient(
     93deg,
@@ -229,7 +229,7 @@ body {
   text-align: center;
 }
 .hero-slogan {
-  animation: fadeInUp 1s ease-out 0.8s both;
+  animation: fadeInUp 1.5s ease-out 1.2s both;
   color: hsla(0, 0%, 100%, 0.9);
   font-family: Kantumruy, sans-serif;
   font-size: 1.8rem;
@@ -257,7 +257,7 @@ body {
   width: 0;
 }
 .hero-title {
-  animation: slideInLeft 1s ease-out 0.2s both;
+  animation: slideInLeft 1.5s ease-out 0.5s both;
   color: #fff;
   font-size: 5.2rem;
   font-weight: 700;
@@ -272,7 +272,7 @@ body {
   opacity: 0;
 }
 .hero-subtitle {
-  animation: slideInLeft 1s ease-out 0.4s both;
+  animation: slideInLeft 1.5s ease-out 0.8s both;
   color: hsla(0, 0%, 100%, 0.9);
   font-size: 1.5rem;
   font-weight: 400;
@@ -304,7 +304,7 @@ body {
   transform: translateY(0);
 }
 .hero-buttons {
-  animation: slideInLeft 1s ease-out 0.8s both;
+  animation: slideInLeft 1.5s ease-out 1.5s both;
   opacity: 0;
 }
 .cta-buttons,
@@ -321,21 +321,18 @@ body {
   backdrop-filter: blur(20px) saturate(1.1);
   background: linear-gradient(
     135deg,
-    hsla(0, 0%, 100%, 0.2),
-    hsla(0, 0%, 100%, 0.1) 50%,
-    hsla(0, 0%, 100%, 0.15)
+    hsla(0, 0%, 100%, 0.15),
+    hsla(0, 0%, 100%, 0.08) 50%,
+    hsla(0, 0%, 100%, 0.12)
   );
   border: 1px solid hsla(0, 0%, 100%, 0.2);
-  border-radius: 28px;
-  box-shadow:
-    0 4px 12px 0 rgba(0, 0, 0, 0.1),
-    0 2px 4px 0 hsla(0, 0%, 100%, 0.1),
+  border-radius: 16px;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.05),
     inset 0 1px 0 hsla(0, 0%, 100%, 0.2);
   color: hsla(0, 0%, 100%, 0.95);
-  cursor:
-    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.9)" stroke="rgba(0,0,0,0.8)" stroke-width="2"/><path d="M8 12l4 4 4-4" fill="none" stroke="rgba(0,0,0,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>')
-      12 12,
-    pointer;
+  cursor: pointer;
   font-family: Kantumruy, sans-serif;
   font-size: 0.95rem;
   font-weight: 600;
@@ -346,215 +343,256 @@ body {
   position: relative;
   text-align: center;
   text-decoration: none;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, box-shadow;
 }
+
 .download-btn:before {
   background: linear-gradient(
-    135deg,
+    90deg,
+    transparent,
     hsla(0, 0%, 100%, 0.15),
-    hsla(0, 0%, 100%, 0.05) 50%,
-    hsla(0, 0%, 100%, 0.15)
+    transparent
   );
-  border-radius: 25px;
-  bottom: 0;
+  border-radius: inherit;
   content: "";
-  left: 0;
-  opacity: 0;
-  position: absolute;
-  right: 0;
-  top: 0;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 1;
-}
-.download-btn:after {
-  background: linear-gradient(
-    45deg,
-    hsla(0, 0%, 100%, 0.2),
-    hsla(0, 0%, 100%, 0.1),
-    hsla(0, 0%, 100%, 0.05),
-    hsla(0, 0%, 100%, 0.1),
-    hsla(0, 0%, 100%, 0.2)
-  );
-  background-size: 300% 300%;
-  border-radius: 26px;
-  bottom: -1px;
-  content: "";
-  left: -1px;
-  opacity: 0;
-  position: absolute;
-  right: -1px;
-  top: -1px;
-  transition: opacity 0.5s ease;
-  z-index: -1;
-}
-.download-btn:hover:before {
-  background: linear-gradient(
-    135deg,
-    hsla(0, 0%, 100%, 0.25),
-    hsla(0, 0%, 100%, 0.1) 50%,
-    hsla(0, 0%, 100%, 0.25)
-  );
-  opacity: 1;
-}
-.download-btn:hover:after {
-  animation: luxuryShimmer 2s ease-in-out infinite;
-  opacity: 1;
-}
-@keyframes luxuryShimmer {
-  0%,
-  to {
-    background-position: 0 0;
-  }
-  50% {
-    background-position: 100% 100%;
-  }
-}
-.download-btn:hover {
-  animation: luxuryFloat 3s ease-in-out infinite;
-  backdrop-filter: blur(20px);
-  background: linear-gradient(
-    135deg,
-    hsla(0, 0%, 100%, 0.9),
-    hsla(0, 0%, 100%, 0.7) 50%,
-    hsla(0, 0%, 100%, 0.85)
-  );
-  border: 1px solid hsla(0, 0%, 100%, 0.4);
-  box-shadow:
-    0 20px 40px 0 hsla(0, 0%, 100%, 0.15),
-    0 8px 16px 0 hsla(0, 0%, 100%, 0.1),
-    inset 0 1px 0 hsla(0, 0%, 100%, 0.4);
-  transform: translateY(-8px) scale(1.02);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-@keyframes luxuryFloat {
-  0%,
-  to {
-    transform: translateY(-8px) scale(1.02);
-  }
-  50% {
-    transform: translateY(-10px) scale(1.02);
-  }
-}
-.spotlight-overlay {
-  backdrop-filter: blur(2px);
-  background: rgba(0, 0, 0, 0.7);
   height: 100%;
   left: 0;
-  mask: radial-gradient(
-    circle 0 at 50% 50%,
-    transparent 0,
-    transparent 0,
-    #000 0
-  );
-  -webkit-mask: radial-gradient(
-    circle 0 at 50% 50%,
-    transparent 0,
-    transparent 0,
-    #000 0
-  );
   opacity: 0;
-  pointer-events: none;
-  position: fixed;
+  position: absolute;
   top: 0;
-  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  width: 100%;
-  z-index: 9998;
+  transform: translateX(-100%) skewX(-15deg);
+  transition: all 1.8s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 50%;
+  z-index: 1;
 }
-.spotlight-overlay.active {
-  mask: radial-gradient(
-    circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    transparent 0,
-    transparent 200px,
-    rgba(0, 0, 0, 0.9) 250px,
-    #000 300px
+
+.download-btn:after {
+  background: radial-gradient(
+    circle at center,
+    hsla(0, 0%, 100%, 0.08) 0%,
+    transparent 70%
   );
-  -webkit-mask: radial-gradient(
-    circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    transparent 0,
-    transparent 200px,
-    rgba(0, 0, 0, 0.9) 250px,
-    #000 300px
+  border-radius: inherit;
+  content: "";
+  height: 120%;
+  left: 50%;
+  opacity: 0;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 120%;
+  z-index: 0;
+}
+
+.download-btn:hover {
+  backdrop-filter: blur(30px) saturate(1.4);
+  background: linear-gradient(
+    145deg,
+    hsla(0, 0%, 100%, 0.3),
+    hsla(0, 0%, 100%, 0.18) 50%,
+    hsla(0, 0%, 100%, 0.25)
   );
+  border: 1px solid hsla(0, 0%, 100%, 0.4);
+  box-shadow: 
+    0 8px 30px rgba(255, 255, 255, 0.15),
+    0 4px 15px rgba(255, 255, 255, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 hsla(0, 0%, 100%, 0.35);
+  transform: translateY(-1px) scale(1.005);
+  transition: all 1.0s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.download-btn:hover:before {
   opacity: 1;
-  transition:
-    opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-    mask 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    -webkit-mask 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(150%) skewX(-15deg);
 }
-.download-btn.spotlight-trigger {
-  position: relative;
-  z-index: 9999;
-}
-.spotlight-overlay.active ~ * .download-btn.spotlight-trigger:hover {
-  animation: spotlightButtonGlow 2s ease-in-out infinite alternate;
-  box-shadow:
-    0 25px 50px 0 hsla(0, 0%, 100%, 0.6),
-    0 0 40px 0 hsla(0, 0%, 100%, 0.9),
-    inset 0 2px 0 #fff,
-    0 0 0 5px hsla(0, 0%, 100%, 0.4);
-  filter: brightness(1.3) saturate(1.4)
-    drop-shadow(0 0 25px rgba(255, 255, 255, 1));
-}
-@keyframes spotlightButtonGlow {
-  0% {
-    filter: brightness(1.3) saturate(1.4)
-      drop-shadow(0 0 25px rgba(255, 255, 255, 1));
-  }
-  to {
-    filter: brightness(1.5) saturate(1.6)
-      drop-shadow(0 0 35px rgba(255, 255, 255, 1.2));
-  }
+
+.download-btn:hover:after {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
 }
 .download-btn.primary {
   background: linear-gradient(
-    135deg,
-    hsla(0, 0%, 100%, 0.85),
-    hsla(0, 0%, 100%, 0.75) 50%,
-    hsla(0, 0%, 100%, 0.8)
+    145deg,
+    hsla(0, 0%, 100%, 0.95),
+    hsla(0, 0%, 100%, 0.85) 30%,
+    hsla(0, 0%, 100%, 0.9) 70%,
+    hsla(0, 0%, 100%, 0.95)
   );
   border: 1px solid hsla(0, 0%, 100%, 0.5);
-  box-shadow:
-    0 8px 24px 0 hsla(0, 0%, 100%, 0.2),
-    0 4px 8px 0 rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 hsla(0, 0%, 100%, 0.8);
+  border-radius: 18px;
+  box-shadow: 
+    0 4px 20px rgba(255, 255, 255, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 hsla(0, 0%, 100%, 0.7);
+  color: rgba(0, 0, 0, 0.85);
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+  transition: all 1.0s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-.footer-text {
-  color: hsla(0, 0%, 100%, 0.5);
-  font-family: Kantumruy, sans-serif;
-  font-size: 0.85rem;
+
+.download-btn.primary:before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.6),
+    transparent
+  );
+  border-radius: inherit;
+  content: "";
+  height: 100%;
+  left: -100%;
+  position: absolute;
+  top: 0;
+  transform: skewX(-20deg);
+  transition: all 1.5s ease;
+  width: 50%;
+  z-index: 1;
 }
+
+.download-btn.primary:after {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0.1) 40%,
+    transparent 70%
+  );
+  border-radius: inherit;
+  content: "";
+  height: 150%;
+  left: 50%;
+  opacity: 0;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 150%;
+  z-index: 0;
+}
+
 .download-btn.primary:hover {
   background: linear-gradient(
-    93deg,
-    hsla(0, 0%, 100%, 0.95),
-    hsla(0, 0%, 100%, 0.5)
+    145deg,
+    hsla(0, 0%, 100%, 1),
+    hsla(0, 0%, 100%, 0.95) 30%,
+    hsla(0, 0%, 100%, 0.98) 70%,
+    hsla(0, 0%, 100%, 1)
   );
+  border: 1px solid hsla(0, 0%, 100%, 0.7);
+  box-shadow: 
+    0 12px 35px rgba(255, 255, 255, 0.3),
+    0 6px 15px rgba(255, 255, 255, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 2px 0 hsla(0, 0%, 100%, 0.9);
+  color: rgba(0, 0, 0, 0.9);
+  letter-spacing: 0.8px;
+  transform: translateY(-1.5px) scale(1.01);
+  animation: magneticFloat 5s ease-in-out infinite;
 }
-.download-btn:active {
-  transform: translateY(-6px) scale(0.98);
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+.download-btn.primary:hover:before {
+  left: 100%;
+  transition: left 2.0s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.download-btn.primary:active {
-  transform: translateY(-10px) scale(0.98);
+
+.download-btn.primary:hover:after {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  animation: pulseGlow 4s ease-in-out infinite;
 }
-.download-btn:not(:hover):not(:active) {
-  animation: modernBreathe 6s ease-in-out infinite;
-}
-@keyframes modernBreathe {
-  0%,
-  to {
-    box-shadow:
-      0 4px 12px 0 rgba(0, 0, 0, 0.1),
-      0 2px 4px 0 hsla(0, 0%, 100%, 0.1),
-      inset 0 1px 0 hsla(0, 0%, 100%, 0.2);
-    transform: scale(1);
+
+@keyframes magneticFloat {
+  0%, 100% {
+    transform: translateY(-1.5px) scale(1.01);
   }
   50% {
-    box-shadow:
-      0 6px 16px 0 rgba(0, 0, 0, 0.12),
-      0 3px 6px 0 hsla(0, 0%, 100%, 0.12),
+    transform: translateY(-2.5px) scale(1.01);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.3;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+.download-btn.secondary {
+  background: linear-gradient(
+    145deg,
+    hsla(0, 0%, 100%, 0.12),
+    hsla(0, 0%, 100%, 0.06) 50%,
+    hsla(0, 0%, 100%, 0.1)
+  );
+  border: 1px solid hsla(0, 0%, 100%, 0.18);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.download-btn.secondary:before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsla(0, 0%, 100%, 0.1),
+    transparent
+  );
+  width: 30%;
+}
+
+.download-btn.secondary:hover {
+  background: linear-gradient(
+    145deg,
+    hsla(0, 0%, 100%, 0.22),
+    hsla(0, 0%, 100%, 0.14) 50%,
+    hsla(0, 0%, 100%, 0.18)
+  );
+  border: 1px solid hsla(0, 0%, 100%, 0.3);
+  box-shadow: 
+    0 6px 20px rgba(255, 255, 255, 0.1),
+    0 3px 10px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 hsla(0, 0%, 100%, 0.25);
+  transform: translateY(-0.5px) scale(1.002);
+}
+
+.download-btn:active {
+  transform: translateY(0) scale(0.99);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.download-btn.primary:active {
+  transform: translateY(-0.5px) scale(0.995);
+  box-shadow: 
+    0 6px 20px rgba(255, 255, 255, 0.2),
+    0 3px 10px rgba(255, 255, 255, 0.15),
+    inset 0 1px 0 hsla(0, 0%, 100%, 0.8);
+}
+
+.download-btn:not(:hover):not(:active) {
+  animation: gentleBreathe 8s ease-in-out infinite;
+}
+
+@keyframes gentleBreathe {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 
+      0 4px 12px rgba(0, 0, 0, 0.1),
+      0 2px 4px rgba(0, 0, 0, 0.05),
+      inset 0 1px 0 hsla(0, 0%, 100%, 0.2);
+  }
+  50% {
+    transform: scale(1.003);
+    box-shadow: 
+      0 5px 15px rgba(0, 0, 0, 0.12),
+      0 3px 6px rgba(0, 0, 0, 0.07),
       inset 0 1px 0 hsla(0, 0%, 100%, 0.25);
-    transform: scale(1.005);
   }
 }
 @keyframes logoFloat {
@@ -597,7 +635,7 @@ body {
 @keyframes fadeInDelay {
   0% {
     opacity: 0;
-    transform: scale(0.8) translateY(20px);
+    transform: scale(0.95) translateY(8px);
   }
   to {
     opacity: 0.7;
@@ -617,7 +655,7 @@ body {
 @keyframes fadeInUp {
   0% {
     opacity: 0;
-    transform: translateY(40px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -627,7 +665,7 @@ body {
 @keyframes fadeInScale {
   0% {
     opacity: 0;
-    transform: scale(0.8) translateY(40px);
+    transform: scale(0.98) translateY(8px);
   }
   to {
     opacity: 1;
@@ -637,7 +675,7 @@ body {
 @keyframes slideInLeft {
   0% {
     opacity: 0;
-    transform: translateX(-50px);
+    transform: translateX(-15px);
   }
   to {
     opacity: 1;
@@ -647,7 +685,7 @@ body {
 @keyframes navSlideDown {
   0% {
     opacity: 0;
-    transform: translateX(-50%) translateY(-30px);
+    transform: translateX(-50%) translateY(-10px);
   }
   to {
     opacity: 1;
@@ -1039,6 +1077,11 @@ body {
 .footer-link:hover {
   color: #fff;
 }
+.footer-text {
+  color: hsla(0, 0%, 100%, 0.5);
+  font-family: Kantumruy, sans-serif;
+  font-size: 0.85rem;
+}
 .hero-logo,
 .hero-section {
   will-change: transform;
@@ -1070,21 +1113,91 @@ body {
 .cursor-follow.active {
   opacity: 1;
 }
+
 .download-btn,
 .feature-card,
 .footer-link,
 .nav-link,
 .stat-item,
 .value-prop {
-  transition:
-    all 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    cursor 0.15s ease-out;
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+
+.music-toggle {
+  position: fixed;
+  top: 80px;
+  right: 30px;
+  background: linear-gradient(
+    135deg,
+    hsla(0, 0%, 100%, 0.2),
+    hsla(0, 0%, 100%, 0.1)
+  );
+  backdrop-filter: blur(20px);
+  border: 1px solid hsla(0, 0%, 100%, 0.2);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 1001;
+  color: hsla(0, 0%, 100%, 0.9);
+}
+
+.music-toggle:hover {
+  background: linear-gradient(
+    135deg,
+    hsla(0, 0%, 100%, 0.3),
+    hsla(0, 0%, 100%, 0.15)
+  );
+  border-color: hsla(0, 0%, 100%, 0.3);
+  transform: scale(1.1);
+  color: #fff;
+}
+
+.music-toggle.muted {
+  background: linear-gradient(
+    135deg,
+    hsla(0, 60%, 50%, 0.3),
+    hsla(0, 60%, 50%, 0.1)
+  );
+  border-color: hsla(0, 60%, 50%, 0.3);
+}
+
+.music-toggle.muted:hover {
+  background: linear-gradient(
+    135deg,
+    hsla(0, 60%, 50%, 0.4),
+    hsla(0, 60%, 50%, 0.2)
+  );
+  border-color: hsla(0, 60%, 50%, 0.4);
+}
+
+.music-icon,
+.mute-icon {
+  transition: opacity 0.3s ease;
+}
     </style>
 </head>
 <body>
     <div class="landing-container">
+        <audio id="backgroundMusic" loop autoplay>
+            <source src="/website/music.mp3" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+        <button id="musicToggle" class="music-toggle" aria-label="Toggle background music">
+            <svg class="music-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 3V21M9 9L20.5 4L19 17L9 13V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg class="mute-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: none;">
+                <path d="M11 5L6 9H2V15H6L11 19V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M23 9L17 15M17 9L23 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+
         <div class="background-layer active" id="bg-1" style="background-image: url('assets/backgrounds/back1.png')"></div>
         <div class="background-layer" id="bg-2" style="background-image: url('assets/backgrounds/back3.png')"></div>
         <div class="background-layer" id="bg-3" style="background-image: url('assets/backgrounds/back15.png')"></div>
@@ -1093,8 +1206,6 @@ body {
         <div class="particles" id="particles"></div>
 
         <div class="cursor-follow" id="cursorFollow"></div>
-
-        <div class="spotlight-overlay" id="spotlightOverlay"></div>
 
         <nav class="nav-bar">
             <div class="nav-links">
@@ -1123,13 +1234,13 @@ body {
                 </div>
                 
                 <div class="hero-buttons">
-                    <a href="https://github.com/bbarni2020/Shareify/releases" class="download-btn primary spotlight-trigger" target="_blank">
+                    <a href="https://github.com/bbarni2020/Shareify/releases" class="download-btn primary" target="_blank">
                         Download Shareify
                     </a>
-                    <a href="#" class="download-btn secondary spotlight-trigger" onclick="comingSoonAlert()">
+                    <a href="#" class="download-btn secondary" onclick="comingSoonAlert()">
                         iOS App
                     </a>
-                    <a href="https://bbarni2020.github.io/Shareify/guides/" class="download-btn spotlight-trigger" target="_blank">
+                    <a href="https://bbarni2020.github.io/Shareify/guides/" class="download-btn" target="_blank">
                         View Guides
                     </a>
                 </div>
@@ -1247,10 +1358,10 @@ body {
                     Join the growing community of users who have simplified their file sharing and storage needs with Shareify.
                 </p>
                 <div class="cta-buttons animate-on-scroll">
-                    <a href="https://github.com/bbarni2020/Shareify/releases" class="download-btn primary spotlight-trigger" target="_blank">
+                    <a href="https://github.com/bbarni2020/Shareify/releases" class="download-btn primary" target="_blank">
                         Download Now
                     </a>
-                    <a href="https://bbarni2020.github.io/Shareify/guides/" class="download-btn spotlight-trigger" target="_blank">
+                    <a href="https://bbarni2020.github.io/Shareify/guides/" class="download-btn" target="_blank">
                         Installation Guide
                     </a>
                 </div>
@@ -1271,8 +1382,6 @@ body {
                 </p>
             </div>
         </footer>
-
-        <div class="spotlight-overlay" id="spotlightOverlay"></div>
     </div>
 
     <script>
@@ -1431,57 +1540,55 @@ body {
             });
         }
 
-        function initSpotlightEffect() {
-            const spotlightOverlay = document.getElementById('spotlightOverlay');
-            const spotlightTriggers = document.querySelectorAll('.spotlight-trigger');
-            let isSpotlightActive = false;
-            let spotlightAnimationFrame;
-            
-            spotlightTriggers.forEach(trigger => {
-                trigger.addEventListener('mouseenter', function(e) {
-                    isSpotlightActive = true;
-                    spotlightOverlay.classList.add('active');
-                    updateSpotlightPosition(e);
+        function handleBackgroundMusic() {
+            const audio = document.getElementById('backgroundMusic');
+            const musicToggle = document.getElementById('musicToggle');
+            const musicIcon = musicToggle.querySelector('.music-icon');
+            const muteIcon = musicToggle.querySelector('.mute-icon');
+            let isMuted = false;
 
-                    trigger.style.zIndex = '10000';
-                    trigger.style.position = 'relative';
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(() => {
+                    isMuted = true;
+                    updateMusicButton();
                 });
-                
-                trigger.addEventListener('mousemove', function(e) {
-                    if (isSpotlightActive) {
-                        if (spotlightAnimationFrame) {
-                            cancelAnimationFrame(spotlightAnimationFrame);
-                        }
-                        spotlightAnimationFrame = requestAnimationFrame(() => {
-                            updateSpotlightPosition(e);
-                        });
-                    }
-                });
-                
-                trigger.addEventListener('mouseleave', function() {
-                    isSpotlightActive = false;
-                    spotlightOverlay.classList.remove('active');
-                
-                    trigger.style.zIndex = '';
-                    trigger.style.position = '';
-                    
-                    if (spotlightAnimationFrame) {
-                        cancelAnimationFrame(spotlightAnimationFrame);
-                    }
-                });
-            });
-            
-            function updateSpotlightPosition(e) {
-                const rect = e.target.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-                
-                const x = (centerX / window.innerWidth) * 100;
-                const y = (centerY / window.innerHeight) * 100;
-                
-                spotlightOverlay.style.setProperty('--mouse-x', `${x}%`);
-                spotlightOverlay.style.setProperty('--mouse-y', `${y}%`);
             }
+
+            function updateMusicButton() {
+                if (isMuted) {
+                    musicToggle.classList.add('muted');
+                    musicIcon.style.display = 'none';
+                    muteIcon.style.display = 'block';
+                    audio.pause();
+                } else {
+                    musicToggle.classList.remove('muted');
+                    musicIcon.style.display = 'block';
+                    muteIcon.style.display = 'none';
+                    audio.play().catch(() => {
+                        isMuted = true;
+                        updateMusicButton();
+                    });
+                }
+            }
+
+            musicToggle.addEventListener('click', () => {
+                isMuted = !isMuted;
+                updateMusicButton();
+            });
+
+            audio.addEventListener('ended', () => {
+                if (!isMuted) {
+                    audio.play();
+                }
+            });
+
+            audio.addEventListener('pause', () => {
+                if (!isMuted) {
+                    isMuted = true;
+                    updateMusicButton();
+                }
+            });
         }
 
         function comingSoonAlert() {
@@ -1502,7 +1609,7 @@ body {
                 box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
                 border: 1px solid rgba(255, 255, 255, 0.3);
                 opacity: 0;
-                animation: fadeIn 0.3s ease-out forwards;
+                animation: fadeIn 0.8s ease-out forwards;
             `;
             
             alertDiv.innerHTML = `
@@ -1553,10 +1660,10 @@ body {
             createParticles();
             handleScrollAnimations();
             handleMouseInteractions();
+            handleBackgroundMusic();
             smoothScroll();
             handleActiveNav();
             handleNavbarScroll();
-            initSpotlightEffect();
             
 
             startAutoSwitch();
@@ -1571,6 +1678,8 @@ body {
 
             document.querySelector('.hero-content').addEventListener('mouseenter', stopAutoSwitch);
             document.querySelector('.hero-content').addEventListener('mouseleave', startAutoSwitch);
+
+            handleBackgroundMusic();
         });
 
         let scrollTimeout;
@@ -1586,7 +1695,7 @@ body {
         const style = document.createElement('style');
         style.textContent = `
             @keyframes fadeIn {
-                from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+                from { opacity: 0; transform: translate(-50%, -50%) scale(0.98); }
                 to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
             }
         `;
@@ -1667,6 +1776,19 @@ body {
 
         handleActiveNav();
         handleNavbarScroll();
+
+        const musicToggle = document.getElementById('musicToggle');
+        const backgroundMusic = document.getElementById('backgroundMusic');
+
+        musicToggle.addEventListener('click', () => {
+            const isMuted = musicToggle.classList.toggle('muted');
+
+            if (isMuted) {
+                backgroundMusic.pause();
+            } else {
+                backgroundMusic.play();
+            }
+        });
     </script>
 </body>
 </html>
