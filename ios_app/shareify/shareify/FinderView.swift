@@ -1,58 +1,31 @@
 import SwiftUI
 
-struct FinderItem: Identifiable {
+struct FinderItem: Identifiable, Codable {
     let id = UUID()
     let name: String
     let isFolder: Bool
     let size: String?
     let dateModified: String
+    
+    enum CodingKeys: String, CodingKey {
+        case name, isFolder, size, dateModified
+    }
 }
 
 struct FinderView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var currentPath: [String] = ["Home"]
+    @State private var currentPath: [String] = []
     @State private var isGridView = false
     @State private var selectedItems: Set<UUID> = []
     @State private var searchText = ""
     @State private var showingActionSheet = false
+    @State private var items: [FinderItem] = []
+    @State private var isLoading = false
     @StateObject private var backgroundManager = BackgroundManager.shared
     
-    let dummyItems: [String: [FinderItem]] = [
-        "Home": [
-            FinderItem(name: "Documents", isFolder: true, size: nil, dateModified: "Today, 2:30 PM"),
-            FinderItem(name: "Downloads", isFolder: true, size: nil, dateModified: "Yesterday, 4:15 PM"),
-            FinderItem(name: "Pictures", isFolder: true, size: nil, dateModified: "Jan 15, 2025"),
-            FinderItem(name: "Movies", isFolder: true, size: nil, dateModified: "Jan 10, 2025"),
-            FinderItem(name: "Music", isFolder: true, size: nil, dateModified: "Dec 28, 2024"),
-            FinderItem(name: "Project Report.pdf", isFolder: false, size: "2.3 MB", dateModified: "Today, 1:45 PM"),
-            FinderItem(name: "Presentation.pptx", isFolder: false, size: "15.7 MB", dateModified: "Yesterday, 9:20 AM")
-        ],
-        "Documents": [
-            FinderItem(name: "Work", isFolder: true, size: nil, dateModified: "Today, 10:30 AM"),
-            FinderItem(name: "Personal", isFolder: true, size: nil, dateModified: "Yesterday, 2:15 PM"),
-            FinderItem(name: "Resume.pdf", isFolder: false, size: "1.2 MB", dateModified: "Jan 22, 2025"),
-            FinderItem(name: "Contract.docx", isFolder: false, size: "456 KB", dateModified: "Jan 20, 2025"),
-            FinderItem(name: "Budget.xlsx", isFolder: false, size: "234 KB", dateModified: "Jan 18, 2025")
-        ],
-        "Downloads": [
-            FinderItem(name: "Software", isFolder: true, size: nil, dateModified: "Jan 15, 2025"),
-            FinderItem(name: "Images", isFolder: true, size: nil, dateModified: "Jan 12, 2025"),
-            FinderItem(name: "Setup.dmg", isFolder: false, size: "89 MB", dateModified: "Today, 3:20 PM"),
-            FinderItem(name: "Archive.zip", isFolder: false, size: "12 MB", dateModified: "Yesterday, 11:45 AM"),
-            FinderItem(name: "Document.pdf", isFolder: false, size: "3.4 MB", dateModified: "Jan 19, 2025")
-        ],
-        "Pictures": [
-            FinderItem(name: "Vacation 2025", isFolder: true, size: nil, dateModified: "Jan 10, 2025"),
-            FinderItem(name: "Screenshots", isFolder: true, size: nil, dateModified: "Today, 9:15 AM"),
-            FinderItem(name: "Photo1.jpg", isFolder: false, size: "5.2 MB", dateModified: "Jan 16, 2025"),
-            FinderItem(name: "Photo2.jpg", isFolder: false, size: "4.8 MB", dateModified: "Jan 16, 2025"),
-            FinderItem(name: "Portrait.png", isFolder: false, size: "2.1 MB", dateModified: "Jan 14, 2025")
-        ]
-    ]
     
     var currentItems: [FinderItem] {
-        let currentFolder = currentPath.last ?? "Home"
-        return dummyItems[currentFolder] ?? []
+        return items
     }
     
     var filteredItems: [FinderItem] {
@@ -61,6 +34,125 @@ struct FinderView: View {
         } else {
             return currentItems.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
         }
+    }
+    
+    func fetchFinderItems() {
+        isLoading = true
+        let pathString = currentPath.joined(separator: "/")
+        
+        print("DEBUG: Starting fetchFinderItems() with path: '\(pathString)'")
+        
+        guard let url = URL(string: "https://command.bbarni.hackclub.app/") else {
+            print("DEBUG: Failed to create URL")
+            isLoading = false
+            return
+        }
+        
+        print("DEBUG: URL created: \(url)")
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        print("DEBUG: Base request configured - Method: POST, Content-Type: application/json")
+        
+        if let jwtToken = UserDefaults.standard.string(forKey: "jwt_token"), !jwtToken.isEmpty {
+            request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
+            print("DEBUG: JWT Token added to Authorization header: Bearer \(jwtToken)")
+        } else {
+            print("DEBUG: No JWT token found in UserDefaults")
+        }
+        
+        if let shareifyJWT = UserDefaults.standard.string(forKey: "shareify_jwt"), !shareifyJWT.isEmpty {
+            request.setValue(shareifyJWT, forHTTPHeaderField: "X-Shareify-JWT")
+            print("DEBUG: Shareify JWT added to X-Shareify-JWT header: \(shareifyJWT)")
+        } else {
+            print("DEBUG: No Shareify JWT found in UserDefaults")
+        }
+        
+        let requestBody: [String: Any] = [
+            "command": "/finder",
+            "method": "GET",
+            "body": [
+                "path": pathString
+            ],
+            "wait_time": 3
+        ]
+        
+        print("DEBUG: Request body created: \(requestBody)")
+        
+        do {
+            let httpBodyData = try JSONSerialization.data(withJSONObject: requestBody)
+            request.httpBody = httpBodyData
+            if let bodyString = String(data: httpBodyData, encoding: .utf8) {
+                print("DEBUG: Request body as JSON string: \(bodyString)")
+            }
+        } catch {
+            print("DEBUG: Failed to serialize request body: \(error)")
+            isLoading = false
+            return
+        }
+        
+        print("DEBUG: Full request headers: \(request.allHTTPHeaderFields ?? [:])")
+        print("DEBUG: Starting URLSession data task...")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            print("DEBUG: URLSession task completed")
+            
+            if let error = error {
+                print("DEBUG: URLSession error: \(error)")
+            }
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("DEBUG: HTTP response status code: \(httpResponse.statusCode)")
+                print("DEBUG: HTTP response headers: \(httpResponse.allHeaderFields)")
+            }
+            
+            if let data = data {
+                print("DEBUG: Response data received - \(data.count) bytes")
+                if let responseString = String(data: data, encoding: .utf8) {
+                    print("DEBUG: Response data as string: \(responseString)")
+                }
+            } else {
+                print("DEBUG: No response data received")
+            }
+            
+            DispatchQueue.main.async {
+                isLoading = false
+                
+                if let data = data {
+                    do {
+                        let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                        print("DEBUG: Parsed JSON response: \(jsonResponse ?? [:])")
+                        
+                        if let fileNames = jsonResponse?["items"] as? [String] {
+                            print("DEBUG: Found items array with \(fileNames.count) items: \(fileNames)")
+                            let finderItems = fileNames.map { fileName in
+                                FinderItem(
+                                    name: fileName,
+                                    isFolder: !fileName.contains("."),
+                                    size: fileName.contains(".") ? "Unknown" : nil,
+                                    dateModified: "Recently"
+                                )
+                            }
+                            self.items = finderItems
+                            print("DEBUG: Created \(finderItems.count) FinderItem objects")
+                        } else {
+                            print("DEBUG: No 'items' array found in response or wrong type")
+                            self.items = []
+                        }
+                    } catch {
+                        print("DEBUG: Error parsing JSON response: \(error)")
+                        self.items = []
+                    }
+                } else {
+                    print("DEBUG: No data to process, setting items to empty array")
+                    self.items = []
+                }
+                
+                print("DEBUG: Final items count: \(self.items.count)")
+            }
+        }.resume()
     }
     
     var body: some View {
@@ -88,12 +180,17 @@ struct FinderView: View {
                                     pathBreadcrumb
                                     
                                     toolBar
-                                    
-                                    if isGridView {
-                                        gridView
-                                    } else {
-                                        listView
-                                    }
+                                                     if isGridView {
+                        gridView
+                    } else {
+                        listView
+                    }
+                    
+                    if isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(.clear)
+                    }
                                 }
                                 .padding(.top, 50)
                             }
@@ -102,12 +199,18 @@ struct FinderView: View {
                 )
         }
         .ignoresSafeArea(.all)
+        .onAppear {
+            fetchFinderItems()
+        }
+        .onChange(of: currentPath) {
+            fetchFinderItems()
+        }
     }
     
     private var topNavigationBar: some View {
         HStack {
             Button(action: {
-                if currentPath.count > 1 {
+                if currentPath.count > 0 {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         _ = currentPath.removeLast()
                     }
@@ -166,9 +269,13 @@ struct FinderView: View {
     private var pathBreadcrumb: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(Array(currentPath.enumerated()), id: \.offset) { index, pathComponent in
+                let displayPath = currentPath.isEmpty ? ["Root"] : currentPath
+                ForEach(Array(displayPath.enumerated()), id: \.offset) { index, pathComponent in
                     HStack(spacing: 8) {
                         Button(action: {
+                            if currentPath.isEmpty && index == 0 {
+                                return
+                            }
                             if index < currentPath.count - 1 {
                                 withAnimation(.easeInOut(duration: 0.3)) {
                                     let newPath = Array(currentPath.prefix(index + 1))
@@ -178,13 +285,13 @@ struct FinderView: View {
                         }) {
                             Text(pathComponent)
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(index == currentPath.count - 1 ? 
+                                .foregroundColor(index == displayPath.count - 1 ? 
                                                Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255) : 
                                                Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
                         }
-                        .disabled(index == currentPath.count - 1)
+                        .disabled(index == displayPath.count - 1)
                         
-                        if index < currentPath.count - 1 {
+                        if index < displayPath.count - 1 {
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 12))
                                 .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
@@ -218,14 +325,6 @@ struct FinderView: View {
                 .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
             
             Spacer()
-            
-            Button(action: {}) {
-                Image(systemName: "arrow.up.arrow.down")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                    .frame(width: 44, height: 44)
-                    .background(.clear)
-            }
         }
         .padding(.horizontal, 20)
         .padding(.top, 15)
@@ -298,11 +397,8 @@ struct FinderView: View {
         .background(.clear)
         .onTapGesture {
             if item.isFolder {
-                let hasContent = dummyItems.keys.contains(item.name)
-                if hasContent {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        currentPath.append(item.name)
-                    }
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    currentPath.append(item.name)
                 }
             }
         }
@@ -333,11 +429,8 @@ struct FinderView: View {
         .background(.clear)
         .onTapGesture {
             if item.isFolder {
-                let hasContent = dummyItems.keys.contains(item.name)
-                if hasContent {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        currentPath.append(item.name)
-                    }
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    currentPath.append(item.name)
                 }
             }
         }

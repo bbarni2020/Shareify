@@ -23,12 +23,23 @@ def cloud_full(base_url, jwt_token, command, method, shareify_jwt, wait_time, bo
 
     print(payload)
 
-    r = requests.post(f"{base_url}/cloud/command", json=payload, headers=headers)
-    print(r.text)
-    command_ids = r.json().get("command_ids", [])
+    max_attempts = 10
+    poll_interval = 1
+    attempts = 0
     
-    if not command_ids:
-        return {"error": "No command_ids returned"}
+    while attempts < max_attempts:
+        r = requests.post(f"{base_url}/cloud/command", json=payload, headers=headers)
+        print(r.text)
+        response_json = r.json()
+        
+        if response_json and response_json.get("command_ids"):
+            command_ids = response_json["command_ids"]
+            break
+        
+        attempts += 1
+        time.sleep(poll_interval)
+    else:
+        return {"error": "No command_ids returned after max attempts"}
     
     params = [("command_id", cid) for cid in command_ids]
     params.append(("jwt_token", jwt_token))
