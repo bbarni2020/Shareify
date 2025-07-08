@@ -5,3 +5,4 @@ bcrypt
 PyJWT
 eventlet
 gunicorn[eventlet]
+requests
