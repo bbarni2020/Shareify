@@ -65,6 +65,7 @@ struct Home: View {
                             )
                     }
                     
+                    /*
                     Button(action: {
                         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
                         impactFeedback.impactOccurred()
@@ -81,6 +82,7 @@ struct Home: View {
                                 .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
                           )
                     }
+                    */
                     
                     Spacer()
                     Button(action: {

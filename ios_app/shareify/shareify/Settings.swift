@@ -362,6 +362,33 @@ struct Settings: View {
                                         )
                                         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                                     }
+                                    
+                                    Button(action: {
+                                        webViewURL = URL(string: "https://github.com/bbarni2020/Shareify")
+                                        showingWebView = true
+                                    }) {
+                                        HStack {
+                                            Image(systemName: "chevron.left.forwardslash.chevron.right")
+                                                .font(.system(size: 16))
+                                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
+                                            Text("GitHub")
+                                                .font(.system(size: 16, weight: .medium))
+                                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
+                                            Spacer()
+                                            Image(systemName: "arrow.up.right")
+                                                .font(.system(size: 14))
+                                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
+                                        }
+                                        .padding(.vertical, 15)
+                                        .padding(.horizontal, 20)
+                                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+                                        .colorScheme(.light)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 20)
+                                                .stroke(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.4), lineWidth: 1)
+                                        )
+                                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                                    }
                                 }
                                 .padding(20)
                                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 15))
