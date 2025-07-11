@@ -21,8 +21,6 @@ def cloud_full(base_url, jwt_token, command, method, shareify_jwt, wait_time, bo
         "body": body
     }
 
-    print(payload)
-
     max_attempts = 10
     poll_interval = 1
     attempts = 0

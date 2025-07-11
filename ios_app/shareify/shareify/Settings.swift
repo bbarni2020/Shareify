@@ -572,75 +572,26 @@ struct Settings: View {
         
         isLoadingShareifyData = true
         
-        guard let url = URL(string: "https://command.bbarni.hackclub.app/") else {
-            localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Error loading"
-            isLoadingShareifyData = false
-            return
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
-        request.setValue(shareifyJWT, forHTTPHeaderField: "X-Shareify-JWT")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let requestBody: [String: Any] = [
-            "command": "/user/get_self"
-        ]
-        
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-        } catch {
-            localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Request error"
-            isLoadingShareifyData = false
-            return
-        }
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        ServerManager.shared.executeServerCommand(command: "/user/get_self", method: "GET", waitTime: 3) { result in
             DispatchQueue.main.async {
                 self.isLoadingShareifyData = false
                 
-                if error != nil {
-                    self.localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Error loading"
-                    return
-                }
-                
-                guard let data = data else {
-                    self.localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "No data"
-                    return
-                }
-                
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    self.localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Error loading"
-                    return
-                }
-                
-                if httpResponse.statusCode == 401 {
-                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let errorMessage = json["error"] as? String,
-                       errorMessage == "Invalid or expired JWT token" {
-                        self.refreshJWTTokenAndRetry {
-                            self.fetchShareifySettings()
-                        }
-                        return
+                switch result {
+                case .success(let response):
+                    if let responseDict = response as? [String: Any],
+                       let userName = responseDict["username"] as? String {
+                        self.localUsername = userName
+                        UserDefaults.standard.set(userName, forKey: "server_username")
+                        UserDefaults.standard.synchronize()
+                    } else {
+                        self.localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Not available"
                     }
-                }
-                
-                do {
-                    if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                        if let userName = json["username"] as? String {
-                            self.localUsername = userName
-                            UserDefaults.standard.set(userName, forKey: "server_username")
-                            UserDefaults.standard.synchronize()
-                        } else {
-                            self.localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Not available"
-                        }
-                    }
-                } catch {
-                    self.localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Not available"
+                case .failure(let error):
+                    print("DEBUG: Failed to fetch shareify settings: \(error)")
+                    self.localUsername = UserDefaults.standard.string(forKey: "server_username") ?? "Error loading"
                 }
             }
-        }.resume()
+        }
     }
     
     private func logoutCloud() {
