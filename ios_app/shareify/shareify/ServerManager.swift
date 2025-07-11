@@ -12,7 +12,7 @@ class ServerManager: ObservableObject {
     
     private init() {}
     
-    func executeServerCommand(command: String, method: String = "GET", body: [String: Any] = [:], completion: @escaping (Result<Any, Error>) -> Void) {
+    func executeServerCommand(command: String, method: String = "GET", body: [String: Any] = [:], waitTime: Int = 2, completion: @escaping (Result<Any, Error>) -> Void) {
         
         guard let jwtToken = UserDefaults.standard.string(forKey: "jwt_token"), !jwtToken.isEmpty else {
             completion(.failure(ServerError.noJWTToken))
@@ -36,7 +36,7 @@ class ServerManager: ObservableObject {
         var requestBody: [String: Any] = [
             "command": command,
             "method": method,
-            "wait_time": 2
+            "wait_time": waitTime
         ]
         
         if !body.isEmpty {
@@ -71,7 +71,7 @@ class ServerManager: ObservableObject {
                     if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                        let errorMessage = json["error"] as? String,
                        errorMessage == "Invalid or expired JWT token" {
-                        self.refreshJWTTokenAndRetry(originalCommand: command, originalMethod: method, originalBody: body, completion: completion)
+                        self.refreshJWTTokenAndRetry(originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, completion: completion)
                         return
                     }
                 }
@@ -81,13 +81,13 @@ class ServerManager: ObservableObject {
                     
                     if let jsonDict = json as? [String: Any] {
                         if let errorMessage = jsonDict["error"] as? String {
-                            self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, completion: completion)
+                            self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, completion: completion)
                             return
                         }
                         
                         if let success = jsonDict["success"] as? Bool, !success {
                             let errorMessage = jsonDict["error"] as? String ?? "Unknown server error"
-                            self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, completion: completion)
+                            self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, completion: completion)
                             return
                         }
                         
@@ -95,13 +95,13 @@ class ServerManager: ObservableObject {
                             completion(.success(jsonDict))
                         } else {
                             let errorMessage = jsonDict["error"] as? String ?? "Unknown server error"
-                            self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, completion: completion)
+                            self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, completion: completion)
                         }
                     } else if json is [Any] {
                         if httpResponse.statusCode == 200 {
                             completion(.success(json))
                         } else {
-                            self.handleServerError(errorMessage: "HTTP \(httpResponse.statusCode)", originalCommand: command, originalMethod: method, originalBody: body, completion: completion)
+                            self.handleServerError(errorMessage: "HTTP \(httpResponse.statusCode)", originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, completion: completion)
                         }
                     } else {
                         completion(.failure(ServerError.invalidJSONResponse))
@@ -113,7 +113,7 @@ class ServerManager: ObservableObject {
         }.resume()
     }
     
-    private func handleServerError(errorMessage: String, originalCommand: String, originalMethod: String, originalBody: [String: Any], completion: @escaping (Result<Any, Error>) -> Void) {
+    private func handleServerError(errorMessage: String, originalCommand: String, originalMethod: String, originalBody: [String: Any], originalWaitTime: Int = 2, completion: @escaping (Result<Any, Error>) -> Void) {
         let isAuthError = errorMessage.lowercased().contains("unauthorized") || 
                          errorMessage.lowercased().contains("token") || 
                          errorMessage.lowercased().contains("auth") || 
@@ -128,7 +128,7 @@ class ServerManager: ObservableObject {
                 loginToServer(username: username, password: password) { result in
                     switch result {
                     case .success(_):
-                        self.executeServerCommand(command: originalCommand, method: originalMethod, body: originalBody, completion: completion)
+                        self.executeServerCommand(command: originalCommand, method: originalMethod, body: originalBody, waitTime: originalWaitTime, completion: completion)
                     case .failure(let error):
                         if let serverError = error as? ServerError,
                            case .serverError(let message) = serverError,
@@ -168,7 +168,7 @@ class ServerManager: ObservableObject {
         let requestBody: [String: Any] = [
             "command": "/user/login",
             "method": "POST",
-            "wait_time": 2,
+            "wait_time": 5,
             "body": [
                 "username": username,
                 "password": password
@@ -228,7 +228,7 @@ class ServerManager: ObservableObject {
         }.resume()
     }
     
-    private func refreshJWTTokenAndRetry(originalCommand: String, originalMethod: String, originalBody: [String: Any], completion: @escaping (Result<Any, Error>) -> Void) {
+    private func refreshJWTTokenAndRetry(originalCommand: String, originalMethod: String, originalBody: [String: Any], originalWaitTime: Int = 2, completion: @escaping (Result<Any, Error>) -> Void) {
         guard let email = UserDefaults.standard.string(forKey: "user_email"),
               let password = UserDefaults.standard.string(forKey: "user_password"),
               !email.isEmpty, !password.isEmpty else {
@@ -271,7 +271,7 @@ class ServerManager: ObservableObject {
                 UserDefaults.standard.set(newJwtToken, forKey: "jwt_token")
                 UserDefaults.standard.synchronize()
                 
-                self.executeServerCommand(command: originalCommand, method: originalMethod, body: originalBody, completion: completion)
+                self.executeServerCommand(command: originalCommand, method: originalMethod, body: originalBody, waitTime: originalWaitTime, completion: completion)
             }
         }.resume()
     }

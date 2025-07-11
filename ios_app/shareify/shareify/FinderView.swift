@@ -22,6 +22,7 @@ struct FinderView: View {
     @State private var items: [FinderItem] = []
     @State private var isLoading = false
     @StateObject private var backgroundManager = BackgroundManager.shared
+    @State private var folderCache: [String: [FinderItem]] = [:]
     
     
     var currentItems: [FinderItem] {
@@ -37,122 +38,73 @@ struct FinderView: View {
     }
     
     func fetchFinderItems() {
-        isLoading = true
         let pathString = currentPath.joined(separator: "/")
+        
+        if let cachedItems = getCachedItems(for: pathString) {
+            self.items = cachedItems
+            return
+        }
+        
+        isLoading = true
         
         print("DEBUG: Starting fetchFinderItems() with path: '\(pathString)'")
         
-        guard let url = URL(string: "https://command.bbarni.hackclub.app/") else {
-            print("DEBUG: Failed to create URL")
-            isLoading = false
-            return
-        }
-        
-        print("DEBUG: URL created: \(url)")
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        print("DEBUG: Base request configured - Method: POST, Content-Type: application/json")
-        
-        if let jwtToken = UserDefaults.standard.string(forKey: "jwt_token"), !jwtToken.isEmpty {
-            request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
-            print("DEBUG: JWT Token added to Authorization header: Bearer \(jwtToken)")
-        } else {
-            print("DEBUG: No JWT token found in UserDefaults")
-        }
-        
-        if let shareifyJWT = UserDefaults.standard.string(forKey: "shareify_jwt"), !shareifyJWT.isEmpty {
-            request.setValue(shareifyJWT, forHTTPHeaderField: "X-Shareify-JWT")
-            print("DEBUG: Shareify JWT added to X-Shareify-JWT header: \(shareifyJWT)")
-        } else {
-            print("DEBUG: No Shareify JWT found in UserDefaults")
-        }
-        
         let requestBody: [String: Any] = [
-            "command": "/finder",
-            "method": "GET",
-            "body": [
-                "path": pathString
-            ],
-            "wait_time": 3
+            "path": pathString
         ]
         
-        print("DEBUG: Request body created: \(requestBody)")
-        
-        do {
-            let httpBodyData = try JSONSerialization.data(withJSONObject: requestBody)
-            request.httpBody = httpBodyData
-            if let bodyString = String(data: httpBodyData, encoding: .utf8) {
-                print("DEBUG: Request body as JSON string: \(bodyString)")
-            }
-        } catch {
-            print("DEBUG: Failed to serialize request body: \(error)")
-            isLoading = false
-            return
-        }
-        
-        print("DEBUG: Full request headers: \(request.allHTTPHeaderFields ?? [:])")
-        print("DEBUG: Starting URLSession data task...")
-        
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            print("DEBUG: URLSession task completed")
-            
-            if let error = error {
-                print("DEBUG: URLSession error: \(error)")
-            }
-            
-            if let httpResponse = response as? HTTPURLResponse {
-                print("DEBUG: HTTP response status code: \(httpResponse.statusCode)")
-                print("DEBUG: HTTP response headers: \(httpResponse.allHeaderFields)")
-            }
-            
-            if let data = data {
-                print("DEBUG: Response data received - \(data.count) bytes")
-                if let responseString = String(data: data, encoding: .utf8) {
-                    print("DEBUG: Response data as string: \(responseString)")
-                }
-            } else {
-                print("DEBUG: No response data received")
-            }
-            
+        ServerManager.shared.executeServerCommand(command: "/finder", method: "GET", body: requestBody, waitTime: 3) { result in
             DispatchQueue.main.async {
-                isLoading = false
+                self.isLoading = false
                 
-                if let data = data {
-                    do {
-                        let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-                        print("DEBUG: Parsed JSON response: \(jsonResponse ?? [:])")
-                        
-                        if let fileNames = jsonResponse?["items"] as? [String] {
-                            print("DEBUG: Found items array with \(fileNames.count) items: \(fileNames)")
-                            let finderItems = fileNames.map { fileName in
-                                FinderItem(
-                                    name: fileName,
-                                    isFolder: !fileName.contains("."),
-                                    size: fileName.contains(".") ? "Unknown" : nil,
-                                    dateModified: "Recently"
-                                )
-                            }
-                            self.items = finderItems
-                            print("DEBUG: Created \(finderItems.count) FinderItem objects")
-                        } else {
-                            print("DEBUG: No 'items' array found in response or wrong type")
-                            self.items = []
-                        }
-                    } catch {
-                        print("DEBUG: Error parsing JSON response: \(error)")
-                        self.items = []
+                switch result {
+                case .success(let response):
+                    print("DEBUG: Successfully received response: \(response)")
+                    
+                    var fileNames: [String] = []
+                    
+                    if let responseDict = response as? [String: Any],
+                       let items = responseDict["items"] as? [String] {
+                        fileNames = items
+                    } else if let directArray = response as? [String] {
+                        fileNames = directArray
                     }
-                } else {
-                    print("DEBUG: No data to process, setting items to empty array")
+                    
+                    print("DEBUG: Found \(fileNames.count) items: \(fileNames)")
+                    
+                    let finderItems = fileNames.map { fileName in
+                        FinderItem(
+                            name: fileName,
+                            isFolder: !fileName.contains("."),
+                            size: fileName.contains(".") ? "Unknown" : nil,
+                            dateModified: "Recently"
+                        )
+                    }
+                    
+                    self.items = finderItems
+                    self.cacheItems(finderItems, for: pathString)
+                    print("DEBUG: Created \(finderItems.count) FinderItem objects")
+                    
+                case .failure(let error):
+                    print("DEBUG: Failed to fetch finder items: \(error)")
                     self.items = []
                 }
-                
-                print("DEBUG: Final items count: \(self.items.count)")
             }
-        }.resume()
+        }
+    }
+    
+    private func getCachedItems(for path: String) -> [FinderItem]? {
+        return folderCache[path]
+    }
+    
+    private func cacheItems(_ items: [FinderItem], for path: String) {
+        folderCache[path] = items
+    }
+    
+    private func refreshCurrentFolder() {
+        let pathString = currentPath.joined(separator: "/")
+        folderCache.removeValue(forKey: pathString)
+        fetchFinderItems()
     }
     
     var body: some View {
@@ -244,6 +196,11 @@ struct FinderView: View {
         .confirmationDialog("Options", isPresented: $showingActionSheet, titleVisibility: .visible) {
             Button("Create Folder") { }
             Button("Import Files") { }
+            Button("Refresh") { refreshCurrentFolder() }
+            Button("Clear Cache") { 
+                folderCache.removeAll()
+                fetchFinderItems()
+            }
             Button("Select All") { }
             Button("Cancel", role: .cancel) { }
         }
