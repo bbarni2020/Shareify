@@ -65,34 +65,52 @@ def cloud_full(base_url, jwt_token, command, method, shareify_jwt, wait_time, bo
     params = [("command_id", cid) for cid in command_ids]
     params.append(("jwt_token", jwt_token))
     
-    print(f"DEBUG: Getting response with params: {params}")
-    r2 = requests.get(f"{base_url}/cloud/response", headers=headers, params=params)
-    print(f"DEBUG: Response status: {r2.status_code}")
-    print(f"DEBUG: Response text: {r2.text}")
+    max_response_attempts = 30
+    response_poll_interval = 1
+    response_attempts = 0
     
-    try:
-        response_data = r2.json()
-        print(f"DEBUG: Parsed response data: {response_data}")
-    except Exception as e:
-        print(f"DEBUG: JSON parsing error on response: {e}")
-        return {"error": "Invalid JSON response from bridge server"}
+    while response_attempts < max_response_attempts:
+        print(f"DEBUG: Getting response attempt {response_attempts + 1} with params: {params}")
+        r2 = requests.get(f"{base_url}/cloud/response", headers=headers, params=params)
+        print(f"DEBUG: Response status: {r2.status_code}")
+        print(f"DEBUG: Response text: {r2.text}")
+        
+        try:
+            response_data = r2.json()
+            print(f"DEBUG: Parsed response data: {response_data}")
+        except Exception as e:
+            print(f"DEBUG: JSON parsing error on response: {e}")
+            response_attempts += 1
+            time.sleep(response_poll_interval)
+            continue
+        
+        for command_id, command_response in response_data.get("responses", {}).items():
+            print(f"DEBUG: Processing command_id: {command_id}, response: {command_response}")
+            
+            if command_response.get("completed", False):
+                if "response" in command_response and command_response["response"] is not None:
+                    print(f"DEBUG: Returning completed response: {command_response['response']}")
+                    return command_response["response"]
+                else:
+                    print(f"DEBUG: Returning completed command_response: {command_response}")
+                    return command_response
+            else:
+                print(f"DEBUG: Command still pending, status: {command_response.get('status', 'unknown')}")
+        
+        response_attempts += 1
+        time.sleep(response_poll_interval)
     
-    for command_id, command_response in response_data.get("responses", {}).items():
-        print(f"DEBUG: Processing command_id: {command_id}, response: {command_response}")
-        if "response" in command_response:
-            print(f"DEBUG: Returning response: {command_response['response']}")
-            return command_response["response"]
-        else:
-            print(f"DEBUG: Returning command_response: {command_response}")
-            return command_response
-    
-    print("DEBUG: No responses found in response data")
-    return {"error": "No responses found", "raw_data": response_data}
+    print("DEBUG: Max response attempts reached, returning timeout error")
+    return {"error": "Command timeout - no completed response received", "raw_data": response_data}
 
 @app.route('/', methods=['POST'])
 def index():
     try:
         print("DEBUG: Received request")
+        print(f"DEBUG: Request method: {request.method}")
+        print(f"DEBUG: Request URL: {request.url}")
+        print(f"DEBUG: Request content type: {request.content_type}")
+        
         data = request.get_json() or {}
         print(f"DEBUG: Request data: {data}")
         print(f"DEBUG: Request headers: {dict(request.headers)}")
@@ -122,9 +140,34 @@ def index():
         print(f"  wait_time: {wait_time}")
         print(f"  body: {body}")
         
+        if not command or not method:
+            print("DEBUG: Missing required parameters")
+            return jsonify({
+                'success': False,
+                'error': 'Missing required parameters: command and method are required',
+                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+            }), 400
+        
+        if not jwt_token:
+            print("DEBUG: Missing JWT token")
+            return jsonify({
+                'success': False,
+                'error': 'Missing JWT token',
+                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+            }), 401
+        
         result = cloud_full(base_url, jwt_token, command, method, shareify_jwt, wait_time, body)
         
         print(f"DEBUG: Final result: {result}")
+        
+        if result is None:
+            print("DEBUG: Result is None, returning error")
+            return jsonify({
+                'success': False,
+                'error': 'No response received from bridge server',
+                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+            }), 500
+        
         return jsonify(result)
     except Exception as e:
         print(f"DEBUG: Exception occurred: {str(e)}")

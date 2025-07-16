@@ -14,6 +14,7 @@ struct ServerLogin: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var navigateToHome = false
+    @State private var navigateToLogin = false
     @State private var loginCardOpacity: Double = 0
     @State private var loginCardOffset: CGFloat = 50
     @StateObject private var backgroundManager = BackgroundManager.shared
@@ -21,6 +22,8 @@ struct ServerLogin: View {
     var body: some View {
         if navigateToHome {
             Home()
+        } else if navigateToLogin {
+            Login()
         } else {
             serverLoginView
                 .onAppear {
@@ -132,6 +135,23 @@ struct ServerLogin: View {
                                     .opacity((serverUsername.isEmpty || serverPassword.isEmpty) ? 0.6 : 1.0)
                                     .animation(.easeInOut(duration: 0.3), value: serverUsername.isEmpty || serverPassword.isEmpty)
                                     .padding(.top, min(containerGeometry.size.height * 0.02, 10))
+                                    
+                                    Button(action: {
+                                        logoutFromMainAccount()
+                                    }) {
+                                        Text("Logout from Main Account")
+                                            .font(.system(size: min(containerGeometry.size.width * 0.04, 16), weight: .medium))
+                                            .foregroundColor(Color(red: 0xDC/255, green: 0x26/255, blue: 0x26/255))
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 50)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 15)
+                                                    .stroke(Color(red: 0xDC/255, green: 0x26/255, blue: 0x26/255), lineWidth: 2)
+                                            )
+                                    }
+                                    .disabled(isLoading)
+                                    .opacity(isLoading ? 0.6 : 1.0)
+                                    .padding(.top, min(containerGeometry.size.height * 0.015, 8))
                                 }
                                 .padding(.horizontal, min(containerGeometry.size.width * 0.08, 30))
                             }
@@ -211,6 +231,22 @@ struct ServerLogin: View {
             isLoading = false
             showError = true
             errorMessage = message
+        }
+    }
+    
+    private func logoutFromMainAccount() {
+        UserDefaults.standard.removeObject(forKey: "server_username")
+        UserDefaults.standard.removeObject(forKey: "server_password")
+        UserDefaults.standard.removeObject(forKey: "jwt_token")
+        UserDefaults.standard.removeObject(forKey: "user_email")
+        UserDefaults.standard.removeObject(forKey: "user_password")
+        UserDefaults.standard.synchronize()
+        
+        serverUsername = ""
+        serverPassword = ""
+        
+        withAnimation(.easeInOut(duration: 0.3)) {
+            navigateToLogin = true
         }
     }
 }
