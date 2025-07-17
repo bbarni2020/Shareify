@@ -301,32 +301,26 @@ struct FinderView: View {
                 .font(.system(size: 24))
                 .foregroundColor(item.isFolder ? Color.blue : Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
                 .frame(width: 32, height: 32)
-            
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.name)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
                     .lineLimit(1)
-                
                 HStack(spacing: 4) {
                     if let size = item.size {
                         Text(size)
                             .font(.system(size: 12))
                             .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
-                        
                         Text("•")
                             .font(.system(size: 12))
                             .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
                     }
-                    
                     Text(item.dateModified)
                         .font(.system(size: 12))
                         .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
                 }
             }
-            
             Spacer()
-            
             Button(action: {}) {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 16))
@@ -338,8 +332,46 @@ struct FinderView: View {
         .background(.clear)
         .onTapGesture {
             if item.isFolder {
+                let newPath = currentPath + [item.name]
+                let newPathString = newPath.joined(separator: "/")
+                if let cachedItems = getCachedItems(for: newPathString) {
+                    self.items = cachedItems
+                } else {
+                    self.items = []
+                }
+                isLoading = true
                 withAnimation(.easeInOut(duration: 0.3)) {
                     currentPath.append(item.name)
+                }
+                let requestBody: [String: Any] = [
+                    "path": newPathString
+                ]
+                ServerManager.shared.executeServerCommand(command: "/finder", method: "GET", body: requestBody, waitTime: 3) { result in
+                    DispatchQueue.main.async {
+                        self.isLoading = false
+                        switch result {
+                        case .success(let response):
+                            var fileNames: [String] = []
+                            if let responseDict = response as? [String: Any],
+                               let items = responseDict["items"] as? [String] {
+                                fileNames = items
+                            } else if let directArray = response as? [String] {
+                                fileNames = directArray
+                            }
+                            let finderItems = fileNames.map { fileName in
+                                FinderItem(
+                                    name: fileName,
+                                    isFolder: !fileName.contains("."),
+                                    size: fileName.contains(".") ? "Unknown" : nil,
+                                    dateModified: "Recently"
+                                )
+                            }
+                            self.items = finderItems
+                            self.cacheItems(finderItems, for: newPathString)
+                        case .failure(_):
+                            self.items = []
+                        }
+                    }
                 }
             }
         }
@@ -351,13 +383,11 @@ struct FinderView: View {
                 .font(.system(size: 32))
                 .foregroundColor(item.isFolder ? Color.blue : Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
                 .frame(height: 40)
-            
             Text(item.name)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
-            
             if let size = item.size {
                 Text(size)
                     .font(.system(size: 10))
@@ -370,8 +400,46 @@ struct FinderView: View {
         .background(.clear)
         .onTapGesture {
             if item.isFolder {
+                let newPath = currentPath + [item.name]
+                let newPathString = newPath.joined(separator: "/")
+                if let cachedItems = getCachedItems(for: newPathString) {
+                    self.items = cachedItems
+                } else {
+                    self.items = []
+                }
+                isLoading = true
                 withAnimation(.easeInOut(duration: 0.3)) {
                     currentPath.append(item.name)
+                }
+                let requestBody: [String: Any] = [
+                    "path": newPathString
+                ]
+                ServerManager.shared.executeServerCommand(command: "/finder", method: "GET", body: requestBody, waitTime: 3) { result in
+                    DispatchQueue.main.async {
+                        self.isLoading = false
+                        switch result {
+                        case .success(let response):
+                            var fileNames: [String] = []
+                            if let responseDict = response as? [String: Any],
+                               let items = responseDict["items"] as? [String] {
+                                fileNames = items
+                            } else if let directArray = response as? [String] {
+                                fileNames = directArray
+                            }
+                            let finderItems = fileNames.map { fileName in
+                                FinderItem(
+                                    name: fileName,
+                                    isFolder: !fileName.contains("."),
+                                    size: fileName.contains(".") ? "Unknown" : nil,
+                                    dateModified: "Recently"
+                                )
+                            }
+                            self.items = finderItems
+                            self.cacheItems(finderItems, for: newPathString)
+                        case .failure(_):
+                            self.items = []
+                        }
+                    }
                 }
             }
         }
