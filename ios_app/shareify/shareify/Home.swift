@@ -65,7 +65,7 @@ struct Home: View {
                             )
                     }
                     
-                    /*
+                    
                     Button(action: {
                         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
                         impactFeedback.impactOccurred()
@@ -82,7 +82,7 @@ struct Home: View {
                                 .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
                           )
                     }
-                    */
+                    
                     
                     Spacer()
                     Button(action: {
@@ -371,7 +371,7 @@ struct Home: View {
     }
     
     private func loadResources() {
-        ServerManager.shared.executeServerCommand(command: "/resources", method: "GET") { result in
+        ServerManager.shared.executeServerCommand(command: "/resources", method: "GET", waitTime: 3) { result in
             switch result {
             case .success(let response):
                 resetServerErrorState()
@@ -405,8 +405,7 @@ struct Home: View {
     }
     
     private func loadLogs() {
-        let requestBody = ["wait_time": 5]
-        ServerManager.shared.executeServerCommand(command: "/get_logs", method: "GET", body: requestBody) { result in
+        ServerManager.shared.executeServerCommand(command: "/get_logs", method: "GET", waitTime: 5) { result in
             switch result {
             case .success(let response):
                 resetServerErrorState()
