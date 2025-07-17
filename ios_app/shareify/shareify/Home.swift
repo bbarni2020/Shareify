@@ -10,24 +10,17 @@ import Foundation
 
 struct Home: View {
     @State private var isFlickering = false
-    @State private var cpuValue: Double = 0 {
-        didSet { saveResourceCache() }
-    }
-    @State private var memoryValue: Double = 0 {
-        didSet { saveResourceCache() }
-    }
-    @State private var diskValue: Double = 0 {
-        didSet { saveResourceCache() }
-    }
+
+    @State private var cpuValue: Double = 0
+    @State private var memoryValue: Double = 0
+    @State private var diskValue: Double = 0
     @State private var isLoaded = false
     @State private var topBarOpacity: Double = 0
     @State private var topBarOffset: CGFloat = -20
     @State private var mainCardOpacity: Double = 0
     @State private var mainCardOffset: CGFloat = 50
     @State private var navigateToLogin = false
-    @State private var logs: [ServerLogEntry] = [] {
-        didSet { saveLogsCache() }
-    }
+    @State private var logs: [ServerLogEntry] = []
     @State private var hasServerError = false
     @State private var showStatusPopup = false
     @State private var lastSuccessfulCall: Date?
@@ -210,59 +203,7 @@ struct Home: View {
                 if let timestamp = UserDefaults.standard.value(forKey: "last_successful_call") as? Double {
                     lastSuccessfulCall = Date(timeIntervalSince1970: timestamp)
                 }
-                loadResourceCache()
-                loadLogsCache()
             }
-    private func saveResourceCache() {
-        let dict: [String: Double] = [
-            "cpu": cpuValue,
-            "memory": memoryValue,
-            "disk": diskValue
-        ]
-        UserDefaults.standard.set(dict, forKey: "ShareifyResourceCache")
-    }
-
-    private func loadResourceCache() {
-        if let dict = UserDefaults.standard.dictionary(forKey: "ShareifyResourceCache") as? [String: Double] {
-            cpuValue = dict["cpu"] ?? 0
-            memoryValue = dict["memory"] ?? 0
-            diskValue = dict["disk"] ?? 0
-        }
-    }
-
-    private func saveLogsCache() {
-        let logsArray = logs.map { log in
-            [
-                "time": log.time,
-                "action": log.action,
-                "ipAddress": log.ipAddress,
-                "level": String(describing: log.level),
-                "id": log.id
-            ]
-        }
-        UserDefaults.standard.set(logsArray, forKey: "ShareifyLogsCache")
-    }
-
-    private func loadLogsCache() {
-        guard let logsArray = UserDefaults.standard.array(forKey: "ShareifyLogsCache") as? [[String: Any]] else { return }
-        let loadedLogs: [ServerLogEntry] = logsArray.compactMap { dict in
-            guard let time = dict["time"] as? String,
-                  let action = dict["action"] as? String,
-                  let ipAddress = dict["ipAddress"] as? String,
-                  let id = dict["id"] as? Int else { return nil }
-            // Level fallback
-            let levelStr = dict["level"] as? String ?? "info"
-            let level: LogLevel
-            switch levelStr {
-            case "error": level = .error
-            case "warning": level = .warning
-            case "success": level = .success
-            default: level = .info
-            }
-            return ServerLogEntry(time: time, action: action, ipAddress: ipAddress, level: level, id: id)
-        }
-        logs = loadedLogs
-    }
         )
         .fullScreenCover(isPresented: $navigateToLogin) {
             Login()

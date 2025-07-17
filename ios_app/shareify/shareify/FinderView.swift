@@ -218,7 +218,6 @@ struct FinderView: View {
                         .frame(width: geometry.size.width, height: geometry.size.height)
                         .background(.ultraThinMaterial)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .animation(.easeInOut(duration: 0.35), value: previewedFile)
                     }
                 }
             }
