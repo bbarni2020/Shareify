@@ -23,6 +23,10 @@ struct FinderView: View {
     @State private var isLoading = false
     @StateObject private var backgroundManager = BackgroundManager.shared
     @State private var folderCache: [String: [FinderItem]] = [:]
+    @State private var previewedFile: FinderItem? = nil
+    @State private var previewedFileContent: String? = nil
+    @State private var previewedFileType: String? = nil
+    @State private var isPreviewLoading: Bool = false
     
     
     var currentItems: [FinderItem] {
@@ -93,46 +97,102 @@ struct FinderView: View {
     
     var body: some View {
         GeometryReader { geometry in
-            Image(backgroundManager.backgroundImageName)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .clipped()
-                .ignoresSafeArea(.all)
-                .overlay(
-                    Rectangle()
-                        .foregroundColor(.clear)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(.ultraThinMaterial)
-                        .colorScheme(.light)
-                        .ignoresSafeArea(.all)
-                        .overlay(
-                            NavigationStack {
-                                VStack(spacing: 0) {
-                                    topNavigationBar
-                                    
-                                    searchBar
-                                    
-                                    pathBreadcrumb
-                                    
-                                    toolBar
-                                                     if isGridView {
-                        gridView
-                    } else {
-                        listView
-                    }
-                    
-                    if isLoading {
-                        ProgressView()
+            ZStack {
+                Image(backgroundManager.backgroundImageName)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .clipped()
+                    .ignoresSafeArea(.all)
+                    .overlay(
+                        Rectangle()
+                            .foregroundColor(.clear)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(.clear)
-                    }
+                            .background(.ultraThinMaterial)
+                            .colorScheme(.light)
+                            .ignoresSafeArea(.all)
+                            .overlay(
+                                NavigationStack {
+                                    VStack(spacing: 0) {
+                                        topNavigationBar
+                                        searchBar
+                                        pathBreadcrumb
+                                        toolBar
+                                        if isGridView {
+                                            gridView
+                                        } else {
+                                            listView
+                                        }
+                                        if isLoading {
+                                            ProgressView()
+                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                                .background(.clear)
+                                        }
+                                    }
+                                    .padding(.top, 50)
                                 }
-                                .padding(.top, 50)
+                                .navigationBarHidden(true)
+                            )
+                    )
+                if let file = previewedFile, let content = previewedFileContent, let type = previewedFileType {
+                    VStack {
+                        HStack {
+                            Text(file.name)
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                            Spacer()
+                            Button(action: { previewedFile = nil }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
                             }
-                            .navigationBarHidden(true)
-                        )
-                )
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 30)
+                        if isPreviewLoading {
+                            ProgressView()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else if type == "text" {
+                            ScrollView {
+                                Text(content)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                    .padding()
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(12)
+                            .padding(20)
+                        } else if type == "binary" {
+                            if file.name.lowercased().hasSuffix(".png") || file.name.lowercased().hasSuffix(".jpg") || file.name.lowercased().hasSuffix(".jpeg") {
+                                if let imageData = Data(base64Encoded: content), let uiImage = UIImage(data: imageData) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                        .background(.ultraThinMaterial)
+                                        .cornerRadius(12)
+                                        .padding(20)
+                                }
+                            } else {
+                                Text("Binary file preview not supported.")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                    .padding()
+                            }
+                        }
+                        Spacer()
+                    }
+                    .frame(width: geometry.size.width * 0.9, height: geometry.size.height * 0.8)
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(20)
+                    .shadow(radius: 20)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255), lineWidth: 2)
+                    )
+                }
+            }
         }
         .ignoresSafeArea(.all)
         .onAppear {
@@ -370,6 +430,34 @@ struct FinderView: View {
                             self.cacheItems(finderItems, for: newPathString)
                         case .failure(_):
                             self.items = []
+                        }
+                    }
+                }
+            } else {
+                isPreviewLoading = true
+                previewedFile = item
+                previewedFileContent = nil
+                previewedFileType = nil
+                let filePath = (currentPath + [item.name]).joined(separator: "/")
+                let requestBody: [String: Any] = [
+                    "file_path": filePath
+                ]
+                ServerManager.shared.executeServerCommand(command: "/api/get_file", method: "GET", body: requestBody, waitTime: 3) { result in
+                    DispatchQueue.main.async {
+                        isPreviewLoading = false
+                        switch result {
+                        case .success(let response):
+                            if let json = response as? [String: Any],
+                               let status = json["status"] as? String, status == "File content retrieved" {
+                                previewedFileContent = json["content"] as? String
+                                previewedFileType = json["type"] as? String
+                            } else {
+                                previewedFileContent = "Failed to load file."
+                                previewedFileType = "text"
+                            }
+                        case .failure(_):
+                            previewedFileContent = "Failed to load file."
+                            previewedFileType = "text"
                         }
                     }
                 }

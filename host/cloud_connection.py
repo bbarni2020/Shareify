@@ -488,7 +488,7 @@ class ShareifyLocalClient:
             
             print(f"Making {method} request to: {full_url}")
             
-            if not (url == '/resources' or url == 'resources' or url == '/is_up' or url == 'is_up' or url == '/user/get_self' or url == 'user/get_self' or url == 'user/login' or url == '/user/login' or url == '/get_logs' or url == '/finder'):
+            if not (url == '/resources' or url == 'resources' or url == '/is_up' or url == 'is_up' or url == '/user/get_self' or url == 'user/get_self' or url == 'user/login' or url == '/user/login' or url == '/get_logs' or url == '/finder' or url == '/get_file'):
                 if self.sio.connected:
                     try:
                         self.sio.emit('command_response', {
