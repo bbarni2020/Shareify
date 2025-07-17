@@ -159,34 +159,41 @@ struct FinderView: View {
                                 .navigationBarHidden(true)
                             )
                     )
-                if let file = previewedFile, let content = previewedFileContent, let type = previewedFileType {
-                    ZStack {
+                ZStack {
+                    if let file = previewedFile, let content = previewedFileContent, let type = previewedFileType {
                         Color.black.opacity(0.15)
                             .ignoresSafeArea()
+                            .transition(.opacity)
                         VStack {
                             HStack {
                                 Text(file.name)
-                                    .font(.system(size: 18, weight: .bold))
+                                    .font(.system(size: 20, weight: .bold))
                                     .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
                                 Spacer()
-                                Button(action: { previewedFile = nil }) {
+                                Button(action: {
+                                    withAnimation(.easeInOut(duration: 0.35)) {
+                                        previewedFile = nil
+                                        previewedFileContent = nil
+                                        previewedFileType = nil
+                                    }
+                                }) {
                                     Image(systemName: "xmark.circle.fill")
-                                        .font(.system(size: 28))
+                                        .font(.system(size: 32))
                                         .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
                                 }
                             }
-                            .padding(.horizontal, 24)
-                            .padding(.top, 40)
+                            .padding(.horizontal, 28)
+                            .padding(.top, 70)
                             if isPreviewLoading {
                                 ProgressView()
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                             } else if type == "text" {
                                 ScrollView {
                                     Text(content)
-                                        .font(.system(size: 16))
+                                        .font(.system(size: 17))
                                         .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                        .padding(.horizontal, 24)
-                                        .padding(.vertical, 12)
+                                        .padding(.horizontal, 28)
+                                        .padding(.vertical, 16)
                                 }
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                             } else if type == "binary" {
@@ -196,20 +203,22 @@ struct FinderView: View {
                                             .resizable()
                                             .aspectRatio(contentMode: .fit)
                                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                            .padding(24)
+                                            .padding(28)
                                     }
                                 } else {
                                     Text("Binary file preview not supported.")
-                                        .font(.system(size: 16))
+                                        .font(.system(size: 17))
                                         .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                        .padding(.horizontal, 24)
-                                        .padding(.vertical, 12)
+                                        .padding(.horizontal, 28)
+                                        .padding(.vertical, 16)
                                 }
                             }
                             Spacer()
                         }
                         .frame(width: geometry.size.width, height: geometry.size.height)
                         .background(.ultraThinMaterial)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .animation(.easeInOut(duration: 0.35), value: previewedFile)
                     }
                 }
             }

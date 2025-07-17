@@ -19,7 +19,8 @@ class ServerManager: ObservableObject {
             return
         }
         
-        guard let url = URL(string: "https://command.bbarni.hackclub.app/") else {
+        //guard let url = URL(string: "https://command.bbarni.hackclub.app/") else {
+        guard let url = URL(string: "http://localhost:5555/") else {
             completion(.failure(ServerError.invalidURL))
             return
         }
@@ -28,21 +29,21 @@ class ServerManager: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
-        
+
         if let shareifyJWT = UserDefaults.standard.string(forKey: "shareify_jwt"), !shareifyJWT.isEmpty {
             request.setValue(shareifyJWT, forHTTPHeaderField: "X-Shareify-JWT")
         }
-        
+
         var requestBody: [String: Any] = [
             "command": command,
             "method": method,
             "wait_time": waitTime
         ]
-        
+
         if !body.isEmpty {
             requestBody["body"] = body
         }
-        
+
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
         } catch {
