@@ -414,7 +414,7 @@ struct FinderView: View {
         .onTapGesture {
             if item.isFolder {
                 let newPath = currentPath + [item.name]
-                let newPathString = newPath.map { "/-\($0)_" }.joined()
+                let newPathString = newPath.map { "/\($0)" }.joined()
                 let requestBody: [String: Any] = [
                     "path": newPathString
                 ]
@@ -511,7 +511,7 @@ struct FinderView: View {
         .onTapGesture {
             if item.isFolder {
                 let newPath = currentPath + [item.name]
-                let newPathString = newPath.map { "/-\($0)_" }.joined()
+                let newPathString = newPath.map { "/\($0)" }.joined()
                 let requestBody: [String: Any] = [
                     "path": newPathString
                 ]
