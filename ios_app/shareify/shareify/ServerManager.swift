@@ -25,7 +25,21 @@ class ServerManager: ObservableObject {
             return
         }
         
-        var request = URLRequest(url: url)
+        var request: URLRequest
+        let methodUpper = method.uppercased()
+        if methodUpper == "GET" && !body.isEmpty {
+            var urlComponents = URLComponents(string: url.absoluteString)
+            urlComponents?.queryItems = body.map { (key, value) in
+                URLQueryItem(name: key, value: String(describing: value))
+            }
+            if let newURL = urlComponents?.url {
+                request = URLRequest(url: newURL)
+            } else {
+                request = URLRequest(url: url)
+            }
+        } else {
+            request = URLRequest(url: url)
+        }
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
