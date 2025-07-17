@@ -39,39 +39,27 @@ struct FinderView: View {
     
     func fetchFinderItems() {
         let pathString = currentPath.joined(separator: "/")
-        
         if let cachedItems = getCachedItems(for: pathString) {
             self.items = cachedItems
-            return
+        } else {
+            self.items = []
         }
-        
         isLoading = true
-        
-        print("DEBUG: Starting fetchFinderItems() with path: '\(pathString)'")
-        
         let requestBody: [String: Any] = [
             "path": pathString
         ]
-        
         ServerManager.shared.executeServerCommand(command: "/finder", method: "GET", body: requestBody, waitTime: 3) { result in
             DispatchQueue.main.async {
                 self.isLoading = false
-                
                 switch result {
                 case .success(let response):
-                    print("DEBUG: Successfully received response: \(response)")
-                    
                     var fileNames: [String] = []
-                    
                     if let responseDict = response as? [String: Any],
                        let items = responseDict["items"] as? [String] {
                         fileNames = items
                     } else if let directArray = response as? [String] {
                         fileNames = directArray
                     }
-                    
-                    print("DEBUG: Found \(fileNames.count) items: \(fileNames)")
-                    
                     let finderItems = fileNames.map { fileName in
                         FinderItem(
                             name: fileName,
@@ -80,13 +68,9 @@ struct FinderView: View {
                             dateModified: "Recently"
                         )
                     }
-                    
                     self.items = finderItems
                     self.cacheItems(finderItems, for: pathString)
-                    print("DEBUG: Created \(finderItems.count) FinderItem objects")
-                    
-                case .failure(let error):
-                    print("DEBUG: Failed to fetch finder items: \(error)")
+                case .failure(_):
                     self.items = []
                 }
             }
