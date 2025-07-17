@@ -19,27 +19,12 @@ class ServerManager: ObservableObject {
             return
         }
         
-        //guard let url = URL(string: "https://command.bbarni.hackclub.app/") else {
-        guard let url = URL(string: "http://localhost:5555/") else {
+        guard let url = URL(string: "https://command.bbarni.hackclub.app/") else {
             completion(.failure(ServerError.invalidURL))
             return
         }
         
-        var request: URLRequest
-        let methodUpper = method.uppercased()
-        if methodUpper == "GET" && !body.isEmpty {
-            var urlComponents = URLComponents(string: url.absoluteString)
-            urlComponents?.queryItems = body.map { (key, value) in
-                URLQueryItem(name: key, value: String(describing: value))
-            }
-            if let newURL = urlComponents?.url {
-                request = URLRequest(url: newURL)
-            } else {
-                request = URLRequest(url: url)
-            }
-        } else {
-            request = URLRequest(url: url)
-        }
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
