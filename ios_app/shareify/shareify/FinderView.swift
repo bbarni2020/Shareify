@@ -1,4 +1,8 @@
+
 import SwiftUI
+import PDFKit
+import AVKit
+import SwiftyDocx
 
 struct FinderItem: Identifiable, Codable {
     let id = UUID()
@@ -159,74 +163,158 @@ struct FinderView: View {
                                 .navigationBarHidden(true)
                             )
                     )
-                ZStack {
-                    if let file = previewedFile, let content = previewedFileContent, let type = previewedFileType {
-                        Color.black.opacity(0.15)
-                            .ignoresSafeArea()
-                            .transition(.opacity)
-                        VStack {
-                            HStack {
-                                Text(file.name)
-                                    .font(.system(size: 20, weight: .bold))
-                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                Spacer()
-                                Button(action: {
-                                    withAnimation(.easeInOut(duration: 0.35)) {
-                                        previewedFile = nil
-                                        previewedFileContent = nil
-                                        previewedFileType = nil
-                                    }
-                                }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .font(.system(size: 32))
-                                        .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                if let file = previewedFile, let content = previewedFileContent, let type = previewedFileType {
+                    Color.black.opacity(0.15)
+                        .ignoresSafeArea()
+                        .transition(.opacity)
+                    VStack {
+                        HStack {
+                            Text(file.name)
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                            Spacer()
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.35)) {
+                                    previewedFile = nil
+                                    previewedFileContent = nil
+                                    previewedFileType = nil
                                 }
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
                             }
-                            .padding(.horizontal, 28)
-                            .padding(.top, 70)
-                            if isPreviewLoading {
-                                ProgressView()
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            } else if type == "text" {
-                                ScrollView {
-                                    Text(content)
+                        }
+                        .padding(.horizontal, 28)
+                        .padding(.top, 70)
+                        if isPreviewLoading {
+                            ProgressView()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else if type == "text" {
+                            ScrollView {
+                                Text(content)
+                                    .font(.system(size: 17))
+                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                    .padding(.horizontal, 28)
+                                    .padding(.vertical, 16)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else if type == "binary" {
+                            let lowerName = file.name.lowercased()
+                            if lowerName.hasSuffix(".png") || lowerName.hasSuffix(".jpg") || lowerName.hasSuffix(".jpeg") {
+                                if let imageData = Data(base64Encoded: content), let uiImage = UIImage(data: imageData) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                        .padding(28)
+                                } else {
+                                    Text("Failed to decode image.")
                                         .font(.system(size: 17))
                                         .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
                                         .padding(.horizontal, 28)
                                         .padding(.vertical, 16)
                                 }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            } else if type == "binary" {
-                                if file.name.lowercased().hasSuffix(".png") || file.name.lowercased().hasSuffix(".jpg") || file.name.lowercased().hasSuffix(".jpeg") {
-                                    if let imageData = Data(base64Encoded: content), let uiImage = UIImage(data: imageData) {
-                                        Image(uiImage: uiImage)
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                            .padding(28)
+                            } else if lowerName.hasSuffix(".mp4") || lowerName.hasSuffix(".mov") {
+                                if let videoData = Data(base64Encoded: content) {
+                                    let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
+                                    try? videoData.write(to: tempURL)
+                                    VideoPlayer(player: AVPlayer(url: tempURL))
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                        .padding(28)
+                                } else {
+                                    Text("Failed to decode video.")
+                                        .font(.system(size: 17))
+                                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                        .padding(.horizontal, 28)
+                                        .padding(.vertical, 16)
+                                }
+                            } else if lowerName.hasSuffix(".mp3") || lowerName.hasSuffix(".wav") {
+                                if let audioData = Data(base64Encoded: content) {
+                                    let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
+                                    try? audioData.write(to: tempURL)
+                                    VideoPlayer(player: AVPlayer(url: tempURL))
+                                        .frame(maxWidth: .infinity, maxHeight: 100)
+                                        .padding(28)
+                                } else {
+                                    Text("Failed to decode audio.")
+                                        .font(.system(size: 17))
+                                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                        .padding(.horizontal, 28)
+                                        .padding(.vertical, 16)
+                                }
+                            } else if lowerName.hasSuffix(".pdf") {
+                                if let pdfData = Data(base64Encoded: content), let pdfDocument = PDFDocument(data: pdfData) {
+                                    PDFKitRepresentedView(document: pdfDocument)
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                        .padding(28)
+                                } else {
+                                    Text("Failed to decode PDF.")
+                                        .font(.system(size: 17))
+                                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                        .padding(.horizontal, 28)
+                                        .padding(.vertical, 16)
+                                }
+                            } else if lowerName.hasSuffix(".docx") {
+                                if let docxData = Data(base64Encoded: content) {
+                                    if let docx = try? SwiftyDocx.Document(data: docxData) {
+                                        ScrollView {
+                                            VStack(alignment: .leading, spacing: 12) {
+                                                ForEach(docx.paragraphs, id: \ .self) { paragraph in
+                                                    Text(paragraph.text)
+                                                        .font(.system(size: 17))
+                                                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                                }
+                                            }
+                                            .padding(.horizontal, 28)
+                                            .padding(.vertical, 16)
+                                        }
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    } else {
+                                        Text("Failed to decode DOCX file.")
+                                            .font(.system(size: 17))
+                                            .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                            .padding(.horizontal, 28)
+                                            .padding(.vertical, 16)
                                     }
                                 } else {
-                                    Text("Binary file preview not supported.")
+                                    Text("Failed to decode DOCX file.")
                                         .font(.system(size: 17))
                                         .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
                                         .padding(.horizontal, 28)
                                         .padding(.vertical, 16)
                                 }
+                            } else {
+                                Text("Binary file preview not supported.")
+                                    .font(.system(size: 17))
+                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                    .padding(.horizontal, 28)
+                                    .padding(.vertical, 16)
                             }
-                            Spacer()
                         }
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .background(.ultraThinMaterial)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+struct PDFKitRepresentedView: UIViewRepresentable {
+    let document: PDFDocument
+    func makeUIView(context: Context) -> PDFView {
+        let pdfView = PDFView()
+        pdfView.document = document
+        pdfView.autoScales = true
+        return pdfView
+    }
+    func updateUIView(_ uiView: PDFView, context: Context) {}
+}
+                        Spacer()
                     }
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .background(.ultraThinMaterial)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
         }
         .ignoresSafeArea(.all)
-    .onAppear {
-        loadFolderCache()
-        fetchFinderItems()
-    }
+        .onAppear {
+            loadFolderCache()
+            fetchFinderItems()
+        }
         .onChange(of: currentPath) {
             fetchFinderItems()
         }
@@ -571,23 +659,37 @@ struct FinderView: View {
         
         if lowercased.hasSuffix(".pdf") {
             return "doc.fill"
-        } else if lowercased.hasSuffix(".jpg") || lowercased.hasSuffix(".jpeg") || lowercased.hasSuffix(".png") {
-            return "photo.fill"
-        } else if lowercased.hasSuffix(".mp4") || lowercased.hasSuffix(".mov") {
-            return "video.fill"
-        } else if lowercased.hasSuffix(".mp3") || lowercased.hasSuffix(".wav") {
-            return "music.note"
-        } else if lowercased.hasSuffix(".zip") || lowercased.hasSuffix(".rar") {
-            return "archivebox.fill"
-        } else if lowercased.hasSuffix(".txt") {
-            return "doc.text.fill"
-        } else if lowercased.hasSuffix(".pptx") || lowercased.hasSuffix(".ppt") {
-            return "doc.richtext.fill"
-        } else if lowercased.hasSuffix(".xlsx") || lowercased.hasSuffix(".xls") {
-            return "tablecells.fill"
-        } else {
-            return "doc.fill"
         }
+
+        if lowercased.hasSuffix(".jpg") || lowercased.hasSuffix(".jpeg") || lowercased.hasSuffix(".png") || lowercased.hasSuffix(".gif") || lowercased.hasSuffix(".bmp") || lowercased.hasSuffix(".tiff") || lowercased.hasSuffix(".webp") || lowercased.hasSuffix(".svg") || lowercased.hasSuffix(".ico") {
+            return "photo.fill"
+        }
+
+        if lowercased.hasSuffix(".mp4") || lowercased.hasSuffix(".mov") || lowercased.hasSuffix(".avi") || lowercased.hasSuffix(".wmv") || lowercased.hasSuffix(".flv") || lowercased.hasSuffix(".mkv") || lowercased.hasSuffix(".webm") || lowercased.hasSuffix(".mpeg") || lowercased.hasSuffix(".mpg") || lowercased.hasSuffix(".m4v") {
+            return "video.fill"
+        }
+
+        if lowercased.hasSuffix(".mp3") || lowercased.hasSuffix(".wav") || lowercased.hasSuffix(".aac") || lowercased.hasSuffix(".ogg") || lowercased.hasSuffix(".flac") || lowercased.hasSuffix(".wma") || lowercased.hasSuffix(".m4a") || lowercased.hasSuffix(".aiff") || lowercased.hasSuffix(".alac") {
+            return "music.note"
+        }
+
+        if lowercased.hasSuffix(".zip") || lowercased.hasSuffix(".rar") || lowercased.hasSuffix(".7z") || lowercased.hasSuffix(".tar") || lowercased.hasSuffix(".gz") || lowercased.hasSuffix(".bz2") {
+            return "archivebox.fill"
+        }
+
+        if lowercased.hasSuffix(".txt") || lowercased.hasSuffix(".md") || lowercased.hasSuffix(".rtf") || lowercased.hasSuffix(".csv") || lowercased.hasSuffix(".log") {
+            return "doc.text.fill"
+        }
+
+        if lowercased.hasSuffix(".pptx") || lowercased.hasSuffix(".ppt") || lowercased.hasSuffix(".odp") {
+            return "doc.richtext.fill"
+        }
+
+        if lowercased.hasSuffix(".xlsx") || lowercased.hasSuffix(".xls") || lowercased.hasSuffix(".ods") {
+            return "tablecells.fill"
+        }
+
+        return "doc.fill"
     }
 }
 
