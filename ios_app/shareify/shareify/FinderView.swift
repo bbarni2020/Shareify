@@ -2,7 +2,7 @@
 import SwiftUI
 import PDFKit
 import AVKit
-import SwiftyDocx
+import QuickLook
 
 struct FinderItem: Identifiable, Codable {
     let id = UUID()
@@ -257,26 +257,11 @@ struct FinderView: View {
                                 }
                             } else if lowerName.hasSuffix(".docx") {
                                 if let docxData = Data(base64Encoded: content) {
-                                    if let docx = try? SwiftyDocx.Document(data: docxData) {
-                                        ScrollView {
-                                            VStack(alignment: .leading, spacing: 12) {
-                                                ForEach(docx.paragraphs, id: \ .self) { paragraph in
-                                                    Text(paragraph.text)
-                                                        .font(.system(size: 17))
-                                                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                                }
-                                            }
-                                            .padding(.horizontal, 28)
-                                            .padding(.vertical, 16)
-                                        }
+                                    let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
+                                    try? docxData.write(to: tempURL)
+                                    QuickLookPreview(url: tempURL)
                                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                    } else {
-                                        Text("Failed to decode DOCX file.")
-                                            .font(.system(size: 17))
-                                            .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                            .padding(.horizontal, 28)
-                                            .padding(.vertical, 16)
-                                    }
+                                        .padding(28)
                                 } else {
                                     Text("Failed to decode DOCX file.")
                                         .font(.system(size: 17))
@@ -301,6 +286,27 @@ struct PDFKitRepresentedView: UIViewRepresentable {
         return pdfView
     }
     func updateUIView(_ uiView: PDFView, context: Context) {}
+}
+
+struct QuickLookPreview: UIViewControllerRepresentable {
+    let url: URL
+    func makeUIViewController(context: Context) -> QLPreviewController {
+        let controller = QLPreviewController()
+        controller.dataSource = context.coordinator
+        return controller
+    }
+    func updateUIViewController(_ uiViewController: QLPreviewController, context: Context) {}
+    func makeCoordinator() -> Coordinator {
+        Coordinator(url: url)
+    }
+    class Coordinator: NSObject, QLPreviewControllerDataSource {
+        let url: URL
+        init(url: URL) { self.url = url }
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+            url as QLPreviewItem
+        }
+    }
 }
                         Spacer()
                     }
