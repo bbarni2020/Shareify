@@ -46,7 +46,7 @@ struct FinderView: View {
     }
     
     func fetchFinderItems() {
-        let pathString = currentPath.map { "/\($0)" }.joined()
+        let pathString = currentPath.map { "\($0)" }.joined()
         let requestBody: [String: Any] = [
             "path": pathString
         ]
@@ -422,7 +422,7 @@ struct FinderView: View {
         .onTapGesture {
             if item.isFolder {
                 let newPath = currentPath + [item.name]
-                let newPathString = newPath.map { "/\($0)" }.joined()
+                let newPathString = newPath.map { "\($0)" }.joined()
                 let requestBody: [String: Any] = [
                     "path": newPathString
                 ]
@@ -519,7 +519,7 @@ struct FinderView: View {
         .onTapGesture {
             if item.isFolder {
                 let newPath = currentPath + [item.name]
-                let newPathString = newPath.map { "/\($0)" }.joined()
+                let newPathString = newPath.map { "\($0)" }.joined()
                 let requestBody: [String: Any] = [
                     "path": newPathString
                 ]

@@ -505,6 +505,13 @@ class ShareifyLocalClient:
                 headers['Authorization'] = f'Bearer {shareify_jwt}'
             
             if method.upper() == 'GET':
+                if isinstance(body, dict) and body:
+                    import urllib.parse
+                    query_string = urllib.parse.urlencode(body)
+                    if '?' in full_url:
+                        full_url = f"{full_url}&{query_string}"
+                    else:
+                        full_url = f"{full_url}?{query_string}"
                 response = requests.get(full_url, headers=headers, timeout=self.command_timeout)
             elif method.upper() == 'POST':
                 response = requests.post(full_url, json=body, headers=headers, timeout=self.command_timeout)
