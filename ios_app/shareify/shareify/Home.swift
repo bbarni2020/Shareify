@@ -47,16 +47,22 @@ struct Home: View {
                             .colorScheme(.light)
                             .overlay(
                                 HStack(spacing: 10) {
-                                    Circle()
-                                        .fill(hasServerError ? Color.red : Color(red: 0x6F/255, green: 0xE6/255, blue: 0x8A/255))
-                                        .frame(width: 13, height: 13)
-                                        .opacity(hasServerError ? 1.0 : (isFlickering ? 0.0 : 1.0))
-                                        .animation(hasServerError ? .none : .easeInOut(duration: 1.8).repeatForever(autoreverses: true), value: isFlickering)
-                                        .onAppear {
-                                            if !hasServerError {
-                                                isFlickering = true
-                                            }
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color(red: 0x6F/255, green: 0xE6/255, blue: 0x8A/255))
+                                            .frame(width: 13, height: 13)
+                                            .opacity((!hasServerError && isFlickering) ? 0.0 : ((!hasServerError && !isFlickering) ? 1.0 : 0.0))
+                                            .animation((!hasServerError && isFlickering) ? .easeInOut(duration: 1.8).repeatForever(autoreverses: true) : .none, value: isFlickering)
+                                        Circle()
+                                            .fill(hasServerError ? Color.red : Color.clear)
+                                            .frame(width: 13, height: 13)
+                                            .opacity(hasServerError ? 1.0 : 0.0)
+                                    }
+                                    .onAppear {
+                                        if !hasServerError {
+                                            isFlickering = true
                                         }
+                                    }
                                     Text("Shareify 2.")
                                         .foregroundColor(hasServerError ? Color.red : Color(red: 0x6F/255, green: 0xE6/255, blue: 0x8A/255))
                                         .font(.system(size: 16, weight: .medium))

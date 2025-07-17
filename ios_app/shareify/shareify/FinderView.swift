@@ -46,7 +46,7 @@ struct FinderView: View {
     }
     
     func fetchFinderItems() {
-        let pathString = currentPath.joined(separator: "/")
+        let pathString = currentPath.map { "/\($0)" }.joined()
         let requestBody: [String: Any] = [
             "path": pathString
         ]
@@ -160,62 +160,57 @@ struct FinderView: View {
                             )
                     )
                 if let file = previewedFile, let content = previewedFileContent, let type = previewedFileType {
-                    VStack {
-                        HStack {
-                            Text(file.name)
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                            Spacer()
-                            Button(action: { previewedFile = nil }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 30)
-                        if isPreviewLoading {
-                            ProgressView()
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        } else if type == "text" {
-                            ScrollView {
-                                Text(content)
-                                    .font(.system(size: 14))
+                    ZStack {
+                        Color.black.opacity(0.15)
+                            .ignoresSafeArea()
+                        VStack {
+                            HStack {
+                                Text(file.name)
+                                    .font(.system(size: 18, weight: .bold))
                                     .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                    .padding()
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(12)
-                            .padding(20)
-                        } else if type == "binary" {
-                            if file.name.lowercased().hasSuffix(".png") || file.name.lowercased().hasSuffix(".jpg") || file.name.lowercased().hasSuffix(".jpeg") {
-                                if let imageData = Data(base64Encoded: content), let uiImage = UIImage(data: imageData) {
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                        .background(.ultraThinMaterial)
-                                        .cornerRadius(12)
-                                        .padding(20)
+                                Spacer()
+                                Button(action: { previewedFile = nil }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.system(size: 28))
+                                        .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
                                 }
-                            } else {
-                                Text("Binary file preview not supported.")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                    .padding()
                             }
+                            .padding(.horizontal, 24)
+                            .padding(.top, 40)
+                            if isPreviewLoading {
+                                ProgressView()
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            } else if type == "text" {
+                                ScrollView {
+                                    Text(content)
+                                        .font(.system(size: 16))
+                                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                        .padding(.horizontal, 24)
+                                        .padding(.vertical, 12)
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            } else if type == "binary" {
+                                if file.name.lowercased().hasSuffix(".png") || file.name.lowercased().hasSuffix(".jpg") || file.name.lowercased().hasSuffix(".jpeg") {
+                                    if let imageData = Data(base64Encoded: content), let uiImage = UIImage(data: imageData) {
+                                        Image(uiImage: uiImage)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                            .padding(24)
+                                    }
+                                } else {
+                                    Text("Binary file preview not supported.")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                        .padding(.horizontal, 24)
+                                        .padding(.vertical, 12)
+                                }
+                            }
+                            Spacer()
                         }
-                        Spacer()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .background(.ultraThinMaterial)
                     }
-                    .frame(width: geometry.size.width * 0.9, height: geometry.size.height * 0.8)
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(20)
-                    .shadow(radius: 20)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255), lineWidth: 2)
-                    )
                 }
             }
         }
@@ -419,7 +414,7 @@ struct FinderView: View {
         .onTapGesture {
             if item.isFolder {
                 let newPath = currentPath + [item.name]
-                let newPathString = newPath.joined(separator: "/")
+                let newPathString = newPath.map { "/-\($0)_" }.joined()
                 let requestBody: [String: Any] = [
                     "path": newPathString
                 ]
@@ -516,7 +511,7 @@ struct FinderView: View {
         .onTapGesture {
             if item.isFolder {
                 let newPath = currentPath + [item.name]
-                let newPathString = newPath.joined(separator: "/")
+                let newPathString = newPath.map { "/-\($0)_" }.joined()
                 let requestBody: [String: Any] = [
                     "path": newPathString
                 ]
