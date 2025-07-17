@@ -404,9 +404,11 @@ struct FinderView: View {
                             .font(.system(size: 12))
                             .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
                     }
-                    Text(item.dateModified)
-                        .font(.system(size: 12))
-                        .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                    if item.dateModified != "Unknown" {
+                        Text(item.dateModified)
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                    }
                 }
             }
             Spacer()
