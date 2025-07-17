@@ -193,6 +193,9 @@ struct Home: View {
             .ignoresSafeArea(.all)
             .onAppear {
                 startHomeAnimation()
+                if let timestamp = UserDefaults.standard.value(forKey: "last_successful_call") as? Double {
+                    lastSuccessfulCall = Date(timeIntervalSince1970: timestamp)
+                }
             }
         )
         .fullScreenCover(isPresented: $navigateToLogin) {
@@ -326,7 +329,9 @@ struct Home: View {
             hasServerError = false
             isFlickering = true
         }
-        lastSuccessfulCall = Date()
+        let now = Date()
+        lastSuccessfulCall = now
+        UserDefaults.standard.set(now.timeIntervalSince1970, forKey: "last_successful_call")
     }
     
     private func formatDate(_ date: Date) -> String {

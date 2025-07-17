@@ -22,7 +22,11 @@ struct FinderView: View {
     @State private var items: [FinderItem] = []
     @State private var isLoading = false
     @StateObject private var backgroundManager = BackgroundManager.shared
-    @State private var folderCache: [String: [FinderItem]] = [:]
+    @State private var folderCache: [String: [FinderItem]] = [:] {
+        didSet {
+            saveFolderCache()
+        }
+    }
     @State private var previewedFile: FinderItem? = nil
     @State private var previewedFileContent: String? = nil
     @State private var previewedFileType: String? = nil
@@ -43,15 +47,16 @@ struct FinderView: View {
     
     func fetchFinderItems() {
         let pathString = currentPath.joined(separator: "/")
+        let requestBody: [String: Any] = [
+            "path": pathString
+        ]
+        print("DEBUG /finder call body:", requestBody)
         if let cachedItems = getCachedItems(for: pathString) {
             self.items = cachedItems
         } else {
             self.items = []
         }
         isLoading = true
-        let requestBody: [String: Any] = [
-            "path": pathString
-        ]
         ServerManager.shared.executeServerCommand(command: "/finder", method: "GET", body: requestBody, waitTime: 3) { result in
             DispatchQueue.main.async {
                 self.isLoading = false
@@ -84,9 +89,29 @@ struct FinderView: View {
     private func getCachedItems(for path: String) -> [FinderItem]? {
         return folderCache[path]
     }
-    
+
     private func cacheItems(_ items: [FinderItem], for path: String) {
         folderCache[path] = items
+    }
+
+    private func saveFolderCache() {
+        do {
+            let data = try JSONEncoder().encode(folderCache)
+            UserDefaults.standard.set(data, forKey: "FinderFolderCache")
+        } catch {
+            print("Failed to save folder cache:", error)
+        }
+    }
+
+    private func loadFolderCache() {
+        if let data = UserDefaults.standard.data(forKey: "FinderFolderCache") {
+            do {
+                let cache = try JSONDecoder().decode([String: [FinderItem]].self, from: data)
+                folderCache = cache
+            } catch {
+                print("Failed to load folder cache:", error)
+            }
+        }
     }
     
     private func refreshCurrentFolder() {
@@ -195,9 +220,10 @@ struct FinderView: View {
             }
         }
         .ignoresSafeArea(.all)
-        .onAppear {
-            fetchFinderItems()
-        }
+    .onAppear {
+        loadFolderCache()
+        fetchFinderItems()
+    }
         .onChange(of: currentPath) {
             fetchFinderItems()
         }
@@ -394,6 +420,10 @@ struct FinderView: View {
             if item.isFolder {
                 let newPath = currentPath + [item.name]
                 let newPathString = newPath.joined(separator: "/")
+                let requestBody: [String: Any] = [
+                    "path": newPathString
+                ]
+                print("DEBUG /finder call body:", requestBody)
                 if let cachedItems = getCachedItems(for: newPathString) {
                     self.items = cachedItems
                 } else {
@@ -403,9 +433,6 @@ struct FinderView: View {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     currentPath.append(item.name)
                 }
-                let requestBody: [String: Any] = [
-                    "path": newPathString
-                ]
                 ServerManager.shared.executeServerCommand(command: "/finder", method: "GET", body: requestBody, waitTime: 3) { result in
                     DispatchQueue.main.async {
                         self.isLoading = false
@@ -442,7 +469,7 @@ struct FinderView: View {
                 let requestBody: [String: Any] = [
                     "file_path": filePath
                 ]
-                ServerManager.shared.executeServerCommand(command: "/api/get_file", method: "GET", body: requestBody, waitTime: 3) { result in
+                ServerManager.shared.executeServerCommand(command: "/get_file", method: "GET", body: requestBody, waitTime: 3) { result in
                     DispatchQueue.main.async {
                         isPreviewLoading = false
                         switch result {
@@ -490,6 +517,10 @@ struct FinderView: View {
             if item.isFolder {
                 let newPath = currentPath + [item.name]
                 let newPathString = newPath.joined(separator: "/")
+                let requestBody: [String: Any] = [
+                    "path": newPathString
+                ]
+                print("DEBUG /finder call body:", requestBody)
                 if let cachedItems = getCachedItems(for: newPathString) {
                     self.items = cachedItems
                 } else {
@@ -499,9 +530,6 @@ struct FinderView: View {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     currentPath.append(item.name)
                 }
-                let requestBody: [String: Any] = [
-                    "path": newPathString
-                ]
                 ServerManager.shared.executeServerCommand(command: "/finder", method: "GET", body: requestBody, waitTime: 3) { result in
                     DispatchQueue.main.async {
                         self.isLoading = false
