@@ -46,24 +46,24 @@ def main():
             print("Cloud mode is enabled. Starting cloud bridge connection...")
             cloud_conection_path = os.path.join(script_dir, 'cloud_connection.py')
             if os.path.exists(cloud_conection_path):
-                def start_cloud_connection():
+                def cloud_connection_monitor():
                     import time
-                    time.sleep(10)
-                    print("Starting cloud connection process...")
-                    try:
-                        cloud_process = subprocess.Popen(
-                            [sys.executable, cloud_conection_path], 
-                            cwd=script_dir,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                            text=True
-                        )
-                        return cloud_process
-                    except Exception as e:
-                        print(f"Error starting cloud connection: {e}")
-                        return None
-                
-                thread = threading.Thread(target=start_cloud_connection)
+                    while is_cloud_on():
+                        print("Starting cloud connection process...")
+                        try:
+                            cloud_process = subprocess.Popen(
+                                [sys.executable, cloud_conection_path], 
+                                cwd=script_dir,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                text=True
+                            )
+                            cloud_process.wait()
+                            print("Cloud connection process exited.")
+                        except Exception as e:
+                            print(f"Error starting cloud connection: {e}")
+                        time.sleep(5)
+                thread = threading.Thread(target=cloud_connection_monitor)
                 thread.daemon = True
                 thread.start()
 
