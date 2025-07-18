@@ -1,4 +1,3 @@
-
 import SwiftUI
 import PDFKit
 import AVKit
@@ -38,7 +37,7 @@ struct FinderView: View {
     
     
     var currentItems: [FinderItem] {
-        return items
+        items
     }
     
     var filteredItems: [FinderItem] {
@@ -134,34 +133,64 @@ struct FinderView: View {
                     .clipped()
                     .ignoresSafeArea(.all)
                     .overlay(
-                        Rectangle()
-                            .foregroundColor(.clear)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(.ultraThinMaterial)
-                            .colorScheme(.light)
-                            .ignoresSafeArea(.all)
-                            .overlay(
-                                NavigationStack {
-                                    VStack(spacing: 0) {
-                                        topNavigationBar
-                                        searchBar
-                                        pathBreadcrumb
-                                        toolBar
-                                        if isGridView {
-                                            gridView
-                                        } else {
-                                            listView
+                        backgroundManager.backgroundImageName.isEmpty ?
+                            Rectangle()
+                                .foregroundColor(.clear)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(.ultraThinMaterial)
+                                .colorScheme(.light)
+                                .ignoresSafeArea(.all)
+                                .overlay(
+                                    NavigationStack {
+                                        VStack(spacing: 0) {
+                                            topNavigationBar
+                                            searchBar
+                                            pathBreadcrumb
+                                            toolBar
+                                            if isGridView {
+                                                gridView
+                                            } else {
+                                                listView
+                                            }
+                                            if isLoading {
+                                                ProgressView()
+                                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                                    .background(.clear)
+                                            }
                                         }
-                                        if isLoading {
-                                            ProgressView()
-                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                                .background(.clear)
-                                        }
+                                        .padding(.top, 50)
                                     }
-                                    .padding(.top, 50)
-                                }
-                                .navigationBarHidden(true)
-                            )
+                                    .navigationBarHidden(true)
+                                )
+                        :
+                            Rectangle()
+                                .foregroundColor(.clear)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(.ultraThinMaterial)
+                                .colorScheme(.light)
+                                .ignoresSafeArea(.all)
+                                .overlay(
+                                    NavigationStack {
+                                        VStack(spacing: 0) {
+                                            topNavigationBar
+                                            searchBar
+                                            pathBreadcrumb
+                                            toolBar
+                                            if isGridView {
+                                                gridView
+                                            } else {
+                                                listView
+                                            }
+                                            if isLoading {
+                                                ProgressView()
+                                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                                    .background(.clear)
+                                            }
+                                        }
+                                        .padding(.top, 50)
+                                    }
+                                    .navigationBarHidden(true)
+                                )
                     )
                 if let file = previewedFile, let content = previewedFileContent, let type = previewedFileType {
                     Color.black.opacity(0.15)
@@ -191,7 +220,7 @@ struct FinderView: View {
                             ProgressView()
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else if type == "text" {
-                            ScrollView {
+                            ScrollView(.vertical) {
                                 Text(content)
                                     .font(.system(size: 17))
                                     .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
@@ -277,12 +306,14 @@ struct FinderView: View {
                                     .padding(.vertical, 16)
                             }
                         }
+
 struct PDFKitRepresentedView: UIViewRepresentable {
     let document: PDFDocument
     func makeUIView(context: Context) -> PDFView {
         let pdfView = PDFView()
         pdfView.document = document
         pdfView.autoScales = true
+        pdfView.backgroundColor = .clear
         return pdfView
     }
     func updateUIView(_ uiView: PDFView, context: Context) {}
