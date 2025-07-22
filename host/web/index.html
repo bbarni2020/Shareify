@@ -1901,6 +1901,8 @@
                 isFunctionAvailable(data['/api/ftp/edit_user'] === true, btn);
             });
             isFunctionAvailable(data['/api/shutdown'], document.getElementById('shutdown-btn'));
+            isFunctionAvailable(data['/api/cloud/manage'], document.getElementById('cloud-section'));
+            isFunctionAvailable(data['/api/cloud/get'], document.getElementById('cloud-section'));
             isFunctionAvailable(data['/api/restart'], document.getElementById('restart-btn'));
             if (!(data['/api/ftp/get_users'] && data['/api/user/get_all'] && data['/api/role/get'])) {
                 document.getElementById('users-ontab').style.display = 'none';
