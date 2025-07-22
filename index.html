@@ -745,7 +745,7 @@ body {
   transform: scale(1.2);
 }
 .download-btn:hover {
-  animation: buttonPulse 0.6s ease-out;
+  animation: buttonPulse 0.6s ease-out infinite alternate;
   background: linear-gradient(
     93deg,
     hsla(0, 0%, 100%, 0.75),
@@ -1296,6 +1296,11 @@ body {
   transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
 }
 
+@keyframes fadeOut {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1);}
+  to { opacity: 0; transform: translate(-50%, -50%) scale(0.98);}
+}
+
     </style>
 </head>
 <body>
@@ -1359,7 +1364,7 @@ body {
                     <a href="https://github.com/bbarni2020/Shareify/releases" class="download-btn primary" target="_blank">
                         Download Shareify
                     </a>
-                    <a href="#" class="download-btn secondary" onclick="comingSoonAlert()">
+                    <a href="#" class="download-btn secondary" id="iosAppBtn" onclick="comingSoonAlert()">
                         iOS App
                     </a>
                     <a href="https://bbarni2020.github.io/Shareify/guides/" class="download-btn" target="_blank">
@@ -1749,11 +1754,13 @@ body {
                 return;
             }
 
-            function playHoverSound() {
-                if (!musicToggle.classList.contains('muted')) {
-                    if (hoverSound.paused || hoverSound.ended) {
-                        hoverSound.currentTime = 0;
-                        hoverSound.play().catch(() => {});
+            function playHoverSound(e) {
+                if (e.target === this) {
+                    if (!musicToggle.classList.contains('muted')) {
+                        if (hoverSound.paused || hoverSound.ended) {
+                            hoverSound.currentTime = 0;
+                            hoverSound.play().catch(() => {});
+                        }
                     }
                 }
             }
@@ -1782,12 +1789,12 @@ body {
                 border: 1px solid rgba(255, 255, 255, 0.3);
                 opacity: 0;
                 animation: fadeIn 0.8s ease-out forwards;
+                transition: opacity 0.5s, transform 0.5s;
             `;
-            
             alertDiv.innerHTML = `
                 <h3 style="margin: 0 0 15px 0; font-size: 1.5rem; font-weight: 700;">iOS App Coming Soon!</h3>
                 <p style="margin: 0 0 25px 0; font-size: 1rem; opacity: 0.8;">The iOS app is currently in beta. TestFlight link coming in August. App can be downloaded from Shareify official Github repository.</p>
-                <button onclick="this.parentElement.remove()" style="
+                <button onclick="this.parentElement.style.animation='fadeOut 0.5s forwards';setTimeout(()=>this.parentElement.remove(),500);" style="
                     background: #1E293B;
                     color: white;
                     border: none;
@@ -1805,9 +1812,10 @@ body {
             document.body.appendChild(alertDiv);
             
             setTimeout(() => {
-                if (alertDiv.parentElement) {
-                    alertDiv.remove();
-                }
+                alertDiv.style.animation = 'fadeOut 0.5s forwards';
+                setTimeout(() => {
+                    if (alertDiv.parentElement) alertDiv.remove();
+                }, 500);
             }, 5000);
         }
 
