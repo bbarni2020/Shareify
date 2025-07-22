@@ -1358,6 +1358,15 @@ def download_file():
     
     return jsonify({"error": "File or folder does not exist"}), 404
 
+@app.route('/api/cloud/get', methods=['GET'])
+def get_cloud_settings():
+    cloud_path = os.path.join(os.path.dirname(__file__), 'settings', 'cloud.json')
+    if os.path.exists(cloud_path):
+        with open(cloud_path, 'r') as f:
+            cloud_settings = json.load(f)
+        return jsonify(cloud_settings), 200
+    return jsonify({"error": "Cloud settings not found"}), 404
+
 @app.route('/api/cloud/manage', methods=['POST'])
 def manage_cloud():
     action = request.json.get('action')

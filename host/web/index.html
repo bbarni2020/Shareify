@@ -5775,13 +5775,6 @@ async function loadCloudSettings() {
             const settings = await response.json();
             
             document.getElementById('cloud-enable').value = settings.enabled ? 'Enabled' : 'Disabled';
-            
-            if (settings.email) {
-                document.getElementById('cloud-email').value = settings.email;
-            }
-            if (settings.username) {
-                document.getElementById('cloud-username').value = settings.username;
-            }
         }
     } catch (error) {
         console.error('Error loading cloud settings:', error);
