@@ -1187,77 +1187,204 @@ body {
 @media (max-width: 900px) {
   .hero-section {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: 48px;
     height: auto;
-    padding: 40px 10vw 0 10vw;
+    min-height: 100vh;
+    padding: 60px 4vw 0 4vw;
+    align-items: center;
+    justify-items: center;
+    background: none;
   }
   .hero-content, .hero-visual {
     align-items: center;
     text-align: center;
+    width: 100%;
+    padding: 0;
   }
   .logo-container {
-    margin-bottom: 25px;
+    margin-bottom: 30px;
   }
   .hero-logo, .logo-glow {
-    height: 220px;
-    width: 220px;
+    height: 160px;
+    width: 160px;
+    min-width: 120px;
+    min-height: 120px;
+    max-width: 180px;
+    max-height: 180px;
   }
   .floating-elements {
-    width: 250px;
-    height: 250px;
+    width: 120px;
+    height: 120px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
   }
   .hero-title {
-    font-size: 2.8rem;
+    font-size: 2.2rem;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+    line-height: 1.05;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.18);
   }
   .hero-subtitle {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
+    margin-bottom: 10px;
+    color: hsla(0,0%,100%,0.85);
   }
   .hero-description-container {
     height: auto;
-    min-height: 80px;
-    margin-bottom: 20px;
+    min-height: 60px;
+    margin-bottom: 18px;
+  }
+  .hero-description {
+    font-size: 1rem;
+    padding: 0 2vw;
   }
   .hero-buttons {
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
     align-items: center;
+    width: 100%;
+    margin-top: 10px;
   }
   .download-btn {
-    min-width: 120px;
-    padding: 12px 18px;
-    font-size: 0.95rem;
+    min-width: 110px;
+    padding: 13px 18px;
+    font-size: 1rem;
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.04);
+    margin: 0 auto;
   }
   .features-section,
   .value-props-section,
   .stats-section,
   .cta-section {
-    padding: 50px 5vw;
+    padding: 40px 4vw;
+    background: none;
+    box-shadow: none;
   }
   .features-grid,
   .value-props-grid,
   .stats-grid {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 18px;
   }
   .feature-card,
   .value-prop {
-    padding: 20px 10px;
+    padding: 18px 8px;
+    border-radius: 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    background: linear-gradient(93deg, hsla(0,0%,100%,0.10), hsla(0,0%,100%,0.03));
+  }
+  .feature-icon {
+    height: 44px;
+    width: 44px;
+    margin-bottom: 18px;
+    border-radius: 10px;
+  }
+  .feature-title {
+    font-size: 1.08rem;
+    margin-bottom: 10px;
+  }
+  .feature-description {
+    font-size: 0.97rem;
+    color: hsla(0,0%,100%,0.8);
+  }
+  .value-prop-icon {
+    height: 54px;
+    width: 54px;
+    border-radius: 16px;
+    margin-bottom: 14px;
+  }
+  .value-prop-icon:before {
+    height: 22px;
+    width: 22px;
+  }
+  .value-prop-title {
+    font-size: 1.05rem;
+    margin-bottom: 8px;
+  }
+  .value-prop-description {
+    font-size: 0.97rem;
+    color: hsla(0,0%,100%,0.8);
   }
   .section-title {
-    font-size: 1.7rem;
+    font-size: 1.25rem;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+  }
+  .section-subtitle {
+    font-size: 0.98rem;
+    margin-bottom: 32px;
+    max-width: 95vw;
+  }
+  .stats-section {
+    padding: 32px 4vw;
+  }
+  .stat-item {
+    padding: 12px 0;
+    border-radius: 12px;
+    background: linear-gradient(93deg, hsla(0,0%,100%,0.07), hsla(0,0%,100%,0.01));
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .stat-number {
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+  }
+  .stat-label {
+    font-size: 0.98rem;
+  }
+  .cta-title {
+    font-size: 1.15rem;
+    margin-bottom: 10px;
+  }
+  .cta-description {
+    font-size: 0.97rem;
+    margin-bottom: 22px;
+  }
+  .cta-buttons {
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
   }
   .footer {
-    padding: 30px 5vw 15px;
+    padding: 18px 4vw 10px;
+    border-radius: 0 0 18px 18px;
+    background: linear-gradient(93deg, rgba(0,0,0,0.12), rgba(0,0,0,0.03));
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
   }
   .footer-links {
-    gap: 18px;
-    font-size: 0.9rem;
+    gap: 10px;
+    font-size: 0.93rem;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .footer-link {
+    padding: 4px 8px;
+    border-radius: 8px;
+    background: linear-gradient(93deg, hsla(0,0%,100%,0.07), hsla(0,0%,100%,0.01));
+    color: hsla(0,0%,100%,0.7);
+    font-size: 0.93rem;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .footer-link:hover {
+    color: #fff;
+    background: linear-gradient(93deg, hsla(0,0%,100%,0.15), hsla(0,0%,100%,0.04));
+  }
+  .footer-text {
+    font-size: 0.82rem;
+    color: hsla(0,0%,100%,0.5);
+    margin-top: 8px;
   }
   .music-toggle {
-    top: 18px;
+    top: 16px;
     right: 10px;
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    background: linear-gradient(135deg, hsla(0,0%,100%,0.18), hsla(0,0%,100%,0.08));
   }
   .cursor-follow {
     display: none !important;
@@ -1265,27 +1392,117 @@ body {
 }
 
 @media (max-width: 500px) {
-  .hero-title {
-    font-size: 2.1rem;
+  .hero-section {
+    padding: 32px 2vw 0 2vw;
+    gap: 32px;
   }
   .hero-logo, .logo-glow {
-    height: 120px;
-    width: 120px;
+    height: 90px;
+    width: 90px;
+    min-width: 70px;
+    min-height: 70px;
+    max-width: 110px;
+    max-height: 110px;
   }
   .floating-elements {
-    width: 120px;
-    height: 120px;
+    width: 60px;
+    height: 60px;
+  }
+  .hero-title {
+    font-size: 1.25rem;
+    margin-bottom: 8px;
+  }
+  .hero-subtitle {
+    font-size: 0.93rem;
+    margin-bottom: 6px;
+  }
+  .hero-description {
+    font-size: 0.93rem;
+    padding: 0 1vw;
+  }
+  .download-btn {
+    font-size: 0.93rem;
+    padding: 10px 10px;
+    min-width: 80px;
+    border-radius: 10px;
   }
   .section-title {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
+    margin-bottom: 8px;
+  }
+  .section-subtitle {
+    font-size: 0.93rem;
+    margin-bottom: 18px;
+  }
+  .feature-icon {
+    height: 32px;
+    width: 32px;
+    margin-bottom: 10px;
+    border-radius: 7px;
+  }
+  .feature-title {
+    font-size: 0.98rem;
+    margin-bottom: 6px;
+  }
+  .feature-description {
+    font-size: 0.93rem;
+  }
+  .value-prop-icon {
+    height: 32px;
+    width: 32px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .value-prop-icon:before {
+    height: 14px;
+    width: 14px;
+  }
+  .value-prop-title {
+    font-size: 0.98rem;
+    margin-bottom: 5px;
+  }
+  .value-prop-description {
+    font-size: 0.93rem;
+  }
+  .stat-number {
+    font-size: 1.1rem;
+    margin-bottom: 2px;
+  }
+  .stat-label {
+    font-size: 0.93rem;
+  }
+  .cta-title {
+    font-size: 0.98rem;
+    margin-bottom: 6px;
+  }
+  .cta-description {
+    font-size: 0.93rem;
+    margin-bottom: 12px;
+  }
+  .footer {
+    padding: 10px 2vw 6px;
+    border-radius: 0 0 12px 12px;
+  }
+  .footer-links {
+    gap: 6px;
+    font-size: 0.91rem;
+    margin-bottom: 6px;
+  }
+  .footer-link {
+    font-size: 0.91rem;
+    border-radius: 6px;
+    padding: 3px 6px;
   }
   .footer-text {
     font-size: 0.75rem;
+    margin-top: 4px;
   }
-  .download-btn {
-    font-size: 0.9rem;
-    padding: 10px 10px;
-    min-width: 90px;
+  .music-toggle {
+    top: 8px;
+    right: 4px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
   }
 }
 
