@@ -53,7 +53,6 @@ struct FinderView: View {
         let requestBody: [String: Any] = [
             "path": pathString
         ]
-        print("DEBUG /finder call body:", requestBody)
         if let cachedItems = getCachedItems(for: pathString) {
             self.items = cachedItems
         } else {
@@ -230,96 +229,143 @@ struct FinderView: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else if type == "binary" {
                             let lowerName = file.name.lowercased()
-                            Group {
-                                if lowerName.hasSuffix(".png") || lowerName.hasSuffix(".jpg") || lowerName.hasSuffix(".jpeg") {
-                                    if let imageData = Data(base64Encoded: content), let uiImage = UIImage(data: imageData) {
-                                        AnyView(
-                                            Image(uiImage: uiImage)
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fit)
-                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                                .padding(28)
-                                        )
-                                    } else {
-                                        AnyView(
-                                            Text("Failed to decode image.")
-                                                .font(.system(size: 17))
-                                                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                                .padding(.horizontal, 28)
-                                                .padding(.vertical, 16)
-                                        )
-                                    }
-                                } else if lowerName.hasSuffix(".mp4") || lowerName.hasSuffix(".mov") {
-                                    if let videoData = Data(base64Encoded: content) {
-                                        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
-                                        try? videoData.write(to: tempURL)
-                                        AnyView(
-                                            VideoPlayer(player: AVPlayer(url: tempURL))
-                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                                .padding(28)
-                                        )
-                                    } else {
-                                        AnyView(
-                                            Text("Failed to decode video.")
-                                                .font(.system(size: 17))
-                                                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                                .padding(.horizontal, 28)
-                                                .padding(.vertical, 16)
-                                        )
-                                    }
-                                } else if lowerName.hasSuffix(".mp3") || lowerName.hasSuffix(".wav") {
-                                    if let audioData = Data(base64Encoded: content) {
-                                        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
-                                        try? audioData.write(to: tempURL)
-                                        AnyView(
-                                            VideoPlayer(player: AVPlayer(url: tempURL))
-                                                .frame(maxWidth: .infinity, maxHeight: 100)
-                                                .padding(28)
-                                        )
-                                    } else {
-                                        AnyView(
-                                            Text("Failed to decode audio.")
-                                                .font(.system(size: 17))
-                                                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                                .padding(.horizontal, 28)
-                                                .padding(.vertical, 16)
-                                        )
-                                    }
-                                } else if lowerName.hasSuffix(".pdf") {
-                                    if let pdfData = Data(base64Encoded: content), let pdfDocument = PDFDocument(data: pdfData) {
-                                        AnyView(
-                                            PDFKitRepresentedView(document: pdfDocument)
-                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                                .padding(28)
-                                        )
-                                    } else {
-                                        AnyView(
-                                            Text("Failed to decode PDF.")
-                                                .font(.system(size: 17))
-                                                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                                .padding(.horizontal, 28)
-                                                .padding(.vertical, 16)
-                                        )
-                                    }
-                                } else if lowerName.hasSuffix(".docx") {
-                                    if let docxData = Data(base64Encoded: content) {
-                                        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
-                                        try? docxData.write(to: tempURL)
-                                        AnyView(
-                                            QuickLookPreview(url: tempURL)
-                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                                .padding(28)
-                                        )
-                                    } else {
-                                        AnyView(
-                                            Text("Failed to decode DOCX file.")
-                                                .font(.system(size: 17))
-                                                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                                .padding(.horizontal, 28)
-                                                .padding(.vertical, 16)
-                                        )
-                                    }
-                                } else {
+                            AnyView(
+                                lowerName.hasSuffix(".png") || lowerName.hasSuffix(".jpg") || lowerName.hasSuffix(".jpeg") ?
+                                    (
+                                        ( (Data(base64Encoded: content).flatMap { UIImage(data: $0) }) != nil ) ?
+                                            AnyView(
+                                                Image(uiImage: UIImage(data: Data(base64Encoded: content)!)!)
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                                    .padding(28)
+                                            )
+                                            :
+                                            AnyView(
+                                                Text("Failed to decode image.")
+                                                    .font(.system(size: 17))
+                                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                                    .padding(.horizontal, 28)
+                                                    .padding(.vertical, 16)
+                                            )
+                                    )
+                                : lowerName.hasSuffix(".mp4") || lowerName.hasSuffix(".mov") ?
+                                    (
+                                        (Data(base64Encoded: content) != nil) ?
+                                            (
+                                                {
+                                                    let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
+                                                    do {
+                                                        try Data(base64Encoded: content)!.write(to: tempURL)
+                                                        return AnyView(
+                                                            VideoPlayer(player: AVPlayer(url: tempURL))
+                                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                                                .padding(28)
+                                                        )
+                                                    } catch {
+                                                        return AnyView(
+                                                            Text("Failed to write video file for preview.")
+                                                                .font(.system(size: 17))
+                                                                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                                                .padding(.horizontal, 28)
+                                                                .padding(.vertical, 16)
+                                                        )
+                                                    }
+                                                }()
+                                            )
+                                            :
+                                            AnyView(
+                                                Text("Failed to decode video.")
+                                                    .font(.system(size: 17))
+                                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                                    .padding(.horizontal, 28)
+                                                    .padding(.vertical, 16)
+                                            )
+                                    )
+                                : lowerName.hasSuffix(".mp3") || lowerName.hasSuffix(".wav") ?
+                                    (
+                                        (Data(base64Encoded: content) != nil) ?
+                                            (
+                                                {
+                                                    let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
+                                                    do {
+                                                        try Data(base64Encoded: content)!.write(to: tempURL)
+                                                        return AnyView(
+                                                            VideoPlayer(player: AVPlayer(url: tempURL))
+                                                                .frame(maxWidth: .infinity, maxHeight: 100)
+                                                                .padding(28)
+                                                        )
+                                                    } catch {
+                                                        return AnyView(
+                                                            Text("Failed to write audio file for preview.")
+                                                                .font(.system(size: 17))
+                                                                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                                                .padding(.horizontal, 28)
+                                                                .padding(.vertical, 16)
+                                                        )
+                                                    }
+                                                }()
+                                            )
+                                            :
+                                            AnyView(
+                                                Text("Failed to decode audio.")
+                                                    .font(.system(size: 17))
+                                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                                    .padding(.horizontal, 28)
+                                                    .padding(.vertical, 16)
+                                            )
+                                    )
+                                : lowerName.hasSuffix(".pdf") ?
+                                    (
+                                        (Data(base64Encoded: content) != nil && PDFDocument(data: Data(base64Encoded: content)!) != nil) ?
+                                            AnyView(
+                                                PDFKitRepresentedView(document: PDFDocument(data: Data(base64Encoded: content)!)!)
+                                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                                    .padding(28)
+                                            )
+                                            :
+                                            AnyView(
+                                                Text("Failed to decode PDF.")
+                                                    .font(.system(size: 17))
+                                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                                    .padding(.horizontal, 28)
+                                                    .padding(.vertical, 16)
+                                            )
+                                    )
+                                : lowerName.hasSuffix(".docx") ?
+                                    (
+                                        (Data(base64Encoded: content) != nil) ?
+                                            (
+                                                {
+                                                    let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
+                                                    do {
+                                                        try Data(base64Encoded: content)!.write(to: tempURL)
+                                                        return AnyView(
+                                                            QuickLookPreview(url: tempURL)
+                                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                                                .padding(28)
+                                                        )
+                                                    } catch {
+                                                        return AnyView(
+                                                            Text("Failed to write DOCX file for preview.")
+                                                                .font(.system(size: 17))
+                                                                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                                                .padding(.horizontal, 28)
+                                                                .padding(.vertical, 16)
+                                                        )
+                                                    }
+                                                }()
+                                            )
+                                            :
+                                            AnyView(
+                                                Text("Failed to decode DOCX file.")
+                                                    .font(.system(size: 17))
+                                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                                                    .padding(.horizontal, 28)
+                                                    .padding(.vertical, 16)
+                                            )
+                                    )
+                                :
                                     AnyView(
                                         Text("Binary file preview not supported.")
                                             .font(.system(size: 17))
@@ -327,8 +373,7 @@ struct FinderView: View {
                                             .padding(.horizontal, 28)
                                             .padding(.vertical, 16)
                                     )
-                                }
-                            }
+                            )
                         }
 
                         Spacer()
@@ -545,7 +590,6 @@ struct FinderView: View {
                 let requestBody: [String: Any] = [
                     "path": newPathString
                 ]
-                print("DEBUG /finder call body:", requestBody)
                 if let cachedItems = getCachedItems(for: newPathString) {
                     self.items = cachedItems
                 } else {
@@ -642,7 +686,6 @@ struct FinderView: View {
                 let requestBody: [String: Any] = [
                     "path": newPathString
                 ]
-                print("DEBUG /finder call body:", requestBody)
                 if let cachedItems = getCachedItems(for: newPathString) {
                     self.items = cachedItems
                 } else {
@@ -718,6 +761,7 @@ struct FinderView: View {
             return "tablecells.fill"
         }
 
+        return "doc"
     }
 }
 
