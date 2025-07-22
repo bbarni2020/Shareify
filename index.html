@@ -1183,6 +1183,119 @@ body {
 .mute-icon {
   transition: opacity 0.3s ease;
 }
+
+@media (max-width: 900px) {
+  .hero-section {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    height: auto;
+    padding: 40px 10vw 0 10vw;
+  }
+  .hero-content, .hero-visual {
+    align-items: center;
+    text-align: center;
+  }
+  .logo-container {
+    margin-bottom: 25px;
+  }
+  .hero-logo, .logo-glow {
+    height: 220px;
+    width: 220px;
+  }
+  .floating-elements {
+    width: 250px;
+    height: 250px;
+  }
+  .hero-title {
+    font-size: 2.8rem;
+  }
+  .hero-subtitle {
+    font-size: 1.1rem;
+  }
+  .hero-description-container {
+    height: auto;
+    min-height: 80px;
+    margin-bottom: 20px;
+  }
+  .hero-buttons {
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+  }
+  .download-btn {
+    min-width: 120px;
+    padding: 12px 18px;
+    font-size: 0.95rem;
+  }
+  .features-section,
+  .value-props-section,
+  .stats-section,
+  .cta-section {
+    padding: 50px 5vw;
+  }
+  .features-grid,
+  .value-props-grid,
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .feature-card,
+  .value-prop {
+    padding: 20px 10px;
+  }
+  .section-title {
+    font-size: 1.7rem;
+  }
+  .footer {
+    padding: 30px 5vw 15px;
+  }
+  .footer-links {
+    gap: 18px;
+    font-size: 0.9rem;
+  }
+  .music-toggle {
+    top: 18px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+  }
+  .cursor-follow {
+    display: none !important;
+  }
+}
+
+@media (max-width: 500px) {
+  .hero-title {
+    font-size: 2.1rem;
+  }
+  .hero-logo, .logo-glow {
+    height: 120px;
+    width: 120px;
+  }
+  .floating-elements {
+    width: 120px;
+    height: 120px;
+  }
+  .section-title {
+    font-size: 1.2rem;
+  }
+  .footer-text {
+    font-size: 0.75rem;
+  }
+  .download-btn {
+    font-size: 0.9rem;
+    padding: 10px 10px;
+    min-width: 90px;
+  }
+}
+
+.download-btn:active {
+  filter: brightness(0.96) blur(0.5px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  transform: scale(0.98);
+  transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+}
+
     </style>
 </head>
 <body>
@@ -1548,12 +1661,27 @@ body {
             });
         }
 
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
         function handleBackgroundMusic() {
             const audio = document.getElementById('backgroundMusic');
             const musicToggle = document.getElementById('musicToggle');
             const musicIcon = musicToggle.querySelector('.music-icon');
             const muteIcon = musicToggle.querySelector('.mute-icon');
             let isMuted = false;
+
+            if (isMobileDevice()) {
+                isMuted = true;
+                audio.muted = true;
+                audio.pause();
+                musicToggle.classList.add('muted');
+                musicIcon.style.display = 'none';
+                muteIcon.style.display = 'block';
+            } else {
+                audio.muted = false;
+            }
 
             const playPromise = audio.play();
             if (playPromise !== undefined) {
@@ -1582,7 +1710,17 @@ body {
 
             musicToggle.addEventListener('click', () => {
                 isMuted = !isMuted;
-                updateMusicButton();
+                if (isMobileDevice()) {
+                    isMuted = true;
+                    audio.muted = true;
+                    audio.pause();
+                    musicToggle.classList.add('muted');
+                    musicIcon.style.display = 'none';
+                    muteIcon.style.display = 'block';
+                } else {
+                    audio.muted = false;
+                    updateMusicButton();
+                }
             });
 
             audio.addEventListener('ended', () => {
@@ -1605,11 +1743,18 @@ body {
             const musicToggle = document.getElementById('musicToggle');
             const downloadButtons = document.querySelectorAll('.download-btn');
 
+            if (isMobileDevice()) {
+                hoverSound.muted = true;
+                hoverSound.volume = 0;
+                return;
+            }
+
             function playHoverSound() {
                 if (!musicToggle.classList.contains('muted')) {
-                    hoverSound.currentTime = 0;
-                    hoverSound.play().catch(() => {
-                    });
+                    if (hoverSound.paused || hoverSound.ended) {
+                        hoverSound.currentTime = 0;
+                        hoverSound.play().catch(() => {});
+                    }
                 }
             }
 
