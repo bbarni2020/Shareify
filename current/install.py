@@ -193,7 +193,7 @@ def create_jsons():
     if not os.path.exists(settings_path):
         try:
             settings = requests.get(
-                "https://raw.githubusercontent.com/bbarni2020/Shareify/main/current/settings/settings.json"
+                "https://raw.githubusercontent.com/bbarni2020/Shareify/main/host/settings/settings.json"
             )
             settings.raise_for_status()
             settings_json = settings.json()
@@ -207,7 +207,7 @@ def create_jsons():
     if not os.path.exists(roles_path):
         try:
             roles = requests.get(
-                "https://raw.githubusercontent.com/bbarni2020/Shareify/main/current/settings/roles.json"
+                "https://raw.githubusercontent.com/bbarni2020/Shareify/main/host/settings/roles.json"
             )
             roles.raise_for_status()
             with open(roles_path, 'w') as f:

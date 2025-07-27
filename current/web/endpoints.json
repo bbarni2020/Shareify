@@ -1,0 +1,162 @@
+{
+  "/api/command": {
+    "method": "🔴 High risk",
+    "name": "Execute Command",
+    "description": "Execute command line commands on the server system."
+  },
+  "/api/create_folder": {
+    "method": "🟠 Medium risk",
+    "name": "Create Folder",
+    "description": "Create a new folder/directory in the file system."
+  },
+  "/api/delete_file": {
+    "method": "🟣 Medium-high risk",
+    "name": "Delete File",
+    "description": "Delete a file from the file system."
+  },
+  "/api/delete_folder": {
+    "method": "Medium-🔴 High risk",
+    "name": "Delete Folder",
+    "description": "Delete a folder/directory from the file system."
+  },
+  "/api/download": {
+    "method": "🟢 Low risk",
+    "name": "Download Files",
+    "description": "Download files from the server to the client."
+  },
+  "/api/finder": {
+    "method": "🟢 Low risk",
+    "name": "File Explorer",
+    "description": "List files and directories at a given path."
+  },
+  "/api/ftp/create_user": {
+    "method": "🔴 High risk",
+    "name": "Create FTP User",
+    "description": "Create a new FTP user with specified permissions."
+  },
+  "/api/ftp/delete_user": {
+    "method": "🔴 High risk",
+    "name": "Delete FTP User",
+    "description": "Delete an existing FTP user from the system."
+  },
+  "/api/ftp/edit_user": {
+    "method": "🔴 High risk",
+    "name": "Edit FTP User",
+    "description": "Edit an existing FTP user's details and permissions."
+  },
+  "/api/ftp/get_users": {
+    "method": "🟠 Medium risk",
+    "name": "Get FTP Users",
+    "description": "Retrieve all FTP users and their details."
+  },
+  "/api/ftp/start": {
+    "method": "🟠 Medium risk",
+    "name": "Start FTP Server",
+    "description": "Start the FTP server service."
+  },
+  "/api/ftp/stop": {
+    "method": "🟠 Medium risk",
+    "name": "Stop FTP Server",
+    "description": "Stop the FTP server service."
+  },
+  "/api/get_file": {
+    "method": "🟢 Low risk",
+    "name": "Get File Content",
+    "description": "Retrieve the content of a specific file."
+  },
+  "/api/get_logs": {
+    "method": "🔴 High risk",
+    "name": "Get System Logs",
+    "description": "Retrieve system logs and activity records."
+  },
+  "/api/get_settings": {
+    "method": "🟠 Medium risk",
+    "name": "Get Server Settings",
+    "description": "Get current server configuration settings."
+  },
+  "/api/get_version": {
+    "method": "🟢 Low risk",
+    "name": "Get Version",
+    "description": "Get the current version of the server software."
+  },
+  "/api/new_file": {
+    "method": "🟠 Medium risk",
+    "name": "Create New File",
+    "description": "Create a new file with specified content."
+  },
+  "/api/rename_file": {
+    "method": "🟠 Medium risk",
+    "name": "Rename File",
+    "description": "Rename an existing file in the file system."
+  },
+  "/api/rename_folder": {
+    "method": "🟠 Medium risk",
+    "name": "Rename Folder",
+    "description": "Rename an existing folder/directory in the file system."
+  },
+  "/api/resources": {
+    "method": "🟢 Low risk",
+    "name": "System Resources",
+    "description": "Get system resource usage (CPU, memory, disk)."
+  },
+  "/api/restart": {
+    "method": "⚫️ Critical risk",
+    "name": "Restart System",
+    "description": "Restart the system (requires admin privileges)."
+  },
+  "/api/role/edit": {
+    "method": "⚫️ Critical risk",
+    "name": "Edit Roles",
+    "description": "Edit role permissions and endpoint access."
+  },
+  "/api/role/get": {
+    "method": "⚫️ Critical risk",
+    "name": "Get Roles",
+    "description": "Get all roles and their endpoint permissions."
+  },
+  "/api/shutdown": {
+    "method": "⚫️ Critical risk",
+    "name": "Shutdown System",
+    "description": "Shutdown the system (requires admin privileges)."
+  },
+  "/api/update": {
+    "method": "🟠 Medium risk",
+    "name": "Update Server",
+    "description": "Update the server software to the latest version."
+  },
+  "/api/update_settings": {
+    "method": "🔴 High risk",
+    "name": "Update Settings",
+    "description": "Update server configuration settings."
+  },
+  "/api/upload": {
+    "method": "🟠 Medium risk",
+    "name": "Upload Files",
+    "description": "Upload files from client to the server."
+  },
+  "/api/user/create": {
+    "method": "🔴 High risk",
+    "name": "Create User",
+    "description": "Create a new user account with specified permissions."
+  },
+  "/api/user/delete": {
+    "method": "🔴 High risk",
+    "name": "Delete User",
+    "description": "Delete an existing user account from the system."
+  },
+  "/api/user/edit": {
+    "method": "🔴 High risk",
+    "name": "Edit User",
+    "description": "Edit an existing user's account details and permissions."
+  },
+  "/api/user/get_all": {
+    "method": "🟠 Medium risk",
+    "name": "Get All Users",
+    "description": "Retrieve all user accounts and their details."
+  },
+  "/api/cloud/manage": {
+    "method": "🔴 High risk",
+    "name": "Manage Cloud Settings",
+    "description": "Manage cloud configuration including enable/disable, authentication data deletion, and signup functionality."
+  }
+}
