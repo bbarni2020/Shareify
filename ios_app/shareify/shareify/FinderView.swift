@@ -49,7 +49,7 @@ struct FinderView: View {
     }
     
     func fetchFinderItems() {
-        let pathString = currentPath.map { "\($0)" }.joined()
+        let pathString = currentPath.joined(separator: "/")
         let requestBody: [String: Any] = [
             "path": pathString
         ]
@@ -192,195 +192,19 @@ struct FinderView: View {
                                 )
                     )
                 if let file = previewedFile, let content = previewedFileContent, let type = previewedFileType {
-                    Color.black.opacity(0.15)
-                        .ignoresSafeArea()
-                        .transition(.opacity)
-                    VStack {
-                        HStack {
-                            Text(file.name)
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                            Spacer()
-                            Button(action: {
-                                withAnimation(.easeInOut(duration: 0.35)) {
-                                    previewedFile = nil
-                                    previewedFileContent = nil
-                                    previewedFileType = nil
-                                }
-                            }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 32))
-                                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                    PreviewView(
+                        file: file,
+                        content: content,
+                        type: type,
+                        isLoading: isPreviewLoading,
+                        onDismiss: {
+                            withAnimation(.easeInOut(duration: 0.35)) {
+                                previewedFile = nil
+                                previewedFileContent = nil
+                                previewedFileType = nil
                             }
                         }
-                        .padding(.horizontal, 28)
-                        .padding(.top, 70)
-                        if isPreviewLoading {
-                            ProgressView()
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        } else if type == "text" {
-                            ScrollView(.vertical) {
-                                Text(content)
-                                    .font(.system(size: 17))
-                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                    .padding(.horizontal, 28)
-                                    .padding(.vertical, 16)
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        } else if type == "binary" {
-                            let lowerName = file.name.lowercased()
-                            AnyView(
-                                lowerName.hasSuffix(".png") || lowerName.hasSuffix(".jpg") || lowerName.hasSuffix(".jpeg") ?
-                                    (
-                                        ( (Data(base64Encoded: content).flatMap { UIImage(data: $0) }) != nil ) ?
-                                            AnyView(
-                                                Image(uiImage: UIImage(data: Data(base64Encoded: content)!)!)
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fit)
-                                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                                    .padding(28)
-                                            )
-                                            :
-                                            AnyView(
-                                                Text("Failed to decode image.")
-                                                    .font(.system(size: 17))
-                                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                                    .padding(.horizontal, 28)
-                                                    .padding(.vertical, 16)
-                                            )
-                                    )
-                                : lowerName.hasSuffix(".mp4") || lowerName.hasSuffix(".mov") ?
-                                    (
-                                        (Data(base64Encoded: content) != nil) ?
-                                            (
-                                                {
-                                                    let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
-                                                    do {
-                                                        try Data(base64Encoded: content)!.write(to: tempURL)
-                                                        return AnyView(
-                                                            VideoPlayer(player: AVPlayer(url: tempURL))
-                                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                                                .padding(28)
-                                                        )
-                                                    } catch {
-                                                        return AnyView(
-                                                            Text("Failed to write video file for preview.")
-                                                                .font(.system(size: 17))
-                                                                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                                                .padding(.horizontal, 28)
-                                                                .padding(.vertical, 16)
-                                                        )
-                                                    }
-                                                }()
-                                            )
-                                            :
-                                            AnyView(
-                                                Text("Failed to decode video.")
-                                                    .font(.system(size: 17))
-                                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                                    .padding(.horizontal, 28)
-                                                    .padding(.vertical, 16)
-                                            )
-                                    )
-                                : lowerName.hasSuffix(".mp3") || lowerName.hasSuffix(".wav") ?
-                                    (
-                                        (Data(base64Encoded: content) != nil) ?
-                                            (
-                                                {
-                                                    let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
-                                                    do {
-                                                        try Data(base64Encoded: content)!.write(to: tempURL)
-                                                        return AnyView(
-                                                            VideoPlayer(player: AVPlayer(url: tempURL))
-                                                                .frame(maxWidth: .infinity, maxHeight: 100)
-                                                                .padding(28)
-                                                        )
-                                                    } catch {
-                                                        return AnyView(
-                                                            Text("Failed to write audio file for preview.")
-                                                                .font(.system(size: 17))
-                                                                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                                                .padding(.horizontal, 28)
-                                                                .padding(.vertical, 16)
-                                                        )
-                                                    }
-                                                }()
-                                            )
-                                            :
-                                            AnyView(
-                                                Text("Failed to decode audio.")
-                                                    .font(.system(size: 17))
-                                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                                    .padding(.horizontal, 28)
-                                                    .padding(.vertical, 16)
-                                            )
-                                    )
-                                : lowerName.hasSuffix(".pdf") ?
-                                    (
-                                        (Data(base64Encoded: content) != nil && PDFDocument(data: Data(base64Encoded: content)!) != nil) ?
-                                            AnyView(
-                                                PDFKitRepresentedView(document: PDFDocument(data: Data(base64Encoded: content)!)!)
-                                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                                    .padding(28)
-                                            )
-                                            :
-                                            AnyView(
-                                                Text("Failed to decode PDF.")
-                                                    .font(.system(size: 17))
-                                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                                    .padding(.horizontal, 28)
-                                                    .padding(.vertical, 16)
-                                            )
-                                    )
-                                : lowerName.hasSuffix(".docx") ?
-                                    (
-                                        (Data(base64Encoded: content) != nil) ?
-                                            (
-                                                {
-                                                    let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
-                                                    do {
-                                                        try Data(base64Encoded: content)!.write(to: tempURL)
-                                                        return AnyView(
-                                                            QuickLookPreview(url: tempURL)
-                                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                                                .padding(28)
-                                                        )
-                                                    } catch {
-                                                        return AnyView(
-                                                            Text("Failed to write DOCX file for preview.")
-                                                                .font(.system(size: 17))
-                                                                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                                                .padding(.horizontal, 28)
-                                                                .padding(.vertical, 16)
-                                                        )
-                                                    }
-                                                }()
-                                            )
-                                            :
-                                            AnyView(
-                                                Text("Failed to decode DOCX file.")
-                                                    .font(.system(size: 17))
-                                                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                                    .padding(.horizontal, 28)
-                                                    .padding(.vertical, 16)
-                                            )
-                                    )
-                                :
-                                    AnyView(
-                                        Text("Binary file preview not supported.")
-                                            .font(.system(size: 17))
-                                            .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                                            .padding(.horizontal, 28)
-                                            .padding(.vertical, 16)
-                                    )
-                            )
-                        }
-
-                        Spacer()
-                    }
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                    .background(.ultraThinMaterial)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    )
                 }
             }
         }
@@ -586,7 +410,7 @@ struct FinderView: View {
         .onTapGesture {
             if item.isFolder {
                 let newPath = currentPath + [item.name]
-                let newPathString = newPath.map { "\($0)" }.joined()
+                let newPathString = newPath.joined(separator: "/")
                 let requestBody: [String: Any] = [
                     "path": newPathString
                 ]
@@ -632,10 +456,11 @@ struct FinderView: View {
                 previewedFileContent = nil
                 previewedFileType = nil
                 let filePath = (currentPath + [item.name]).joined(separator: "/")
-                let requestBody: [String: Any] = [
-                    "file_path": filePath
-                ]
-                ServerManager.shared.executeServerCommand(command: "/get_file", method: "GET", body: requestBody, waitTime: 3) { result in
+                
+                let command = "/api/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
+                let requestBody: [String: Any] = [:]
+                
+                ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
                     DispatchQueue.main.async {
                         isPreviewLoading = false
                         switch result {
@@ -644,12 +469,21 @@ struct FinderView: View {
                                let status = json["status"] as? String, status == "File content retrieved" {
                                 previewedFileContent = json["content"] as? String
                                 previewedFileType = json["type"] as? String
+                                
+                                withAnimation(.easeInOut(duration: 0.35)) {
+                                }
+                            } else if let json = response as? [String: Any],
+                                      let error = json["error"] as? String {
+                                print("Server error: \(error)")
+                                previewedFileContent = "Server error: \(error)"
+                                previewedFileType = "text"
                             } else {
-                                previewedFileContent = "Failed to load file."
+                                previewedFileContent = "Failed to load file - unexpected response format."
                                 previewedFileType = "text"
                             }
-                        case .failure(_):
-                            previewedFileContent = "Failed to load file."
+                        case .failure(let error):
+                            print("Failed to load file: \(error)")
+                            previewedFileContent = "Failed to load file: \(error.localizedDescription)"
                             previewedFileType = "text"
                         }
                     }
@@ -682,7 +516,7 @@ struct FinderView: View {
         .onTapGesture {
             if item.isFolder {
                 let newPath = currentPath + [item.name]
-                let newPathString = newPath.map { "\($0)" }.joined()
+                let newPathString = newPath.joined(separator: "/")
                 let requestBody: [String: Any] = [
                     "path": newPathString
                 ]
@@ -762,6 +596,239 @@ struct FinderView: View {
         }
 
         return "doc"
+    }
+    
+    @ViewBuilder
+    private func filePreviewView(for file: FinderItem, content: String) -> some View {
+        let lowerName = file.name.lowercased()
+        
+        if isImageFile(lowerName) {
+            imagePreviewView(file: file, content: content)
+        } else if isVideoFile(lowerName) {
+            videoPreviewView(file: file, content: content)
+        } else if isAudioFile(lowerName) {
+            audioPreviewView(file: file, content: content)
+        } else if lowerName.hasSuffix(".pdf") {
+            pdfPreviewView(file: file, content: content)
+        } else if isDocumentFile(lowerName) {
+            documentPreviewView(file: file, content: content)
+        } else {
+            unsupportedFileView(file: file)
+        }
+    }
+    
+    private func isImageFile(_ filename: String) -> Bool {
+        return filename.hasSuffix(".png") || filename.hasSuffix(".jpg") || filename.hasSuffix(".jpeg") || 
+               filename.hasSuffix(".gif") || filename.hasSuffix(".bmp") || filename.hasSuffix(".webp")
+    }
+    
+    private func isVideoFile(_ filename: String) -> Bool {
+        return filename.hasSuffix(".mp4") || filename.hasSuffix(".mov") || filename.hasSuffix(".avi") || 
+               filename.hasSuffix(".mkv") || filename.hasSuffix(".webm")
+    }
+    
+    private func isAudioFile(_ filename: String) -> Bool {
+        return filename.hasSuffix(".mp3") || filename.hasSuffix(".wav") || filename.hasSuffix(".aac") || 
+               filename.hasSuffix(".ogg") || filename.hasSuffix(".flac") || filename.hasSuffix(".m4a")
+    }
+    
+    private func isDocumentFile(_ filename: String) -> Bool {
+        return filename.hasSuffix(".docx") || filename.hasSuffix(".doc") || filename.hasSuffix(".pptx") || 
+               filename.hasSuffix(".xlsx")
+    }
+    
+    @ViewBuilder
+    private func imagePreviewView(file: FinderItem, content: String) -> some View {
+        if let imageData = Data(base64Encoded: content), let uiImage = UIImage(data: imageData) {
+            ScrollView([.horizontal, .vertical]) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(28)
+            }
+        } else {
+            VStack {
+                Image(systemName: "photo.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                    .padding(.bottom, 16)
+                Text("Failed to decode image.")
+                    .font(.system(size: 17))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 16)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func videoPreviewView(file: FinderItem, content: String) -> some View {
+        if let videoData = Data(base64Encoded: content) {
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
+            if (try? videoData.write(to: tempURL)) != nil {
+                VStack {
+                    Text("Video File")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                        .padding(.bottom, 20)
+                    VideoPlayer(player: AVPlayer(url: tempURL))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .cornerRadius(12)
+                }
+                .padding(28)
+            } else {
+                Text("Failed to write video file for preview.")
+                    .font(.system(size: 17))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 16)
+            }
+        } else {
+            VStack {
+                Image(systemName: "video.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                    .padding(.bottom, 16)
+                Text("Video file detected but cannot be previewed")
+                    .font(.system(size: 17))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 28)
+            }
+            .padding(.vertical, 40)
+        }
+    }
+    
+    @ViewBuilder
+    private func audioPreviewView(file: FinderItem, content: String) -> some View {
+        if let audioData = Data(base64Encoded: content) {
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
+            if (try? audioData.write(to: tempURL)) != nil {
+                VStack {
+                    Text("Audio File")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                        .padding(.bottom, 20)
+                    VideoPlayer(player: AVPlayer(url: tempURL))
+                        .frame(maxWidth: .infinity, maxHeight: 120)
+                        .cornerRadius(12)
+                }
+                .padding(28)
+            } else {
+                Text("Failed to write audio file for preview.")
+                    .font(.system(size: 17))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 16)
+            }
+        } else {
+            VStack {
+                Image(systemName: "music.note")
+                    .font(.system(size: 48))
+                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                    .padding(.bottom, 16)
+                Text("Audio file detected but cannot be previewed")
+                    .font(.system(size: 17))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 28)
+            }
+            .padding(.vertical, 40)
+        }
+    }
+    
+    @ViewBuilder
+    private func pdfPreviewView(file: FinderItem, content: String) -> some View {
+        if let pdfData = Data(base64Encoded: content), let pdfDocument = PDFDocument(data: pdfData) {
+            VStack {
+                Text("PDF Document")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .padding(.bottom, 20)
+                PDFKitRepresentedView(document: pdfDocument)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .cornerRadius(12)
+            }
+            .padding(28)
+        } else {
+            VStack {
+                Image(systemName: "doc.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                    .padding(.bottom, 16)
+                Text("Failed to decode PDF.")
+                    .font(.system(size: 17))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 16)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func documentPreviewView(file: FinderItem, content: String) -> some View {
+        if let docData = Data(base64Encoded: content) {
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
+            if (try? docData.write(to: tempURL)) != nil {
+                VStack {
+                    Text("Document Preview")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                        .padding(.bottom, 20)
+                    QuickLookPreview(url: tempURL)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .cornerRadius(12)
+                }
+                .padding(28)
+            } else {
+                VStack {
+                    Image(systemName: "doc.richtext.fill")
+                        .font(.system(size: 48))
+                        .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                        .padding(.bottom, 16)
+                    Text("Failed to write document file for preview.")
+                        .font(.system(size: 17))
+                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 16)
+                }
+            }
+        } else {
+            VStack {
+                Image(systemName: "doc.richtext.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                    .padding(.bottom, 16)
+                Text("Failed to decode document file.")
+                    .font(.system(size: 17))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 16)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func unsupportedFileView(file: FinderItem) -> some View {
+        VStack {
+            Image(systemName: "doc")
+                .font(.system(size: 48))
+                .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                .padding(.bottom, 16)
+            Text("File Type: \(file.name.components(separatedBy: ".").last?.uppercased() ?? "Unknown")")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                .padding(.bottom, 8)
+            Text("Binary file preview not supported.")
+                .font(.system(size: 17))
+                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 28)
+                .padding(.vertical, 16)
+        }
     }
 }
 
