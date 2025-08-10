@@ -11,3 +11,4 @@ host/settings/settings.json
 postcss.config.js
 package.json
 package-lock.json
+/.github
