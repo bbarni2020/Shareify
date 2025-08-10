@@ -125,74 +125,10 @@ struct FinderView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                Image(backgroundManager.backgroundImageName)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                    .clipped()
-                    .ignoresSafeArea(.all)
-                    .overlay(
-                        backgroundManager.backgroundImageName.isEmpty ?
-                            Rectangle()
-                                .foregroundColor(.clear)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .background(.ultraThinMaterial)
-                                .colorScheme(.light)
-                                .ignoresSafeArea(.all)
-                                .overlay(
-                                    NavigationStack {
-                                        VStack(spacing: 0) {
-                                            topNavigationBar
-                                            searchBar
-                                            pathBreadcrumb
-                                            toolBar
-                                            if isGridView {
-                                                gridView
-                                            } else {
-                                                listView
-                                            }
-                                            if isLoading {
-                                                ProgressView()
-                                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                                    .background(.clear)
-                                            }
-                                        }
-                                        .padding(.top, 50)
-                                    }
-                                    .navigationBarHidden(true)
-                                )
-                        :
-                            Rectangle()
-                                .foregroundColor(.clear)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .background(.ultraThinMaterial)
-                                .colorScheme(.light)
-                                .ignoresSafeArea(.all)
-                                .overlay(
-                                    NavigationStack {
-                                        VStack(spacing: 0) {
-                                            topNavigationBar
-                                            searchBar
-                                            pathBreadcrumb
-                                            toolBar
-                                            if isGridView {
-                                                gridView
-                                            } else {
-                                                listView
-                                            }
-                                            if isLoading {
-                                                ProgressView()
-                                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                                    .background(.clear)
-                                            }
-                                        }
-                                        .padding(.top, 50)
-                                    }
-                                    .navigationBarHidden(true)
-                                )
-                    )
+                backgroundView(geometry: geometry)
+                
                 if let file = previewedFile, let content = previewedFileContent, let type = previewedFileType {
-                    PreviewView(
+                    FilePreviewView(
                         file: file,
                         content: content,
                         type: type,
@@ -216,6 +152,54 @@ struct FinderView: View {
         .onChange(of: currentPath) {
             fetchFinderItems()
         }
+    }
+    
+    @ViewBuilder
+    private func backgroundView(geometry: GeometryProxy) -> some View {
+        Image(backgroundManager.backgroundImageName)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .clipped()
+            .ignoresSafeArea(.all)
+            .overlay(contentOverlay)
+    }
+    
+    @ViewBuilder
+    private var contentOverlay: some View {
+        Rectangle()
+            .foregroundColor(.clear)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(.ultraThinMaterial)
+            .colorScheme(.light)
+            .ignoresSafeArea(.all)
+            .overlay(mainContent)
+    }
+    
+    @ViewBuilder
+    private var mainContent: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                topNavigationBar
+                searchBar
+                pathBreadcrumb
+                toolBar
+                
+                if isGridView {
+                    gridView
+                } else {
+                    listView
+                }
+                
+                if isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(.clear)
+                }
+            }
+            .padding(.top, 50)
+        }
+        .navigationBarHidden(true)
     }
     
     private var topNavigationBar: some View {
@@ -813,6 +797,315 @@ struct FinderView: View {
     
     @ViewBuilder
     private func unsupportedFileView(file: FinderItem) -> some View {
+        VStack {
+            Image(systemName: "doc")
+                .font(.system(size: 48))
+                .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                .padding(.bottom, 16)
+            Text("File Type: \(file.name.components(separatedBy: ".").last?.uppercased() ?? "Unknown")")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                .padding(.bottom, 8)
+            Text("Binary file preview not supported.")
+                .font(.system(size: 17))
+                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 28)
+                .padding(.vertical, 16)
+        }
+    }
+}
+
+struct FilePreviewView: View {
+    let file: FinderItem
+    let content: String
+    let type: String
+    let isLoading: Bool
+    let onDismiss: () -> Void
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                Color.black.opacity(0.15)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                
+                VStack {
+                    headerView
+                    
+                    if isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        contentView
+                    }
+                    
+                    Spacer()
+                }
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .background(.ultraThinMaterial)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+    }
+    
+    private var headerView: some View {
+        HStack {
+            Text(file.name)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+            Spacer()
+            Button(action: onDismiss) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 32))
+                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+            }
+        }
+        .padding(.horizontal, 28)
+        .padding(.top, 70)
+    }
+    
+    @ViewBuilder
+    private var contentView: some View {
+        if type == "text" {
+            textPreview
+        } else if type == "binary" {
+            binaryPreview
+        }
+    }
+    
+    private var textPreview: some View {
+        ScrollView(.vertical) {
+            VStack(alignment: .leading) {
+                Text(content)
+                    .font(.system(size: 14, design: .monospaced))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 28)
+            .padding(.vertical, 16)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    @ViewBuilder
+    private var binaryPreview: some View {
+        let lowerName = file.name.lowercased()
+        
+        if PreviewHelper.isImageFile(lowerName) {
+            PreviewHelper.imagePreviewView(file: file, content: content)
+        } else if PreviewHelper.isVideoFile(lowerName) {
+            PreviewHelper.videoPreviewView(file: file, content: content)
+        } else if PreviewHelper.isAudioFile(lowerName) {
+            PreviewHelper.audioPreviewView(file: file, content: content)
+        } else if lowerName.hasSuffix(".pdf") {
+            PreviewHelper.pdfPreviewView(file: file, content: content)
+        } else if PreviewHelper.isDocumentFile(lowerName) {
+            PreviewHelper.documentPreviewView(file: file, content: content)
+        } else {
+            PreviewHelper.unsupportedFileView(file: file)
+        }
+    }
+}
+
+struct PreviewHelper {
+    static func isImageFile(_ filename: String) -> Bool {
+        return filename.hasSuffix(".png") || filename.hasSuffix(".jpg") || filename.hasSuffix(".jpeg") || 
+               filename.hasSuffix(".gif") || filename.hasSuffix(".bmp") || filename.hasSuffix(".webp")
+    }
+    
+    static func isVideoFile(_ filename: String) -> Bool {
+        return filename.hasSuffix(".mp4") || filename.hasSuffix(".mov") || filename.hasSuffix(".avi") || 
+               filename.hasSuffix(".mkv") || filename.hasSuffix(".webm")
+    }
+    
+    static func isAudioFile(_ filename: String) -> Bool {
+        return filename.hasSuffix(".mp3") || filename.hasSuffix(".wav") || filename.hasSuffix(".aac") || 
+               filename.hasSuffix(".ogg") || filename.hasSuffix(".flac") || filename.hasSuffix(".m4a")
+    }
+    
+    static func isDocumentFile(_ filename: String) -> Bool {
+        return filename.hasSuffix(".docx") || filename.hasSuffix(".doc") || filename.hasSuffix(".pptx") || 
+               filename.hasSuffix(".xlsx")
+    }
+    
+    @ViewBuilder
+    static func imagePreviewView(file: FinderItem, content: String) -> some View {
+        if let imageData = Data(base64Encoded: content), let uiImage = UIImage(data: imageData) {
+            ScrollView([.horizontal, .vertical]) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(28)
+            }
+        } else {
+            VStack {
+                Image(systemName: "photo.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                    .padding(.bottom, 16)
+                Text("Failed to decode image.")
+                    .font(.system(size: 17))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 16)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    static func videoPreviewView(file: FinderItem, content: String) -> some View {
+        if let videoData = Data(base64Encoded: content) {
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
+            if (try? videoData.write(to: tempURL)) != nil {
+                VStack {
+                    Text("Video File")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                        .padding(.bottom, 20)
+                    VideoPlayer(player: AVPlayer(url: tempURL))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .cornerRadius(12)
+                }
+                .padding(28)
+            } else {
+                Text("Failed to write video file for preview.")
+                    .font(.system(size: 17))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 16)
+            }
+        } else {
+            VStack {
+                Image(systemName: "video.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                    .padding(.bottom, 16)
+                Text("Video file detected but cannot be previewed")
+                    .font(.system(size: 17))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 28)
+            }
+            .padding(.vertical, 40)
+        }
+    }
+    
+    @ViewBuilder
+    static func audioPreviewView(file: FinderItem, content: String) -> some View {
+        if let audioData = Data(base64Encoded: content) {
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
+            if (try? audioData.write(to: tempURL)) != nil {
+                VStack {
+                    Text("Audio File")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                        .padding(.bottom, 20)
+                    VideoPlayer(player: AVPlayer(url: tempURL))
+                        .frame(maxWidth: .infinity, maxHeight: 120)
+                        .cornerRadius(12)
+                }
+                .padding(28)
+            } else {
+                Text("Failed to write audio file for preview.")
+                    .font(.system(size: 17))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 16)
+            }
+        } else {
+            VStack {
+                Image(systemName: "music.note")
+                    .font(.system(size: 48))
+                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                    .padding(.bottom, 16)
+                Text("Audio file detected but cannot be previewed")
+                    .font(.system(size: 17))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 28)
+            }
+            .padding(.vertical, 40)
+        }
+    }
+    
+    @ViewBuilder
+    static func pdfPreviewView(file: FinderItem, content: String) -> some View {
+        if let pdfData = Data(base64Encoded: content), let pdfDocument = PDFDocument(data: pdfData) {
+            VStack {
+                Text("PDF Document")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .padding(.bottom, 20)
+                PDFKitRepresentedView(document: pdfDocument)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .cornerRadius(12)
+            }
+            .padding(28)
+        } else {
+            VStack {
+                Image(systemName: "doc.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                    .padding(.bottom, 16)
+                Text("Failed to decode PDF.")
+                    .font(.system(size: 17))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 16)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    static func documentPreviewView(file: FinderItem, content: String) -> some View {
+        if let docData = Data(base64Encoded: content) {
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
+            if (try? docData.write(to: tempURL)) != nil {
+                VStack {
+                    Text("Document Preview")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                        .padding(.bottom, 20)
+                    QuickLookPreview(url: tempURL)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .cornerRadius(12)
+                }
+                .padding(28)
+            } else {
+                VStack {
+                    Image(systemName: "doc.richtext.fill")
+                        .font(.system(size: 48))
+                        .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                        .padding(.bottom, 16)
+                    Text("Failed to write document file for preview.")
+                        .font(.system(size: 17))
+                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 16)
+                }
+            }
+        } else {
+            VStack {
+                Image(systemName: "doc.richtext.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                    .padding(.bottom, 16)
+                Text("Failed to decode document file.")
+                    .font(.system(size: 17))
+                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 16)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    static func unsupportedFileView(file: FinderItem) -> some View {
         VStack {
             Image(systemName: "doc")
                 .font(.system(size: 48))
