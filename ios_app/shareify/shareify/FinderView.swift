@@ -190,12 +190,6 @@ struct FinderView: View {
                 } else {
                     listView
                 }
-                
-                if isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(.clear)
-                }
             }
             .padding(.top, 50)
         }
@@ -207,7 +201,11 @@ struct FinderView: View {
             Button(action: {
                 if currentPath.count > 0 {
                     withAnimation(.easeInOut(duration: 0.3)) {
-                        _ = currentPath.removeLast()
+                        if currentPath.count == 1 {
+                            currentPath = []
+                        } else {
+                            _ = currentPath.removeLast()
+                        }
                     }
                 } else {
                     dismiss()
@@ -320,9 +318,17 @@ struct FinderView: View {
             
             Spacer()
             
-            Text("\(filteredItems.count) items")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+            HStack(spacing: 8) {
+                Text("\(filteredItems.count) items")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                
+                if isLoading {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                        .frame(width: 16, height: 16)
+                }
+            }
             
             Spacer()
         }
@@ -365,20 +371,10 @@ struct FinderView: View {
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
                     .lineLimit(1)
-                HStack(spacing: 4) {
-                    if let size = item.size {
-                        Text(size)
-                            .font(.system(size: 12))
-                            .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
-                        Text("•")
-                            .font(.system(size: 12))
-                            .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
-                    }
-                    if item.dateModified != "Unknown" {
-                        Text(item.dateModified)
-                            .font(.system(size: 12))
-                            .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
-                    }
+                if let size = item.size {
+                    Text(size)
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
                 }
             }
             Spacer()
@@ -444,11 +440,22 @@ struct FinderView: View {
                 let command = "/api/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
                 let requestBody: [String: Any] = [:]
                 
+                print("=== FILE PREVIEW API REQUEST ===")
+                print("File path: \(filePath)")
+                print("Command: \(command)")
+                print("Request body: \(requestBody)")
+                print("================================")
+                
                 ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
                     DispatchQueue.main.async {
                         isPreviewLoading = false
                         switch result {
                         case .success(let response):
+                            print("=== FILE PREVIEW API RESPONSE ===")
+                            print("Response type: \(type(of: response))")
+                            print("Response content: \(response)")
+                            print("================================")
+                            
                             if let json = response as? [String: Any],
                                let status = json["status"] as? String, status == "File content retrieved" {
                                 previewedFileContent = json["content"] as? String
@@ -466,6 +473,11 @@ struct FinderView: View {
                                 previewedFileType = "text"
                             }
                         case .failure(let error):
+                            print("=== FILE PREVIEW API ERROR ===")
+                            print("Error: \(error)")
+                            print("Error description: \(error.localizedDescription)")
+                            print("==============================")
+                            
                             print("Failed to load file: \(error)")
                             previewedFileContent = "Failed to load file: \(error.localizedDescription)"
                             previewedFileType = "text"
