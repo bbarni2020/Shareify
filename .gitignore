@@ -7,3 +7,7 @@ host/settings/settings.json
 *.DS_Store
 /shareify_env
 /venv
+/node_modules
+postcss.config.js
+package.json
+package-lock.json

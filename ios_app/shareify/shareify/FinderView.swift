@@ -440,22 +440,11 @@ struct FinderView: View {
                 let command = "/api/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
                 let requestBody: [String: Any] = [:]
                 
-                print("=== FILE PREVIEW API REQUEST ===")
-                print("File path: \(filePath)")
-                print("Command: \(command)")
-                print("Request body: \(requestBody)")
-                print("================================")
-                
                 ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
                     DispatchQueue.main.async {
                         isPreviewLoading = false
                         switch result {
                         case .success(let response):
-                            print("=== FILE PREVIEW API RESPONSE ===")
-                            print("Response type: \(type(of: response))")
-                            print("Response content: \(response)")
-                            print("================================")
-                            
                             if let json = response as? [String: Any],
                                let status = json["status"] as? String, status == "File content retrieved" {
                                 previewedFileContent = json["content"] as? String
@@ -473,11 +462,6 @@ struct FinderView: View {
                                 previewedFileType = "text"
                             }
                         case .failure(let error):
-                            print("=== FILE PREVIEW API ERROR ===")
-                            print("Error: \(error)")
-                            print("Error description: \(error.localizedDescription)")
-                            print("==============================")
-                            
                             print("Failed to load file: \(error)")
                             previewedFileContent = "Failed to load file: \(error.localizedDescription)"
                             previewedFileType = "text"
