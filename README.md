@@ -4,203 +4,212 @@
 
 **When sharing is storing.**
 
-> Transform any device into a powerful personal cloud storage solution with secure file sharing, multi-platform access, and enterprise-grade features.
-
 [![Latest Release](https://img.shields.io/github/v/release/bbarni2020/Shareify)](https://github.com/bbarni2020/Shareify/releases)
 [![Python Version](https://img.shields.io/badge/python-3.7%2B-blue)](https://python.org)
 [![License](https://img.shields.io/github/license/bbarni2020/Shareify)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/bbarni2020/Shareify)](https://github.com/bbarni2020/Shareify/stargazers)
 
-**Current Version:** 1.0.0 (First Stable Release! 🎉)
+**v1.0.0** - Finally calling this stable after months of daily use 🎉
 
-## 🌟 What is Shareify?
+## Why I built this
 
-Shareify is a comprehensive, self-hosted file sharing and Network Attached Storage (NAS) solution that puts you in complete control of your data. Built with modern technologies and designed for both home users and developers, Shareify offers enterprise-grade features with the simplicity of consumer software.
+Got fed up with paying Dropbox $10/month just to store family photos, then hitting upload limits when trying to share a 2GB video with friends. Plus accessing work files from home was always a pain.
 
-### 🎯 Perfect For
-- **Home Users**: Share family photos, documents, and media across all devices
-- **Developers**: Open source with well-documented APIs and extensible architecture  
-- **Content Creators**: Efficient handling of large files with media previews and collaboration features
-- **Small Businesses**: Secure file sharing with user management and access controls
+So I built my own thing. It's basically a personal file server that you can reach from anywhere - no subscription fees, no upload limits, no "premium features" locked behind paywalls.
 
-## ✨ Key Features
+Been running it on my old MacBook for 6 months now. It just sits there serving files while I'm at work, friends can grab stuff I share, and I can access everything from my phone when I'm out.
 
-### 🖥️ **Core Platform**
-- **Web-Based Interface**: Beautiful, responsive file management interface
-- **Multi-Platform Support**: Windows, macOS, Linux compatibility
-- **RESTful API**: Complete API for custom integrations and automation
-- **Real-Time Monitoring**: Live system resource tracking and activity logs
+This works well if you:
+- Have an old computer lying around that could be useful
+- Want to share big files without email size limits  
+- Don't trust putting everything on Google Drive
+- Like having control over your own stuff
+- Need to access files from multiple devices/locations
 
-### 🔐 **Security & Authentication**
-- **JWT Authentication**: Secure token-based authentication system
-- **Role-Based Access Control**: Granular permissions and user management
-- **FTP Server Integration**: Built-in secure FTP with management tools
-- **Activity Tracking**: Comprehensive logging and audit trails
+## Quick start (the impatient version)
 
-### 📱 **Multi-Platform Access**
-- **Native iOS App**: SwiftUI-based mobile interface (v1.0.0)
-- **Web Interface**: Full-featured browser-based access
-- **API Access**: REST API for custom applications
-- **Cloud Integration**: Connect multiple servers through cloud bridge
+Need Python 3.7+ and about 100MB space. Works on Windows/Mac/Linux.
 
-### ☁️ **Cloud Services**
-- **Multi-Server Management**: Manage multiple Shareify instances
-- **WebSocket Communication**: Real-time server communication
-- **Cloud Bridge**: Secure tunneling for remote access
-- **Server Monitoring**: Centralized monitoring and management
+```bash
+git clone https://github.com/bbarni2020/Shareify.git
+cd Shareify/host
+pip install -r requirements.txt
+python3 main.py
+```
 
-### 📁 **File Management**
-- **Advanced Operations**: Batch operations, previews, and syntax highlighting
-- **Media Support**: Built-in preview for images, videos, and documents
-- **Upload/Download**: Drag-and-drop uploads with progress tracking
-- **File Organization**: Folder management with search capabilities
+Open `http://localhost:3333` and you're running. Default login is admin/admin (change it immediately).
 
-## 🏗️ Project Structure
+Full setup guide is in [guides/Install.md](guides/Install.md) if you want the details.
+
+## What you actually get
+
+The web interface is drag-and-drop simple. I kept it minimal because I got tired of bloated file managers. You can:
+
+- Upload stuff by dragging files into the browser
+- Preview images, videos, text files without downloading
+- Create folders, move files around
+- Share links that work from outside your network (through the bridge)
+- Set up different users with different access levels
+
+The **mobile situation**: Mobile browser experience sucked, so I built a proper iOS app. It's in the ios_app folder if you want to build it yourself. Handles switching between local/remote connections automatically.
+
+**Security bits**: JWT tokens for auth, SQLite for user management, HTTPS if you set it up. There's also an FTP server built in because sometimes you just need FTP.
+
+**The bridge thing**: This took me forever to figure out. Basically lets you access your server from anywhere without dealing with port forwarding or dynamic DNS. Your server connects to my bridge service, and when you access it remotely, requests get relayed back to your machine. The bridge can't see your files - it's just passing encrypted requests through.
+
+Some other stuff that's in there:
+- File syntax highlighting (supports like 50+ languages)
+- Batch operations for handling multiple files
+- System monitoring so you can see if your server's dying
+- REST API for automation or building other tools
+- Activity logs to see who accessed what
+- WebSocket updates so the UI feels snappy
+
+## Project structure
 
 ```
 Shareify/
-├── 📁 host/           # Main server application
-│   ├── main.py        # Core Flask application
-│   ├── cloud_connection.py  # Cloud bridge client
-│   ├── database.py    # Database management
-│   └── web/          # Web interface assets
+├── host/              # Main server (this is what you run)
+│   ├── main.py        # Flask app entry point
+│   ├── cloud_connection.py  # Bridge communication
+│   ├── database.py    # SQLite wrapper
+│   └── web/          # Static files (HTML/CSS/JS)
 │
-├── 📁 cloud/          # Cloud bridge services
-│   ├── server.py      # Cloud server implementation
-│   ├── main.py        # Command execution API
-│   └── templates/     # Web dashboard templates
+├── cloud/             # Bridge services (I host these)
+│   ├── server.py      # WebSocket relay server
+│   ├── main.py        # Command API server
+│   └── templates/     # Web dashboard for bridge
 │
-├── 📁 ios_app/        # Native iOS application
-│   └── shareify/      # Xcode project
-│       ├── ContentView.swift
-│       ├── ServerManager.swift
-│       └── Settings.swift
+├── ios_app/           # Native iOS app
+│   └── shareify/      # Xcode project folder
 │
-├── 📁 guides/         # Documentation
-│   ├── Install.md     # Installation guide
-│   ├── API.md         # API documentation
+├── guides/            # Documentation
+│   ├── Install.md     # Step-by-step setup
+│   ├── API.md         # REST API docs  
 │   └── ios_app.md     # iOS app guide
 │
-└── 📁 info/           # Version and release info
-    ├── version        # Current version
-    └── msg.json       # Release announcements
+└── info/              # Version info
+    ├── version        # Current version number
+    └── msg.json       # Update messages
 ```
 
-## 🚀 Quick Start
+## Getting started
 
-### System Requirements
-- **OS**: Windows 10/11, macOS 10.14+, Linux (Ubuntu 18.04+)
-- **Python**: 3.7+ (3.9+ recommended)
-- **RAM**: 512MB minimum (2GB+ recommended)
-- **Storage**: 100MB + space for shared files
-- **Network**: Internet connection for setup and cloud features
+**Requirements**: Python 3.7+, works on Windows/Mac/Linux. You'll need about 100MB for the app itself, plus whatever space you want for your files.
 
-### Installation
+The installation is pretty simple - check out [guides/Install.md](guides/Install.md) for the full walkthrough.
 
-📖 **Check detailed installation guide:** [guides/Install.md](guides/Install.md)
+Quick version:
+```bash
+git clone https://github.com/bbarni2020/Shareify.git
+cd Shareify/host
+pip install -r requirements.txt
+python3 main.py
+```
 
-## 📱 iOS App
+Then open http://localhost:3333 and you're good to go.
 
-The native iOS app provides a seamless mobile experience with:
+## The iOS app situation
 
-- **Dual Authentication**: Cloud and local server support
-- **SwiftUI Interface**: Modern, responsive design
-- **Custom Backgrounds**: 19 beautiful background options
-- **Secure Storage**: iOS Keychain integration
-- **Real-Time Sync**: Live server status monitoring
+Built this because the mobile browser experience wasn't great. The app connects to both local servers (when you're on the same WiFi) and remote servers through the cloud bridge.
 
-**Status**: Available (v1.0.0) - Build from source or download from App Store (coming soon)
+Features:
+- SwiftUI interface that actually looks good
+- Stores login info securely in iOS Keychain
+- 19 different background images (probably overkill but they look nice)
+- Live server status updates
+- Handles both cloud and direct connections automatically
 
-📖 **iOS app guide:** [guides/ios_app.md](guides/ios_app.md)
+Status: v1.0.0 is ready, you can build it from the Xcode project. App Store version coming eventually.
 
-## 🔌 API & Integration
+More details: [guides/ios_app.md](guides/ios_app.md)
 
-Shareify provides a comprehensive REST API for automation and custom integrations.
+## API stuff
 
-📖 **Check API documentation:** [guides/API.md](guides/API.md)
+There's a REST API if you want to build something on top of Shareify or automate file operations. It's documented at [guides/API.md](guides/API.md) with examples for common tasks.
 
-## ☁️ Cloud Features
+## The bridge (remote access)
 
-Connect multiple Shareify servers through the cloud bridge:
+This part took forever to get right. The bridge lets you access your server from anywhere without messing with your router settings.
 
-- **Remote Management**: Control servers from anywhere
-- **Multi-Server Dashboard**: Centralized monitoring
-- **Secure Tunneling**: Encrypted server communication
-- **Command Execution**: Remote server administration
+How it works: Your server connects to the bridge service, which acts as a relay. When you access your files remotely, the requests go through the bridge to your server and back.
 
-Cloud services are hosted at:
-- **Bridge**: `https://bridge.bbarni.hackclub.app`
-- **Commands**: `https://command.bbarni.hackclub.app`
+Bridge services are hosted at:
+- Main bridge: `https://bridge.bbarni.hackclub.app`
+- Command API: `https://command.bbarni.hackclub.app`
 
-## 🛠️ Development
+The connection is encrypted and the bridge can't see your actual files - it just passes the requests along.
 
-### Building from Source
+## Hacking on this
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/bbarni2020/Shareify.git
-   cd Shareify
-   ```
+Want to mess with the code? Here's how:
 
-2. **Install dependencies:**
-   ```bash
-   cd host
-   pip install -r requirements.txt
-   ```
+```bash
+git clone https://github.com/bbarni2020/Shareify.git
+cd Shareify/host
+pip install -r requirements.txt
+python3 main.py
+```
 
-3. **Run in development mode:**
-   ```bash
-   python3 main.py
-   ```
+For the iOS app you'll need Xcode:
+```bash
+open ios_app/shareify/shareify.xcodeproj
+```
+Set up your Apple Developer team, then build and run. Should work on any recent macOS version.
 
-### iOS App Development
+## Known issues & roadmap
 
-1. **Open Xcode project:**
-   ```bash
-   open ios_app/shareify/shareify.xcodeproj
-   ```
+**Stuff that's broken:**
+- FTP server doesn't play nice with some clients (works fine with FileZilla though)
+- Large file uploads (>1GB) can timeout on slower connections
+- Bridge occasionally loses connection and takes 30s to reconnect
 
-2. **Configure your development team**
-3. **Build and run** (⌘+R)
+**Stuff I want to add:**
+- Android app (when I get around to learning Kotlin)
+- Better file sharing with expiration dates
+- Thumbnail generation for images/videos
+- Maybe a desktop app if people ask for it
 
-### Contributing
+## What changed in v1.0.0
 
-We welcome contributions! Please:
+First version I'm comfortable calling stable. Been using it myself since around v0.6 and haven't lost any files yet.
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+Big changes since early versions:
+- iOS app (took way longer than expected)
+- Bridge for remote access (also took forever)
+- JWT auth instead of basic sessions
+- Proper user management
+- File previews with syntax highlighting
+- System monitoring page
+- FTP integration
+- Actually decent error handling
 
-## 📊 What's New in v1.0.0
+## Contributing
 
-🎉 **First Stable Release!** The complete personal cloud storage solution is here:
+Found a bug? Want to add something? Open an issue or send a PR. I usually respond within a day or two.
 
-- **📱 Native iOS App** - Beautiful SwiftUI interface with real-time monitoring
-- **☁️ Cloud Services** - Multi-server management with WebSocket communication  
-- **🔐 Enhanced Security** - JWT authentication & role-based access control
-- **📁 Advanced File Management** - Batch operations, previews & syntax highlighting
-- **👥 Complete User System** - Granular permissions & activity tracking
-- **📊 System Monitoring** - Live resource tracking & enhanced logging
-- **🔧 FTP Server Integration** - Built-in FTP with full management tools
+## Random notes
 
-## 🤝 Community & Support
+The iOS app has 19 background images because I couldn't decide which one looked best. They're all pretty nice though.
 
-- **📖 Documentation**: [Comprehensive guides](guides/)
-- **🐛 Issue Tracker**: [GitHub Issues](https://github.com/bbarni2020/Shareify/issues)
-- **💬 Discussions**: [GitHub Discussions](https://github.com/bbarni2020/Shareify/discussions)
-- **⭐ Star**: Show your support by starring the repository!
+If you're running this on a Raspberry Pi, it works but file uploads are slow. SSD helps a lot.
 
-## 📄 License
+The bridge services cost me about $5/month to run on DigitalOcean. If this gets popular I might need to figure out something else.
 
-© 2025 Balogh Barnabás. All rights reserved.
+## Links
 
-Open source file sharing solution - see [LICENSE](LICENSE) for details.
+- [Installation guide](guides/Install.md) - step by step setup
+- [iOS app setup](guides/ios_app.md) - building the mobile app
+- [API docs](guides/API.md) - REST endpoints and examples
+- [Bug reports](https://github.com/bbarni2020/Shareify/issues) - something broken?
+- [Discussions](https://github.com/bbarni2020/Shareify/discussions) - questions or ideas
+
+If this saved you money on Dropbox, consider starring the repo!
+
+## License
+
+MIT license - do whatever you want with it. See [LICENSE](LICENSE) for the legal stuff.
 
 ---
 
-<div align="center">
-
-**[Download Shareify](https://github.com/bbarni2020/Shareify/releases) • [Documentation](guides/) • [iOS App Guide](guides/ios_app.md) • [API Reference](guides/API.md)**
-
-</div>
+**[Download latest](https://github.com/bbarni2020/Shareify/releases) • [Docs](guides/) • [iOS Guide](guides/ios_app.md) • [API](guides/API.md)**
