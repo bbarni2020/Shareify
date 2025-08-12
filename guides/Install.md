@@ -1,285 +1,166 @@
-# Shareify Installation Guide
+# Getting Shareify Running
 
-Welcome to the comprehensive installation guide for Shareify. This guide will walk you through every step of the installation process, from initial setup to final configuration.
+So you want to set up your own NAS? Cool. This thing started as my weekend project because I was tired of paying for cloud storage and wanted something simple that just works.
 
-## System Requirements
+## What you'll need
 
-Before beginning the installation, ensure your system meets the following requirements:
+Honestly, if your computer can run a web browser, it can probably run this. But here's the breakdown:
 
-### Hardware Requirements
-- **RAM**: Minimum 512MB, recommended 2GB or more
-- **Storage**: At least 100MB free space for the application, plus additional space for shared files
-- **Network**: Ethernet or Wi-Fi connection for network access
-- **Processor**: Any modern processor (x86, x64, ARM supported)
+**Your machine needs:**
+- At least 512MB RAM (though 2GB+ is way better - learned this the hard way)
+- 100MB free space + whatever you're planning to store
+- Python 3.7 or newer (I test with 3.9+, older versions might be cranky)
+- Internet connection to grab dependencies
 
-### Software Requirements
-- **Operating System**: Windows 10/11, macOS 10.14+, Linux (Ubuntu 18.04+, CentOS 7+, Debian 9+)
-- **Python**: Version 3.7 or higher (Python 3.9+ recommended for optimal performance)
-- **Internet Connection**: Required for downloading dependencies and server management features
-- **Web Browser**: Modern browser (Chrome 80+, Firefox 75+, Safari 13+, Edge 80+)
+**OS-wise:**
+- Windows 10/11 - works fine
+- macOS 10.14+ - my daily driver, so this gets the most love
+- Linux - tested on Ubuntu 18.04+, should work on most distros
 
-### Permissions
-- **Administrator/Root Privileges**: Highly recommended for system-level operations
-- **Network Access**: The system should be able to bind to network ports
-- **File System Access**: Read/write permissions for the installation directory and NAS storage locations
+You'll also want admin/sudo access for the setup. Trust me on this one.
 
-## Pre-Installation Checklist
+## Before we start
 
-Before starting the installation, complete the following steps:
+Quick sanity check:
+1. Run `python3 --version` - you should see 3.7 or higher
+2. Make sure you can connect to the internet
+3. Pick a folder where you want this thing to live
+4. Think about where you want to store your actual files (this becomes your NAS root)
+5. Have your admin password handy
 
-1. **Verify Python Installation**: Open a terminal or command prompt and run `python3 --version` to confirm Python 3.7+ is installed
-2. **Check Network Connectivity**: Ensure your system can access the internet for downloading dependencies
-3. **Prepare Installation Directory**: Choose a location where you want to install Shareify (ensure sufficient disk space)
-4. **Plan NAS Storage Structure**: Decide which directories you want to manage and ensure they exist
-5. **Gather System Information**: Have your system administrator password ready for the setup process
+## Installation
 
-## Installation Process
+### Getting the files
 
-### Step 1: Download Shareify
+**Option 1: Command line (if you're into that)**
 
-#### Option A: Using curl (Linux/macOS)
+macOS/Linux with curl:
 ```bash
 curl -s https://api.github.com/repos/bbarni2020/Shareify/releases/latest | jq -r '.assets[] | select(.name == "Shareify.zip") | .browser_download_url' | xargs curl -L -o Shareify.zip
 ```
 
-#### Option B: Using wget (Linux)
+Linux with wget:
 ```bash
 wget $(curl -s https://api.github.com/repos/bbarni2020/Shareify/releases/latest | jq -r '.assets[] | select(.name == "Shareify.zip") | .browser_download_url') -O Shareify.zip
 ```
 
-#### Option C: Manual Download
-1. Visit the GitHub releases page: https://github.com/bbarni2020/Shareify/releases/latest
-2. Download the latest Shareify.zip file
-3. Save it to your desired installation directory
+**Option 2: Just download it like a normal person**
+1. Go to https://github.com/bbarni2020/Shareify/releases/latest
+2. Download Shareify.zip
+3. Done
 
-#### Extracting the Files
-After downloading, extract the ZIP file:
+**Unzip it:**
 
-**Windows:**
+Windows:
 ```cmd
 powershell Expand-Archive -Path Shareify.zip -DestinationPath .
 ```
 
-**Linux/macOS:**
+Everything else:
 ```bash
 unzip Shareify.zip
-```
-
-Navigate to the extracted folder and enter the `host` directory:
-```bash
 cd Shareify/host
 ```
 
-### Step 2: Run the Installation Script
+### Run the installer
 
-The installation script will handle all dependency management and initial setup. Execute the script using Python:
-
+This is the easy part:
 ```bash
 python3 install.py
 ```
 
-#### What the Installation Script Does
+The script does a bunch of stuff automatically:
+- Checks if pip is installed (installs it if missing)
+- Updates pip to latest version
+- Installs all the Python packages we need
+- Sets up the database
+- Starts a web server on port 6969 for configuration
 
-The script performs several critical tasks in sequence:
-
-1. **Pip Verification and Installation**: Checks if pip (Python package installer) is available on your system. If not found, it automatically installs pip using Python's built-in ensurepip module.
-
-2. **Pip Upgrade**: Updates pip to the latest version to ensure compatibility with all required packages and to benefit from the latest security updates and features.
-
-3. **Dependencies Installation**: Reads the requirements.txt file and installs all necessary Python packages including:
-   - Flask: Web framework for the server
-   - Flask-SocketIO: Real-time communication support
-   - SQLite3: Database management
-   - Bcrypt: Password hashing and security
-   - Requests: HTTP library for external communications
-   - And other essential dependencies
-
-4. **System Privilege Check**: Verifies if the script is running with administrator privileges and warns if elevated permissions are not available.
-
-5. **Database Initialization**: Creates the necessary SQLite database files for user management and system logging.
-
-6. **Web Server Startup**: Launches the installation web interface on port 6969 for the configuration phase.
-
-#### Expected Output
-You should see output similar to:
+You'll see something like this if it works:
 ```
 ==================================================
 Shareify Installation Script
 ==================================================
 pip is already installed.
 Upgrading pip...
-pip upgraded successfully.
-
-Installing requirements...
-Found 15 packages to install.
-    - Flask==2.3.3
-    - Flask-SocketIO==5.3.6
-    - bcrypt==4.0.1
-    - requests==2.31.0
-    - [additional packages...]
-
 ✓ All packages installed successfully.
 
 Installation completed successfully!
 Starting the online setup...
 Starting installation server at: http://0.0.0.0:6969
-Access the page from network at: http://192.168.1.100:6969
 ```
 
-### Step 3: Web-Based Configuration
+### Web setup
 
-After the installation script completes, it will start a web server for the configuration phase. The server will display two URLs:
+Once the installer finishes, open your browser and go to:
+- Same machine: `http://127.0.0.1:6969`
+- From another device: `http://[your-ip]:6969`
 
-- **Local Access**: `http://0.0.0.0:6969` or `http://127.0.0.1:6969`
-- **Network Access**: `http://[your-local-ip]:6969`
+The installer will show you both URLs.
 
-Open your web browser and navigate to the appropriate URL. If you're configuring from the same machine, use the local address. If you're configuring from another device on the network, use the network address.
+## Configuration
 
-#### Configuration Interface
+The web interface walks you through 3 things:
 
-The web interface presents a clean, step-by-step configuration wizard:
+**1. NAS Storage Path**
+This is where your files will live. Pick a folder that:
+- Already exists (create it first if needed)
+- Has enough space for your stuff
+- You have write access to
 
-### Step 4: Configure Shareify Settings
+Examples:
+- Linux: `/home/yourname/nas` or `/mnt/storage`
+- macOS: `/Users/Shared/NAS` 
+- Windows: `D:\NAS` or wherever
 
-#### 4.1 NAS Storage Path Configuration
+**2. System Admin Password**
+Just use your current admin/sudo password. We need this for system stuff like updates. It stays local, never gets sent anywhere.
 
-The first configuration step involves setting up the root directory for NAS storage management.
+**3. NAS Admin Account**
+Create a username/password for accessing the NAS web interface. This is separate from your system password.
 
-**What to Enter:**
-- The absolute path to the directory you want to manage as NAS storage
-- This directory will become the root of your NAS file system
-- All files and subdirectories within this path will be accessible through the Shareify NAS interface
+Click "Complete Installation" and you're done!
 
-**Path Examples:**
-- **Linux**: `/mnt/nas/storage` or `/var/shareify/nas`
-- **macOS**: `/Volumes/NAS/Storage` or `/Users/Shared/NAS`
-- **Windows**: `D:\NAS\Storage` or `C:\ShareifyNAS`
+## Post-Install
 
-**Important Considerations:**
-- Ensure the path exists before entering it
-- The user running Shareify must have read/write permissions to this directory
-- Consider the available disk space and future storage expansion needs
-- Avoid using system directories or sensitive locations
-- For external drives, ensure they are properly mounted before installation
+The installer shuts itself down and starts the actual NAS server. You'll get a new URL to access your NAS interface.
 
-#### 4.2 System Administrator Password
+Log in with the admin account you just created and start uploading files.
 
-This password is used for system-level operations and NAS management tasks.
+## When things go wrong
 
-**Security Information:**
-- This password is stored locally on your server only
-- It's encrypted using industry-standard encryption methods
-- Used for automatic updates and system maintenance tasks
-- Never transmitted over the network
-
-**Password Requirements:**
-- Use your current system administrator password
-- On Windows: Your Windows admin account password
-- On Linux/macOS: Your sudo password
-- Ensure the password is current and correct
-
-#### 4.3 Shareify NAS Admin Account
-
-Create the main administrative account for NAS management.
-
-**Account Details:**
-- **Username**: Defaults to "admin" (can be changed later)
-- **Password**: Create a strong password for NAS management interface access
-- **Role**: Automatically set to administrator with full system access
-
-**Password Recommendations:**
-- Minimum 8 characters
-- Include uppercase and lowercase letters
-- Include numbers and special characters
-- Avoid common dictionary words
-- Don't reuse passwords from other services
-
-### Step 5: Complete Installation
-
-After providing all required information, click the "Complete Installation" button to finalize the setup.
-
-#### Final Installation Steps
-
-The system will:
-1. **Create Configuration Files**: Generate all necessary JSON configuration files with your settings
-2. **Initialize Databases**: Set up user management and logging databases with your admin account
-3. **Validate Settings**: Verify all paths and credentials are correct
-4. **Launch Main Server**: Start the primary Shareify NAS server
-5. **Cleanup**: Terminate the installation server and clean up temporary files
-
-#### Success Confirmation
-
-Upon successful completion, you'll see:
-```
-Installation complete! Starting Shareify...
-```
-
-The installation window will close automatically, and the main Shareify NAS server will start.
-
-## Post-Installation
-
-After successful installation:
-1. The installer will automatically launch the main Shareify NAS server
-2. Access the management interface at the provided IP address (displayed in the terminal)
-3. Log in with the admin credentials you created during installation
-4. Your Shareify NAS server is now ready to use
-
-## Troubleshooting Installation Issues
-
-### Installation Fails with Permission Errors
-**Solution**: Run the installation script with elevated privileges:
+**"Permission denied" errors:**
 ```bash
 sudo python3 install.py
 ```
 
-### Port 6969 Already in Use
-**Solution**: Kill the process using the port or wait for it to become available:
+**Port 6969 is busy:**
 ```bash
 lsof -ti:6969 | xargs kill -9
 ```
+Then try again.
 
-### Python Not Found
-**Solution**: Install Python 3.7+ or check your PATH configuration:
-```bash
-which python3
-python3 --version
-```
+**Python not found:**
+Make sure Python 3.7+ is installed and in your PATH.
 
-### Cannot Access Web Interface
-**Solution**: Check firewall settings and ensure the port is open:
-```bash
-sudo ufw allow 6969
-```
+**Can't access the web interface:**
+Check your firewall - might need to allow port 6969 temporarily.
 
-### Database Connection Errors
-**Solution**: Ensure the installation directory has proper write permissions:
+**Database errors:**
+Make sure the folder you're installing to is writable:
 ```bash
 chmod 755 /path/to/shareify
 ```
 
-### Dependencies Installation Fails
-**Solution**: Try installing dependencies manually:
-```bash
-pip3 install -r requirements.txt --user
-```
+## Security notes
 
-### Web Server Won't Start
-**Solution**: Check if another service is using the port and ensure Python has network permissions:
-```bash
-netstat -tlnp | grep :6969
-```
+- Use strong passwords (duh)
+- The setup server (port 6969) only runs during installation
+- Your admin password stays on your machine
+- Consider firewall rules for the main server after setup
 
-## Installation Security Notes
+## That's it
 
-During installation, keep these security considerations in mind:
+If everything worked, you now have your own NAS server. The web interface should be pretty self-explanatory from here.
 
-- **Password Security**: Use strong, unique passwords for both system and Shareify NAS admin accounts
-- **File Permissions**: Ensure the installation directory has appropriate read/write permissions
-- **Network Security**: The installation server (port 6969) is only needed during setup and will automatically shut down after completion
-- **Firewall**: Consider temporarily allowing port 6969 during installation, then remove the rule after completion
-
-## Conclusion
-
-Congratulations! You have successfully installed Shareify NAS. Your network-attached storage server is now ready to use. The installation process has set up all necessary components, created your admin account, and configured the basic system settings.
-
-Your Shareify NAS server will start automatically after installation completion. Check your terminal for the server address and use your admin credentials to log in and begin managing your NAS storage.
+Hit me up if you run into issues - there's probably something I missed in the docs.

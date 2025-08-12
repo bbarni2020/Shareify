@@ -1,188 +1,140 @@
 # Shareify iOS App
 
-The Shareify iOS app provides a native mobile interface for accessing your Shareify server and cloud services. Built with SwiftUI, it offers a seamless and intuitive experience for managing your files on the go.
+I wanted to access my NAS from my phone without using some sketchy third-party app, so I built this. It's a native iOS app that connects to your Shareify server (and the cloud service if you're using that too).
 
-## Features
+Built with SwiftUI because, honestly, UIKit is getting old and Apple keeps pushing SwiftUI anyway.
 
-### 🌐 Dual Authentication System
-- **Cloud Account**: Connect to Shareify's cloud services
-- **Local Server**: Direct connection to your self-hosted Shareify server
-- Secure JWT-based authentication for both services
+## What it does
 
-### 📱 Native iOS Experience
-- **SwiftUI Interface**: Modern, responsive design that follows iOS design guidelines
-- **Custom Backgrounds**: Choose from 19 beautiful background images
-- **Smooth Animations**: Fluid transitions and interactions
-- **Haptic Feedback**: Tactile feedback for enhanced user experience
+**Connects to both things:**
+- Your local Shareify server (the one you installed)
+- The cloud service (if you want that too)
+- Uses JWT tokens because that's what everything uses these days
 
-### 🔐 Account Management
-- **Password Reset**: Change passwords for both cloud and local accounts
-- **Profile Information**: View and manage your account details
-- **Secure Storage**: All credentials stored securely in iOS Keychain
+**Actually feels like an iOS app:**
+- Built with SwiftUI so it follows iOS design patterns
+- Has 19 background images (I got a bit carried away with the design)
+- Haptic feedback because why not
+- Smooth animations that don't make you want to throw your phone
 
-### 🎨 Customization
-- **Background Selection**: Personalize your app with custom backgrounds
-- **Dynamic Theming**: Adaptive UI that responds to your choices
-- **Settings Persistence**: Your preferences are saved across app launches
+**Manages your accounts:**
+- Change passwords without going to the web interface
+- View your profile stuff
+- Everything stored in iOS Keychain (much more secure than just saving to UserDefaults)
+
+**Customizable enough:**
+- Pick different backgrounds
+- Settings actually stick between launches
+- Dark/light mode support
 
 ## Getting Started
 
-### Requirements
-- iOS 15.0 or later
-- Active Shareify cloud account
-- Self-hosted Shareify server
+**You'll need:**
+- iOS 15.0+ (older versions weren't worth supporting)
+- A Shareify server running somewhere
+- Maybe a cloud account if you're into that
 
-### Installation
-1. Download the app from the App Store (coming soon)
-2. Or build from source using Xcode
+**Installation:**
+- App Store version is coming soon™
+- Or build it yourself if you have Xcode
 
-### First Launch
-1. **Onboarding**: The app guides you through initial setup
-2. **Account Setup**: Log in to cloud and your local server
-3. **Use the app**: You are ready to go!
+**First time setup:**
+1. App walks you through the basic setup
+2. Log into your cloud account and/or local server
+3. Start using it
 
-## App Structure
+## How it's built
 
-### Main Views
+**Main screens:**
 
-#### 📱 **Login Screen**
-- Cloud account authentication
-- Email and password input
-- Automatic token management
-- Error handling and validation
+**Login** - Pretty standard email/password form for cloud accounts. Handles tokens automatically so you don't have to think about it.
 
-#### 🖥️ **Server Login**
-- Local server connection
-- Custom server URL input
-- Port and protocol configuration
-- Connection testing
+**Server Login** - Connect to your local server. You can put in custom URLs, ports, whatever. It'll test the connection before saving.
 
-#### 🏠 **Home Dashboard**
-- Quick access to files and folders
-- Recent activity overview
-- Server status indicators
-- Navigation to other sections
+**Home** - Shows your files and recent stuff. Nothing fancy, just gets you where you need to go.
 
-#### ⚙️ **Settings**
-- Account management
-- Background customization
-- Security settings
-- App information
+**Settings** - Change passwords, pick backgrounds, the usual settings stuff.
 
-#### 🔑 **Password Reset**
-- Secure password change flow
-- Separate flows for cloud and local accounts
-- Email verification (cloud accounts)
-- Instant validation feedback
+**Password Reset** - Separate flows for cloud vs local accounts because they work differently.
 
-### Key Components
+**The code structure:**
 
-#### 🎯 **ServerManager**
-```swift
-// Handles all server communications
-- API endpoint management
-- Request authentication
-- Response processing
-- Error handling
-```
+I split things into managers because everything in one file is a nightmare:
 
-#### 🖼️ **BackgroundManager**
-```swift
-// Manages app theming and backgrounds
-- Background selection persistence
-- Dynamic image loading
-- Theme coordination
-- User preference storage
-```
+`ServerManager` - Handles talking to servers, API calls, auth tokens, error handling
 
-#### 🔐 **Authentication System**
-```swift
-// Secure credential management
-- JWT token handling
-- Keychain integration
-- Session management
-- Auto-refresh capabilities
-```
+`BackgroundManager` - Manages the background images and themes. Saves your preferences.
 
-## Cloud Integration
+`Authentication System` - JWT tokens, Keychain storage, session stuff. Tries to refresh tokens automatically.
 
-### Authentication Flow
-1. **Login**: User enters email and password
-2. **Token Exchange**: App receives JWT token from cloud service
-3. **Server Registration**: Token used to authenticate with local servers
-4. **Session Management**: Automatic token refresh and validation
+## Cloud integration
 
-### Features
-- Direct file access
-- Real-time synchronization
-- Offline capability planning
-- Custom endpoint support
+The flow is pretty straightforward:
+1. You log in with email/password
+2. App gets a JWT token from the cloud service  
+3. Uses that token to talk to your local servers
+4. Handles token refresh in the background
 
-## Security Features
+Works with custom endpoints too if you're running your own cloud instance.
 
-### Data Protection
-- **Keychain Storage**: All sensitive data stored in iOS Keychain
-- **Token Encryption**: JWT tokens encrypted at rest
-- **Secure Communication**: HTTPS/TLS for all network requests
-- **Auto-logout**: Automatic session expiration handling
+## Security stuff
 
-### Privacy
-- **Local Storage**: Minimal data stored locally
-- **No Tracking**: No user behavior tracking
-- **Secure Defaults**: Security-first configuration
+- Everything sensitive goes in iOS Keychain (not just UserDefaults like some apps)
+- JWT tokens are encrypted when stored
+- All network requests use HTTPS/TLS
+- Auto-logout when sessions expire
+- Doesn't track anything or send analytics anywhere
 
 ## Customization
 
-### Background Images
-The app includes 19 beautiful background images:
-- High-resolution images optimized for iOS devices
-- Automatic aspect ratio handling
-- Smooth transition animations
+The 19 background images thing started as "I'll add a few options" and got out of hand. They're high-res and handle different screen sizes properly.
 
-### Building from Source
-1. **Clone Repository**: `git clone https://github.com/bbarni2020/Shareify.git`
-2. **Open Xcode**: Navigate to `ios_app/shareify/shareify.xcodeproj`
-3. **Configure Team**: Set your developer team in project settings
-4. **Build**: Command+R to build and run
+**Building from source:**
+```bash
+git clone https://github.com/bbarni2020/Shareify.git
+cd ios_app/shareify
+open shareify.xcodeproj
+```
 
-## Troubleshooting
+You'll need to set your developer team in Xcode, then hit Command+R to build.
 
-### Common Issues
+## When things break
 
-#### Connection Problems
-- **Check Server URL**: Ensure correct server address and port
-- **Network Access**: Verify internet connectivity
-- **Firewall Settings**: Check if server ports are accessible
-- **SSL Certificates**: Ensure valid HTTPS certificates
+**Connection issues:**
+- Double-check your server URL and port
+- Make sure your network actually works
+- Check if your server's firewall is blocking the app
+- SSL certificate problems are usually the server's fault
 
-#### Authentication Issues
-- **Token Expiry**: App automatically handles token refresh
-- **Invalid Credentials**: Double-check email and password
-- **Server Compatibility**: Ensure server version compatibility
-- **Account Status**: Verify account is active and accessible
+**Login problems:**
+- App should handle token refresh automatically, but sometimes it doesn't
+- Try logging out and back in
+- Make sure your account actually works (test on the web interface)
+- Server version might be too old/new
 
-#### App Performance
-- **Background Refresh**: Check iOS background app refresh settings
-- **Storage Space**: Ensure sufficient device storage
-- **iOS Version**: Update to latest supported iOS version
-- **App Updates**: Keep app updated to latest version
+**Performance:**
+- Check iOS background app refresh settings
+- Make sure you have storage space
+- Update iOS if you're on something ancient
+- Update the app when I release fixes
 
-### Getting Help
-- **Documentation**: Check the full Shareify documentation
-- **GitHub Issues**: Report bugs on the GitHub repository
-- **Community**: Join the Shareify community discussions
+If none of that works, check the GitHub issues or file a new one.
 
-## Version Information
+## Current status
 
-**Current Version**: 1.0.0  
-**iOS Compatibility**: iOS 15.0+  
-**Last Updated**: July 2025  
-**Developer**: Balogh Barnabás
+**Version**: 1.0.0  
+**iOS**: 15.0+  
+**Last updated**: July 2025  
+**Status**: Works on my phone
 
-## License
+## Notes
 
-© 2025 Balogh Barnabás. All rights reserved.
+This is still pretty new, so there might be bugs. I use it daily on my iPhone 16e, but different devices/iOS versions might have issues.
+
+The App Store version is taking forever because Apple's review process is... Apple's review process. You can build from source in the meantime.
+
+Planning to add offline support and better file management, but that's future me's problem.
 
 ---
 
-*This documentation covers the Shareify iOS app. For server installation and API documentation, please refer to the main Shareify documentation.*
+For the server stuff, check the main Shareify docs. This is just about the iOS app.
