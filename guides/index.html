@@ -215,16 +215,16 @@
 <body>
     <div class="container">
         <div class="tabs">
-            <button class="tab-button active" onclick="showTab('ios')">iOS App</button>
+            <button class="tab-button" onclick="showTab('ios')">iOS App</button>
             <button class="tab-button" onclick="showTab('install')">Install Guide</button>
             <button class="tab-button" onclick="showTab('api')">API Docs</button>
         </div>
 
-        <div id="ios-tab" class="tab-content active">
+        <div id="ios-tab" class="tab-content">
             <div class="loading">Loading...</div>
         </div>
 
-        <div id="install-tab" class="tab-content ">
+        <div id="install-tab" class="tab-content">
             <div class="loading">Loading...</div>
         </div>
 
@@ -244,7 +244,40 @@
             });
 
             document.getElementById(tabName + '-tab').classList.add('active');
-            event.target.classList.add('active');
+
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(button => {
+                if (button.onclick.toString().includes(`showTab('${tabName}')`)) {
+                    button.classList.add('active');
+                }
+            });
+        }
+
+        function getUrlParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        function initializePage() {
+            const guideParam = getUrlParameter('guide');
+            let defaultTab = 'ios';
+
+            if (guideParam === 'api-tab' || guideParam === 'api') {
+                defaultTab = 'api';
+            } else if (guideParam === 'install-tab' || guideParam === 'install') {
+                defaultTab = 'install';
+            } else if (guideParam === 'ios-tab' || guideParam === 'ios') {
+                defaultTab = 'ios';
+            }
+
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+
+            showTab(defaultTab);
         }
 
         async function loadMarkdown(filename, containerId) {
@@ -266,6 +299,8 @@
             loadMarkdown('Install.md', 'install-tab');
             loadMarkdown('API.md', 'api-tab');
             loadMarkdown('ios_app.md', 'ios-tab');
+
+            initializePage();
         });
     </script>
 </body>
