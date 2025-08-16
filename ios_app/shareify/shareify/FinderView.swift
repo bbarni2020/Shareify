@@ -437,7 +437,7 @@ struct FinderView: View {
                 previewedFileType = nil
                 let filePath = (currentPath + [item.name]).joined(separator: "/")
                 
-                let command = "/api/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
+                let command = "/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
                 let requestBody: [String: Any] = [:]
                 
                 ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
