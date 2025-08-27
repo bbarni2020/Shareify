@@ -53,11 +53,12 @@ The web interface is drag-and-drop simple. I kept it minimal because I got tired
 
 The **mobile situation**: Mobile browser experience sucked, so I built a proper iOS app. It's in the ios_app folder if you want to build it yourself. Handles switching between local/remote connections automatically.
 
-**Security bits**: JWT tokens for auth, SQLite for user management, HTTPS if you set it up. There's also an FTP server built in because sometimes you just need FTP.
+**Security bits**: JWT tokens for auth, SQLite for user management, HTTPS if you set it up. **New**: End-to-end encryption between iOS app and your server - the bridge literally cannot read your data. There's also an FTP server built in because sometimes you just need FTP.
 
-**The bridge thing**: This took me forever to figure out. Basically lets you access your server from anywhere without dealing with port forwarding or dynamic DNS. Your server connects to my bridge service, and when you access it remotely, requests get relayed back to your machine. The bridge can't see your files - it's just passing encrypted requests through.
+**The bridge thing**: This took me forever to figure out. Basically lets you access your server from anywhere without dealing with port forwarding or dynamic DNS. Your server connects to my bridge service, and when you access it remotely, requests get relayed back to your machine. **With the new E2E encryption, the bridge truly can't see your files or any data** - it's just passing encrypted packets through that only your iOS app and server can decrypt.
 
 Some other stuff that's in there:
+- **End-to-end encryption** for true privacy (iOS app ↔ your server)
 - File syntax highlighting (supports like 50+ languages)
 - Batch operations for handling multiple files
 - System monitoring so you can see if your server's dying

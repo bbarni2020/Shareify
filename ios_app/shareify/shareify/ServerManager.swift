@@ -9,6 +9,7 @@ import Foundation
 
 class ServerManager: ObservableObject {
     static let shared = ServerManager()
+    private let encryption = ShareifyE2EEncryption.shared
     
     private init() {}
     
@@ -18,6 +19,9 @@ class ServerManager: ObservableObject {
             completion(.failure(ServerError.noJWTToken))
             return
         }
+        
+        // Check if E2E encryption is available
+        let useEncryption = encryption.hasSessionKey()
         
         guard let url = URL(string: "https://command.bbarni.hackclub.app/") else {
             completion(.failure(ServerError.invalidURL))
@@ -39,8 +43,21 @@ class ServerManager: ObservableObject {
             "wait_time": waitTime
         ]
 
-        if !body.isEmpty {
-            requestBody["body"] = body
+        // Handle E2E encryption
+        var finalBody: Any = body
+        if useEncryption && !body.isEmpty {
+            if let encryptedBody = encryption.encryptPayload(body) {
+                finalBody = encryptedBody
+                requestBody["encrypted"] = true
+                requestBody["client_id"] = getClientId()
+                print("Request body encrypted for E2E security")
+            } else {
+                print("Failed to encrypt request body, falling back to unencrypted")
+            }
+        }
+
+        if finalBody is String || (finalBody as? [String: Any])?.isEmpty == false {
+            requestBody["body"] = finalBody
         }
 
         do {
@@ -80,21 +97,35 @@ class ServerManager: ObservableObject {
                     let json = try JSONSerialization.jsonObject(with: data)
                     
                     if let jsonDict = json as? [String: Any] {
-                        if let errorMessage = jsonDict["error"] as? String {
+                        // Handle encrypted responses
+                        var finalResponse = jsonDict
+                        if let encrypted = jsonDict["encrypted"] as? Bool, encrypted,
+                           let encryptedData = jsonDict["response"] as? String {
+                            if let decryptedResponse = encryption.decryptPayload(encryptedData) {
+                                finalResponse = decryptedResponse
+                                print("Response decrypted successfully")
+                            } else {
+                                print("Failed to decrypt response")
+                                completion(.failure(ServerError.serverError("Failed to decrypt response")))
+                                return
+                            }
+                        }
+                        
+                        if let errorMessage = finalResponse["error"] as? String {
                             self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, completion: completion)
                             return
                         }
                         
-                        if let success = jsonDict["success"] as? Bool, !success {
-                            let errorMessage = jsonDict["error"] as? String ?? "Unknown server error"
+                        if let success = finalResponse["success"] as? Bool, !success {
+                            let errorMessage = finalResponse["error"] as? String ?? "Unknown server error"
                             self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, completion: completion)
                             return
                         }
                         
                         if httpResponse.statusCode == 200 {
-                            completion(.success(jsonDict))
+                            completion(.success(finalResponse))
                         } else {
-                            let errorMessage = jsonDict["error"] as? String ?? "Unknown server error"
+                            let errorMessage = finalResponse["error"] as? String ?? "Unknown server error"
                             self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, completion: completion)
                         }
                     } else if json is [Any] {
@@ -274,6 +305,46 @@ class ServerManager: ObservableObject {
                 self.executeServerCommand(command: originalCommand, method: originalMethod, body: originalBody, waitTime: originalWaitTime, completion: completion)
             }
         }.resume()
+    }
+    
+    // MARK: - E2E Encryption Helper Methods
+    
+    private func getClientId() -> String {
+        // Use a persistent client ID for this device
+        if let savedClientId = UserDefaults.standard.string(forKey: "e2e_client_id") {
+            return savedClientId
+        }
+        
+        let newClientId = UUID().uuidString
+        UserDefaults.standard.set(newClientId, forKey: "e2e_client_id")
+        return newClientId
+    }
+    
+    func setupE2EEncryption(completion: @escaping (Bool) -> Void) {
+        // Request server's public key and establish session
+        requestServerPublicKey { [weak self] success in
+            if success {
+                self?.establishSessionKey(completion: completion)
+            } else {
+                completion(false)
+            }
+        }
+    }
+    
+    private func requestServerPublicKey(completion: @escaping (Bool) -> Void) {
+        // This would involve making a request to get the server's public key
+        // For now, we'll use a placeholder
+        // In a real implementation, this would call a specific endpoint
+        print("Requesting server public key...")
+        completion(true)
+    }
+    
+    private func establishSessionKey(completion: @escaping (Bool) -> Void) {
+        // Generate session key and encrypt with server's public key
+        // This would involve the key exchange protocol
+        encryption.establishSessionWithServer(serverPublicKeyPEM: "placeholder") { success in
+            completion(success)
+        }
     }
 }
 

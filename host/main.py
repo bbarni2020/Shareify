@@ -26,6 +26,7 @@ import tempfile
 import shutil
 import jwt
 import requests
+from e2e_encryption import get_encryption_instance
 
 def is_admin():
     try:
@@ -473,6 +474,62 @@ def get_command_dir():
 def set_command_dir(new_dir):
     global current_command_dir
     current_command_dir = new_dir
+
+@app.route('/api/e2e/public_key', methods=['GET'])
+def get_e2e_public_key():
+    """Get server's public key for E2E encryption"""
+    try:
+        encryption = get_encryption_instance()
+        public_key = encryption.get_public_key_pem()
+        
+        return jsonify({
+            'success': True,
+            'public_key': public_key,
+            'message': 'Public key retrieved successfully'
+        })
+    except Exception as e:
+        log(f"E2E public key request error: {str(e)}", request.remote_addr)
+        return jsonify({
+            'success': False,
+            'error': f'Failed to get public key: {str(e)}'
+        }), 500
+
+@app.route('/api/e2e/establish_session', methods=['POST'])
+def establish_e2e_session():
+    """Establish E2E encryption session with client"""
+    try:
+        data = request.get_json()
+        client_id = data.get('client_id')
+        encrypted_session_key = data.get('encrypted_session_key')
+        
+        if not client_id or not encrypted_session_key:
+            return jsonify({
+                'success': False,
+                'error': 'Missing client_id or encrypted_session_key'
+            }), 400
+        
+        encryption = get_encryption_instance()
+        success = encryption.establish_session_key(client_id, encrypted_session_key)
+        
+        if success:
+            log(f"E2E session established for client: {client_id}", request.remote_addr)
+            return jsonify({
+                'success': True,
+                'message': f'Session established for client {client_id}'
+            })
+        else:
+            log(f"E2E session establishment failed for client: {client_id}", request.remote_addr)
+            return jsonify({
+                'success': False,
+                'error': 'Failed to establish session'
+            }), 400
+            
+    except Exception as e:
+        log(f"E2E session establishment error: {str(e)}", request.remote_addr)
+        return jsonify({
+            'success': False,
+            'error': f'Session establishment failed: {str(e)}'
+        }), 500
 
 @app.route('/api/command', methods=['POST'])
 def command():

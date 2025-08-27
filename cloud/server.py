@@ -588,6 +588,66 @@ def handle_message(data):
         return
     
     print(f'Received message from {user_id}: {data}')
+
+@socketio.on('key_exchange_request')
+def handle_key_exchange_request(data):
+    """Relay key exchange request from client to target server"""
+    server_id = data.get('server_id')
+    client_id = data.get('client_id')
+    
+    if not server_id or not client_id:
+        emit('key_exchange_failed', {'error': 'Missing server_id or client_id'})
+        return
+    
+    if server_id not in connected_servers:
+        emit('key_exchange_failed', {'error': 'Server not connected'})
+        return
+    
+    print(f"Relaying key exchange request from client {client_id} to server {server_id}")
+    
+    # Forward the request to the target server
+    socketio.emit('key_exchange_request', data, room=f'server_{server_id}')
+
+@socketio.on('key_exchange_response')
+def handle_key_exchange_response(data):
+    """Relay key exchange response from server back to client"""
+    client_id = data.get('client_id')
+    
+    if not client_id:
+        print("Key exchange response missing client_id")
+        return
+    
+    print(f"Relaying key exchange response for client {client_id}")
+    
+    # Forward response to the client (would need client room management)
+    # For now, store it for the client to retrieve
+    emit('key_exchange_response', data, broadcast=True)
+
+@socketio.on('request_public_key')  
+def handle_public_key_request(data):
+    """Relay public key request from client to target server"""
+    server_id = data.get('server_id')
+    
+    if not server_id:
+        emit('public_key_failed', {'error': 'Missing server_id'})
+        return
+        
+    if server_id not in connected_servers:
+        emit('public_key_failed', {'error': 'Server not connected'})
+        return
+    
+    print(f"Relaying public key request to server {server_id}")
+    
+    # Forward the request to the target server
+    socketio.emit('request_public_key', data, room=f'server_{server_id}')
+
+@socketio.on('public_key_response')
+def handle_public_key_response(data):
+    """Relay public key response from server back to client"""
+    print("Relaying public key response to client")
+    
+    # Forward response to the client
+    emit('public_key_response', data, broadcast=True)
     emit('message', data, broadcast=True)
 
 @app.route('/cloud/<auth_token>/servers')

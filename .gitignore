@@ -12,3 +12,7 @@ postcss.config.js
 package.json
 package-lock.json
 /.github
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
