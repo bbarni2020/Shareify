@@ -540,18 +540,11 @@ class ShareifyLocalClient:
             except json.JSONDecodeError:
                 response_data = response.text
             
-            if self.sio.connected:
-                try:
-                    self.sio.emit('command_response', {
-                        'command_id': command_id,
-                        'response': response_data
-                    })
-                    print(f"Successfully emitted response for command {command_id}")
-                    time.sleep(0.1)
-                except Exception as emit_error:
-                    print(f"Failed to emit response: {emit_error}")
+            is_file_endpoint = url.endswith('/get_file') or 'get_file' in url
+            if is_file_endpoint and isinstance(response_data, dict) and 'content' in response_data:
+                self.handle_large_file_response(command_id, response_data)
             else:
-                print("Socket not connected, cannot emit response")
+                self.send_standard_response(command_id, response_data)
             
         except requests.exceptions.Timeout:
             print(f"API request timeout for command {command_id}")
@@ -585,6 +578,128 @@ class ShareifyLocalClient:
                     })
                 except Exception as emit_error:
                     print(f"Failed to emit general error: {emit_error}")
+
+    def send_standard_response(self, command_id, response_data):
+        if self.sio.connected:
+            try:
+                self.sio.emit('command_response', {
+                    'command_id': command_id,
+                    'response': response_data
+                })
+                print(f"Successfully emitted response for command {command_id}")
+                time.sleep(0.1)
+            except Exception as emit_error:
+                print(f"Failed to emit response: {emit_error}")
+        else:
+            print("Socket not connected, cannot emit response")
+
+    def handle_large_file_response(self, command_id, response_data):
+        import base64
+
+        if 'content' not in response_data:
+            self.send_standard_response(command_id, response_data)
+            return
+
+        content = response_data['content']
+
+        if response_data.get('type') == 'binary':
+            content_size = len(content) * 3 // 4
+        else:
+            content_size = len(content.encode('utf-8'))
+
+        chunk_threshold = 4 * 1024 * 1024
+
+        if content_size > chunk_threshold:
+            print(f"File content size ({content_size} bytes) exceeds threshold, chunking...")
+            self.send_chunked_file_response(command_id, response_data)
+        else:
+            print(f"File content size ({content_size} bytes) within limit, sending normally")
+            self.send_standard_response(command_id, response_data)
+
+    def send_chunked_file_response(self, command_id, response_data):
+        import base64
+
+        content = response_data['content']
+        file_type = response_data.get('type', 'text')
+        status = response_data.get('status', 'File content retrieved')
+
+        chunk_size = 3 * 1024 * 1024
+
+        if file_type == 'binary':
+            try:
+                original_bytes = base64.b64decode(content)
+                total_size = len(original_bytes)
+                chunks_needed = (total_size + chunk_size - 1) // chunk_size
+
+                print(f"Sending binary file in {chunks_needed} chunks...")
+
+                self.sio.emit('command_response', {
+                    'command_id': command_id,
+                    'response': {
+                        'status': status,
+                        'type': file_type,
+                        'chunked': True,
+                        'total_chunks': chunks_needed,
+                        'total_size': total_size,
+                        'chunk_index': 0
+                    }
+                })
+                time.sleep(0.1)
+
+                for i in range(chunks_needed):
+                    start_pos = i * chunk_size
+                    end_pos = min(start_pos + chunk_size, total_size)
+                    chunk_bytes = original_bytes[start_pos:end_pos]
+                    chunk_b64 = base64.b64encode(chunk_bytes).decode('utf-8')
+
+                    self.sio.emit('command_response_chunk', {
+                        'command_id': command_id,
+                        'chunk_index': i,
+                        'total_chunks': chunks_needed,
+                        'content': chunk_b64,
+                        'is_final': (i == chunks_needed - 1)
+                    })
+                    print(f"Sent chunk {i + 1}/{chunks_needed}")
+                    time.sleep(0.05)
+
+            except Exception as e:
+                print(f"Error chunking binary content: {e}")
+                self.send_standard_response(command_id, {'error': 'Failed to chunk binary content'})
+        else:
+            content_bytes = content.encode('utf-8')
+            total_size = len(content_bytes)
+            chunks_needed = (total_size + chunk_size - 1) // chunk_size
+
+            print(f"Sending text file in {chunks_needed} chunks...")
+
+            self.sio.emit('command_response', {
+                'command_id': command_id,
+                'response': {
+                    'status': status,
+                    'type': file_type,
+                    'chunked': True,
+                    'total_chunks': chunks_needed,
+                    'total_size': total_size,
+                    'chunk_index': 0
+                }
+            })
+            time.sleep(0.1)
+
+            for i in range(chunks_needed):
+                start_pos = i * chunk_size
+                end_pos = min(start_pos + chunk_size, total_size)
+                chunk_bytes = content_bytes[start_pos:end_pos]
+                chunk_text = chunk_bytes.decode('utf-8', errors='ignore')
+
+                self.sio.emit('command_response_chunk', {
+                    'command_id': command_id,
+                    'chunk_index': i,
+                    'total_chunks': chunks_needed,
+                    'content': chunk_text,
+                    'is_final': (i == chunks_needed - 1)
+                })
+                print(f"Sent chunk {i + 1}/{chunks_needed}")
+                time.sleep(0.05)
     
 def main():
     try:

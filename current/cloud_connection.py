@@ -488,7 +488,14 @@ class ShareifyLocalClient:
             
             print(f"Making {method} request to: {full_url}")
             
-            if not (url == '/resources' or url == 'resources' or url == '/is_up' or url == 'is_up' or url == '/user/get_self' or url == 'user/get_self' or url == 'user/login' or url == '/user/login' or url == '/get_logs' or url == '/finder' or url == '/get_file'):
+            allowed_endpoints = [
+                '/resources', 'resources',
+                '/is_up', 'is_up',
+                '/user/get_self', 'user/get_self',
+                '/user/login', 'user/login',
+                '/get_logs', '/finder', '/get_file'
+            ]
+            if not any(url == ep or url.startswith(ep) for ep in allowed_endpoints):
                 if self.sio.connected:
                     try:
                         self.sio.emit('command_response', {
@@ -532,19 +539,12 @@ class ShareifyLocalClient:
                 response_data = response.json()
             except json.JSONDecodeError:
                 response_data = response.text
-            
-            if self.sio.connected:
-                try:
-                    self.sio.emit('command_response', {
-                        'command_id': command_id,
-                        'response': response_data
-                    })
-                    print(f"Successfully emitted response for command {command_id}")
-                    time.sleep(0.1)
-                except Exception as emit_error:
-                    print(f"Failed to emit response: {emit_error}")
+
+            is_file_endpoint = url.endswith('/get_file') or 'get_file' in url
+            if is_file_endpoint and isinstance(response_data, dict) and 'content' in response_data:
+                self.handle_large_file_response(command_id, response_data)
             else:
-                print("Socket not connected, cannot emit response")
+                self.send_standard_response(command_id, response_data)
             
         except requests.exceptions.Timeout:
             print(f"API request timeout for command {command_id}")

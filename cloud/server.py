@@ -531,9 +531,55 @@ def handle_command_response(data):
     command_id = data.get('command_id')
     print(f'Received command_response for command_id: {command_id}')
     if command_id in pending_commands:
-        pending_commands[command_id]['response'] = data.get('response')
-        pending_commands[command_id]['completed'] = True
-        print(f'Updated pending_commands for command_id: {command_id}')
+        response_data = data.get('response')
+        if isinstance(response_data, dict) and response_data.get('chunked'):
+            print(f'Detected chunked response for command_id: {command_id}')
+            pending_commands[command_id]['chunked'] = True
+            pending_commands[command_id]['total_chunks'] = response_data.get('total_chunks', 0)
+            pending_commands[command_id]['total_size'] = response_data.get('total_size', 0)
+            pending_commands[command_id]['file_type'] = response_data.get('type', 'text')
+            pending_commands[command_id]['file_status'] = response_data.get('status', 'File content retrieved')
+            pending_commands[command_id]['chunks_received'] = {}
+            pending_commands[command_id]['completed'] = False
+        else:
+            pending_commands[command_id]['response'] = response_data
+            pending_commands[command_id]['completed'] = True
+            print(f'Updated pending_commands for command_id: {command_id}')
+
+@socketio.on('command_response_chunk')
+def handle_command_response_chunk(data):
+    command_id = data.get('command_id')
+    chunk_index = data.get('chunk_index')
+    total_chunks = data.get('total_chunks')
+    content = data.get('content')
+    is_final = data.get('is_final', False)
+
+    print(f'Received chunk {chunk_index + 1}/{total_chunks} for command_id: {command_id}')
+
+    if command_id in pending_commands:
+        command_data = pending_commands[command_id]
+        if 'chunks_received' not in command_data:
+            command_data['chunks_received'] = {}
+        command_data['chunks_received'][chunk_index] = content
+        if len(command_data['chunks_received']) == command_data.get('total_chunks', 0):
+            print(f'All chunks received for command_id: {command_id}, assembling response...')
+            assembled_content = ""
+            for i in range(command_data['total_chunks']):
+                if i in command_data['chunks_received']:
+                    assembled_content += command_data['chunks_received'][i]
+            final_response = {
+                'status': command_data.get('file_status', 'File content retrieved'),
+                'content': assembled_content,
+                'type': command_data.get('file_type', 'text')
+            }
+            command_data['response'] = final_response
+            command_data['completed'] = True
+            del command_data['chunks_received']
+            print(f'Assembled chunked response for command_id: {command_id}')
+        elif is_final:
+            print(f'Final chunk received but missing chunks for command_id: {command_id}')
+            command_data['response'] = {'error': 'Incomplete chunked file transfer'}
+            command_data['completed'] = True
 
 def send_command_to_server(server_id, command, command_id=None, method='GET', body=None, shareify_jwt=None):
     if server_id not in connected_servers:
