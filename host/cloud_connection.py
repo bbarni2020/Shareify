@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 import requests
 from colorama import init, Fore, Back, Style
+from e2e_encryption import get_encryption_instance
 
 
 def print_status(message, status_type="info"):
@@ -188,10 +189,32 @@ class ShareifyLocalClient:
             body = data.get('body', {})
             timestamp = data.get('timestamp')
             shareify_jwt = data.get('shareify_jwt')
-            print(f"Received command {command_id}: {command} (method: {method})")
+            client_id = data.get('client_id')  # For E2E encryption
+            encrypted = data.get('encrypted', False)  # Flag if body is encrypted
+            
+            print(f"Received command {command_id}: {command} (method: {method}, encrypted: {encrypted})")
+
+            # Handle E2E encryption if enabled
+            if encrypted and client_id:
+                encryption = get_encryption_instance()
+                decrypted_body = encryption.decrypt_payload(client_id, body)
+                if decrypted_body is not None:
+                    body = decrypted_body
+                    print(f"Successfully decrypted payload for client {client_id}")
+                else:
+                    print(f"Failed to decrypt payload for client {client_id}")
+                    if self.sio.connected:
+                        try:
+                            self.sio.emit('command_response', {
+                                'command_id': command_id,
+                                'response': {'error': 'Failed to decrypt request'}
+                            })
+                        except Exception as emit_error:
+                            print(f"Failed to emit decryption error: {emit_error}")
+                    return
 
             try:
-                self.execute_api_request(command_id, command, method, body, shareify_jwt)
+                self.execute_api_request(command_id, command, method, body, shareify_jwt, client_id, encrypted)
             except Exception as e:
                 print(f"Failed to handle command: {e}")
                 if self.sio.connected:
@@ -209,6 +232,46 @@ class ShareifyLocalClient:
             self.last_successful_ping = time.time()
             self.reconnect_attempts = 0
             print(f"Ping response: {data.get('timestamp', 'no timestamp')}")
+            
+        @self.sio.on('key_exchange_request')
+        def on_key_exchange_request(data):
+            """Handle key exchange request from client (iOS app)"""
+            client_id = data.get('client_id')
+            encrypted_session_key = data.get('encrypted_session_key')
+            
+            if not client_id or not encrypted_session_key:
+                print("Invalid key exchange request: missing client_id or encrypted_session_key")
+                return
+            
+            encryption = get_encryption_instance()
+            
+            # Establish session key
+            success = encryption.establish_session_key(client_id, encrypted_session_key)
+            
+            if self.sio.connected:
+                try:
+                    self.sio.emit('key_exchange_response', {
+                        'client_id': client_id,
+                        'success': success,
+                        'server_public_key': encryption.get_public_key_pem() if success else None
+                    })
+                    print(f"Key exchange response sent for client {client_id}: {success}")
+                except Exception as emit_error:
+                    print(f"Failed to emit key exchange response: {emit_error}")
+        
+        @self.sio.on('request_public_key')
+        def on_request_public_key(data):
+            """Handle request for server's public key"""
+            encryption = get_encryption_instance()
+            
+            if self.sio.connected:
+                try:
+                    self.sio.emit('public_key_response', {
+                        'public_key': encryption.get_public_key_pem()
+                    })
+                    print("Sent public key to client")
+                except Exception as emit_error:
+                    print(f"Failed to emit public key: {emit_error}")
     
     def authenticate_user(self):
         if self.user_id and self.auth_token:
@@ -477,7 +540,7 @@ class ShareifyLocalClient:
             print("\nShutting down...")
             self.disconnect()
 
-    def execute_api_request(self, command_id, url, method='GET', body=None, shareify_jwt=None):
+    def execute_api_request(self, command_id, url, method='GET', body=None, shareify_jwt=None, client_id=None, encrypted=False):
         try:
             base_url = "http://127.0.0.1:6969/api"
             
@@ -488,14 +551,7 @@ class ShareifyLocalClient:
             
             print(f"Making {method} request to: {full_url}")
             
-            allowed_endpoints = [
-                '/resources', 'resources',
-                '/is_up', 'is_up',
-                '/user/get_self', 'user/get_self',
-                '/user/login', 'user/login',
-                '/get_logs', '/finder', '/get_file'
-            ]
-            if not any(url == ep or url.startswith(ep) for ep in allowed_endpoints):
+            if not (url == '/resources' or url == 'resources' or url == '/is_up' or url == 'is_up' or url == '/user/get_self' or url == 'user/get_self' or url == 'user/login' or url == '/user/login' or url == '/get_logs' or url == '/finder' or url == '/get_file'):
                 if self.sio.connected:
                     try:
                         self.sio.emit('command_response', {
@@ -540,13 +596,34 @@ class ShareifyLocalClient:
             except json.JSONDecodeError:
                 response_data = response.text
             
+            # Encrypt response if E2E encryption is enabled
+            final_response = response_data
+            response_encrypted = False
+            
+            if encrypted and client_id:
+                encryption = get_encryption_instance()
+                encrypted_response = encryption.encrypt_payload(client_id, response_data)
+                if encrypted_response is not None:
+                    final_response = encrypted_response
+                    response_encrypted = True
+                    print(f"Successfully encrypted response for client {client_id}")
+                else:
+                    print(f"Failed to encrypt response for client {client_id}, sending unencrypted")
+            
             if self.sio.connected:
                 try:
-                    self.sio.emit('command_response', {
+                    response_payload = {
                         'command_id': command_id,
-                        'response': response_data
-                    })
-                    print(f"Successfully emitted response for command {command_id}")
+                        'response': final_response
+                    }
+                    
+                    # Add encryption metadata
+                    if response_encrypted:
+                        response_payload['encrypted'] = True
+                        response_payload['client_id'] = client_id
+                    
+                    self.sio.emit('command_response', response_payload)
+                    print(f"Successfully emitted response for command {command_id} (encrypted: {response_encrypted})")
                     time.sleep(0.1)
                 except Exception as emit_error:
                     print(f"Failed to emit response: {emit_error}")

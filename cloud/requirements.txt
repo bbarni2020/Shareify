@@ -6,3 +6,4 @@ PyJWT
 eventlet
 gunicorn[eventlet]
 requests
+cryptography==42.0.5
