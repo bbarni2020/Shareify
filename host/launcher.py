@@ -5,6 +5,22 @@ import platform
 import json
 import requests
 import threading
+from pathlib import Path
+
+def get_venv_python():
+    script_dir = Path(__file__).parent.absolute()
+    venv_path = script_dir / "shareify_venv"
+    
+    if venv_path.exists():
+        if platform.system().lower() == "windows":
+            python_exe = venv_path / "Scripts" / "python.exe"
+        else:
+            python_exe = venv_path / "bin" / "python"
+        
+        if python_exe.exists():
+            return str(python_exe)
+    
+    return sys.executable
 
 def get_sudo_password():
     try:
@@ -35,12 +51,13 @@ def main():
     try:
         script_dir = os.path.dirname(os.path.abspath(__file__))
         main_py_path = os.path.join(script_dir, 'wsgi.py')
+        python_exe = get_venv_python()
 
         if not os.path.exists(main_py_path):
             print(f"Error: wsgi.py not found at {main_py_path}")
             return
         
-        print("Starting Shareify with administrator privileges...")
+        print(f"Starting Shareify with Python: {python_exe}")
 
         if is_cloud_on():
             print("Cloud mode is enabled. Starting cloud bridge connection...")
@@ -52,7 +69,7 @@ def main():
                         print("Starting cloud connection process...")
                         try:
                             cloud_process = subprocess.Popen(
-                                [sys.executable, cloud_conection_path], 
+                                [python_exe, cloud_conection_path], 
                                 cwd=script_dir,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
@@ -73,7 +90,7 @@ def main():
             process = subprocess.Popen([
                 'powershell', 
                 'Start-Process', 
-                'python', 
+                python_exe, 
                 f'-ArgumentList "{main_py_path}"',
                 '-Verb', 'RunAs',
                 '-WindowStyle', 'Hidden'
@@ -81,11 +98,11 @@ def main():
         else:
             sudo_password = get_sudo_password()
             if sudo_password:
-                cmd = f'echo "{sudo_password}" | sudo -S {sys.executable} "{main_py_path}"'
+                cmd = f'echo "{sudo_password}" | sudo -S {python_exe} "{main_py_path}"'
                 process = subprocess.Popen(cmd, shell=True, cwd=script_dir)
             else:
                 print("No sudo password found. Running without administrator privileges...")
-                process = subprocess.Popen([sys.executable, main_py_path], cwd=script_dir)
+                process = subprocess.Popen([python_exe, main_py_path], cwd=script_dir)
         
         process.wait()
         

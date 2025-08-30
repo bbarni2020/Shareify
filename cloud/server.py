@@ -2164,7 +2164,6 @@ DASHBOARD_TEMPLATE = '''
 '''
 
 def periodic_cleanup():
-    """Periodic cleanup function that runs JWT and rate limit cleanup"""
     while True:
         time.sleep(3600)
         cleanup_expired_jwts()

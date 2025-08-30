@@ -4,40 +4,77 @@ import os
 import platform
 import socket
 import startup
+from pathlib import Path
 
-def install_pip():
+def create_virtual_environment():
+    script_dir = Path(__file__).parent.absolute()
+    venv_path = script_dir / "shareify_venv"
+    
+    print("Creating virtual environment for Shareify...")
+    
+    if venv_path.exists():
+        print("Virtual environment already exists. Removing old one...")
+        import shutil
+        shutil.rmtree(venv_path)
+    
     try:
-        import pip
-        print("pip is already installed.")
-    except ImportError:
-        print("pip not found. Installing pip...")
+        subprocess.check_call([sys.executable, "-m", "venv", str(venv_path)])
+        print(f"✓ Virtual environment created at: {venv_path}")
+        return venv_path
+    except subprocess.CalledProcessError as e:
+        print(f"✗ Failed to create virtual environment: {e}")
+        return None
+
+def get_venv_python(venv_path):
+    if platform.system().lower() == "windows":
+        return venv_path / "Scripts" / "python.exe"
+    else:
+        return venv_path / "bin" / "python"
+
+def get_venv_pip(venv_path):
+    if platform.system().lower() == "windows":
+        return venv_path / "Scripts" / "pip.exe"
+    else:
+        return venv_path / "bin" / "pip"
+
+def install_pip_in_venv(venv_path):
+    python_exe = get_venv_python(venv_path)
+    try:
+        subprocess.check_call([str(python_exe), "-m", "pip", "--version"])
+        print("pip is available in virtual environment.")
+        return True
+    except subprocess.CalledProcessError:
+        print("pip not found in virtual environment. Installing...")
         try:
-            subprocess.check_call([sys.executable, "-m", "ensurepip", "--upgrade"])
-            print("pip installed successfully.")
+            subprocess.check_call([str(python_exe), "-m", "ensurepip", "--upgrade"])
+            print("pip installed successfully in virtual environment.")
+            return True
         except Exception as e:
-            print(f"Failed to install pip: {e}")
+            print(f"Failed to install pip in virtual environment: {e}")
             return False
-    return True
 
-def upgrade_pip():
+def upgrade_pip_in_venv(venv_path):
+    python_exe = get_venv_python(venv_path)
     try:
-        print("Upgrading pip...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgarde", "pip"])
-        print("pip upgraded successfully.")
+        print("Upgrading pip in virtual environment...")
+        subprocess.check_call([str(python_exe), "-m", "pip", "install", "--upgrade", "pip"])
+        print("pip upgraded successfully in virtual environment.")
     except Exception as e:
-        print(f"Falied to upgrade pip: {e}")
+        print(f"Failed to upgrade pip in virtual environment: {e}")
 
-def install_requirements():
-    print("Installing requirements...")
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    requirements_path = os.path.join(script_dir, 'requirements.txt')
+def install_requirements_in_venv(venv_path):
 
-    if not os.path.exists(requirements_path):
+    print("Installing requirements in virtual environment...")
+    script_dir = Path(__file__).parent.absolute()
+    requirements_path = script_dir / 'requirements.txt'
+    python_exe = get_venv_python(venv_path)
+
+    if not requirements_path.exists():
         print(f"Error: requirements.txt not found at {requirements_path}")
         return False
     
     try:
-        print("Installing required packages...")
+        print("Installing required packages in virtual environment...")
 
         with open(requirements_path, 'r') as f:
             packages = f.read().strip().split('\n')
@@ -46,15 +83,16 @@ def install_requirements():
         print(f"Found {len(packages)} packages to install.")
 
         for pkg in packages:
-            print(F"    - {pkg}")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", requirements_path, "--upgrade"])
-        print("\n✓ All packages installed successfully.")
+            print(f"    - {pkg}")
+        
+        subprocess.check_call([str(python_exe), "-m", "pip", "install", "-r", str(requirements_path), "--upgrade"])
+        print("\n✓ All packages installed successfully in virtual environment.")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"\n✗ Failed to install packages: {e}")
+        print(f"\n✗ Failed to install packages in virtual environment: {e}")
         return False
     except Exception as e:
-        print(f"\n✗ Error occurred: {e}")
+        print(f"\n✗ Error occurred during package installation: {e}")
         return False
 
 def check_administrator_privileges():
@@ -78,18 +116,23 @@ def main():
         print("Some packages might require elevated permissions to install")
         print()
     
-    if not install_pip():
-        print("Failed to install pip. Exciting installation...")
+    venv_path = create_virtual_environment()
+    if not venv_path:
+        print("Failed to create virtual environment. Exiting installation...")
         sys.exit(1)
     
-    upgrade_pip()
+    if not install_pip_in_venv(venv_path):
+        print("Failed to install pip in virtual environment. Exiting installation...")
+        sys.exit(1)
+    
+    upgrade_pip_in_venv(venv_path)
     print()
 
-    print("Configureing startup...")
-    startup.setup_startup()
+    print("Configuring startup...")
+    startup.setup_startup(venv_path)
     print("Startup configured successfully.")
 
-    if install_requirements():
+    if install_requirements_in_venv(venv_path):
         print("\nInstallation completed successfully!")
         print("Starting the online setup...")
         return
@@ -261,9 +304,17 @@ def set_password():
 @app.route('/complete_installation', methods=['POST'])
 def complete_installation():
     try:
-        launcher_path = os.path.join(os.path.dirname(__file__), 'launcher.py')
-        if os.path.exists(launcher_path):
-            subprocess.Popen([sys.executable, launcher_path])
+        script_dir = Path(__file__).parent.absolute()
+        launcher_path = script_dir / 'launcher.py'
+        venv_path = script_dir / 'shareify_venv'
+        
+        if launcher_path.exists():
+            if venv_path.exists():
+                python_exe = get_venv_python(venv_path)
+            else:
+                python_exe = sys.executable
+                
+            subprocess.Popen([str(python_exe), str(launcher_path)])
             def shutdown_installer():
                 time.sleep(2)
                 os._exit(0)

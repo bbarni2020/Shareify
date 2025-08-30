@@ -11,6 +11,7 @@ import requests
 from colorama import init, Fore, Back, Style
 
 
+
 def print_status(message, status_type="info"):
     if status_type == "success":
         print(Fore.GREEN + message)
