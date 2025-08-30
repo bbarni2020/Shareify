@@ -51,7 +51,7 @@ The web interface is drag-and-drop simple. I kept it minimal because I got tired
 - Share links that work from outside your network (through the bridge)
 - Set up different users with different access levels
 
-The **mobile situation**: Mobile browser experience sucked, so I built a proper iOS app. It's in the ios_app folder if you want to build it yourself. Handles switching between local/remote connections automatically.
+The **mobile situation**: Mobile browser experience sucked, so I built proper native apps. There's an iOS app and an Android app in their respective folders if you want to build them yourself. Both handle switching between local/remote connections automatically.
 
 **Security bits**: JWT tokens for auth, SQLite for user management, HTTPS if you set it up. There's also an FTP server built in because sometimes you just need FTP.
 
@@ -83,10 +83,14 @@ Shareify/
 ├── ios_app/           # Native iOS app
 │   └── shareify/      # Xcode project folder
 │
+├── android_app/       # Native Android app  
+│   └── shareify/      # Android Studio project folder
+│
 ├── guides/            # Documentation
 │   ├── Install.md     # Step-by-step setup
 │   ├── API.md         # REST API docs  
-│   └── ios_app.md     # iOS app guide
+│   ├── ios_app.md     # iOS app guide
+│   └── android_app.md # Android app guide
 │
 └── info/              # Version info
     ├── version        # Current version number
@@ -109,20 +113,27 @@ python3 main.py
 
 Then open http://localhost:3333 and you're good to go.
 
-## The iOS app situation
+## The mobile app situation
 
-Built this because the mobile browser experience wasn't great. The app connects to both local servers (when you're on the same WiFi) and remote servers through the cloud bridge.
+Built native apps because the mobile browser experience wasn't great. Both apps connect to local servers (when you're on the same WiFi) and remote servers through the cloud bridge.
 
-Features:
+**iOS App Features:**
 - SwiftUI interface that actually looks good
 - Stores login info securely in iOS Keychain
 - 19 different background images (probably overkill but they look nice)
 - Live server status updates
 - Handles both cloud and direct connections automatically
 
-Status: v1.0.0 is ready, you can build it from the Xcode project. App Store version coming eventually.
+**Android App Features:**
+- Jetpack Compose with Material Design 3
+- Stores login info securely with Android Keystore
+- Same 19 background options as iOS
+- Follows Android design patterns and guidelines
+- Works on Android 8.0+ (covers 95%+ of devices)
 
-More details: [guides/ios_app.md](guides/ios_app.md)
+Status: Both v1.0.0 are ready, you can build them from source. App Store/Play Store versions coming eventually.
+
+More details: [iOS Guide](guides/ios_app.md) | [Android Guide](guides/android_app.md)
 
 ## API stuff
 
@@ -157,6 +168,13 @@ open ios_app/shareify/shareify.xcodeproj
 ```
 Set up your Apple Developer team, then build and run. Should work on any recent macOS version.
 
+For the Android app you'll need Android Studio:
+```bash
+cd android_app/shareify
+./gradlew assembleDebug
+```
+The APK will be generated in `app/build/outputs/apk/debug/`.
+
 ## Known issues & roadmap
 
 **Stuff that's broken:**
@@ -165,7 +183,7 @@ Set up your Apple Developer team, then build and run. Should work on any recent 
 - Bridge occasionally loses connection and takes 30s to reconnect
 
 **Stuff I want to add:**
-- Android app (when I get around to learning Kotlin)
+- Android app (✓ Done!)
 - Better file sharing with expiration dates
 - Thumbnail generation for images/videos
 - Maybe a desktop app if people ask for it
@@ -176,6 +194,7 @@ First version I'm comfortable calling stable. Been using it myself since around 
 
 Big changes since early versions:
 - iOS app (took way longer than expected)
+- Android app (Jetpack Compose is actually pretty nice)
 - Bridge for remote access (also took forever)
 - JWT auth instead of basic sessions
 - Proper user management
@@ -200,6 +219,7 @@ The bridge services cost me about $5/month to run on DigitalOcean. If this gets 
 
 - [Installation guide](guides/Install.md) - step by step setup
 - [iOS app setup](guides/ios_app.md) - building the mobile app
+- [Android app setup](guides/android_app.md) - building the Android app
 - [API docs](guides/API.md) - REST endpoints and examples
 - [Bug reports](https://github.com/bbarni2020/Shareify/issues) - something broken?
 - [Discussions](https://github.com/bbarni2020/Shareify/discussions) - questions or ideas
@@ -212,4 +232,4 @@ MIT license - do whatever you want with it. See [LICENSE](LICENSE) for the legal
 
 ---
 
-**[Download latest](https://github.com/bbarni2020/Shareify/releases) • [Docs](guides/) • [iOS Guide](guides/ios_app.md) • [API](guides/API.md)**
+**[Download latest](https://github.com/bbarni2020/Shareify/releases) • [Docs](guides/) • [iOS Guide](guides/ios_app.md) • [Android Guide](guides/android_app.md) • [API](guides/API.md)**
