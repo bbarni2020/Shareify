@@ -32,19 +32,26 @@ Quick sanity check:
 
 ### Getting the files
 
-**Option 1: Command line (if you're into that)**
+**Option 1: One-liner (works everywhere)**
 
-macOS/Linux with curl:
+macOS/Linux/WSL:
 ```bash
-curl -s https://api.github.com/repos/bbarni2020/Shareify/releases/latest | jq -r '.assets[] | select(.name == "Shareify.zip") | .browser_download_url' | xargs curl -L -o Shareify.zip
+curl -L "https://github.com/bbarni2020/Shareify/releases/latest/download/Shareify.zip" -o Shareify.zip
 ```
 
-Linux with wget:
-```bash
-wget $(curl -s https://api.github.com/repos/bbarni2020/Shareify/releases/latest | jq -r '.assets[] | select(.name == "Shareify.zip") | .browser_download_url') -O Shareify.zip
+Windows (PowerShell):
+```powershell
+Invoke-WebRequest -Uri "https://github.com/bbarni2020/Shareify/releases/latest/download/Shareify.zip" -OutFile "Shareify.zip"
 ```
 
-**Option 2: Just download it like a normal person**
+**Option 2: If that fails for some reason**
+
+Extract the download URL manually:
+```bash
+curl -s https://api.github.com/repos/bbarni2020/Shareify/releases/latest | grep '"browser_download_url"' | cut -d '"' -f 4 | xargs curl -L -o Shareify.zip
+```
+
+**Option 3: Just download it like a normal person**
 1. Go to https://github.com/bbarni2020/Shareify/releases/latest
 2. Download Shareify.zip
 3. Done
@@ -128,6 +135,12 @@ The installer shuts itself down and starts the actual NAS server. You'll get a n
 Log in with the admin account you just created and start uploading files.
 
 ## When things go wrong
+
+**Download fails:**
+Try the manual download from GitHub releases page, or use this as backup:
+```bash
+wget "https://github.com/bbarni2020/Shareify/releases/latest/download/Shareify.zip"
+```
 
 **"Permission denied" errors:**
 ```bash
