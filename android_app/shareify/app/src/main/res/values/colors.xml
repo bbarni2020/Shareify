@@ -53,4 +53,7 @@
     <color name="md_theme_dark_inverseSurface">#E2E2E9</color>
     <color name="md_theme_dark_inverseOnSurface">#2E3135</color>
     <color name="md_theme_dark_inversePrimary">#296DE0</color>
+    
+    <!-- Launcher icon colors -->
+    <color name="ic_launcher_background">#3B82F6</color>
 </resources>
