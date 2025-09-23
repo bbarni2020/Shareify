@@ -202,7 +202,6 @@ The bridge services cost me about $5/month to run on DigitalOcean. If this gets 
 - [iOS app setup](guides/ios_app.md) - building the mobile app
 - [API docs](guides/API.md) - REST endpoints and examples
 - [Bug reports](https://github.com/bbarni2020/Shareify/issues) - something broken?
-- [Discussions](https://github.com/bbarni2020/Shareify/discussions) - questions or ideas
 
 If this saved you money on Dropbox, consider starring the repo!
 
