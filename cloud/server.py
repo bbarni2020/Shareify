@@ -573,8 +573,8 @@ def handle_command_response_chunk(data):
                 'type': command_data.get('file_type', 'text')
             }
             command_data['response'] = final_response
+            command_data['assembled_data'] = final_response
             command_data['completed'] = True
-            del command_data['chunks_received']
             print(f'Assembled chunked response for command_id: {command_id}')
         elif is_final:
             print(f'Final chunk received but missing chunks for command_id: {command_id}')
@@ -801,6 +801,18 @@ def get_command_responses():
                         'response': command_data['response'],
                         'status': 'completed' if command_data['completed'] else 'pending'
                     }
+                    
+                    if command_data.get('chunked'):
+                        responses[command_id]['chunked'] = True
+                        responses[command_id]['total_chunks'] = command_data.get('total_chunks', 0)
+                        
+                        if 'chunks_received' in command_data:
+                            responses[command_id]['chunks_received'] = len(command_data['chunks_received'])
+                        else:
+                            responses[command_id]['chunks_received'] = command_data.get('total_chunks', 0)
+                            
+                        if 'assembled_data' in command_data:
+                            responses[command_id]['assembled_data'] = command_data['assembled_data']
                 else:
                     responses[command_id] = {
                         'error': 'Unauthorized access to command'

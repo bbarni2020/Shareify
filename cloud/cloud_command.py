@@ -21,71 +21,119 @@ def cloud_full(base_url, jwt_token, command, method, shareify_jwt, wait_time, bo
         "body": body
     }
 
-    max_attempts = 10
-    poll_interval = 3
+    max_attempts = 15
+    poll_interval = 2
     attempts = 0
     
     while attempts < max_attempts:
-        r = requests.post(f"{base_url}/cloud/command", json=payload, headers=headers)
-        
         try:
+            r = requests.post(f"{base_url}/cloud/command", json=payload, headers=headers, timeout=30)
+            
+            if r.status_code != 200:
+                attempts += 1
+                time.sleep(poll_interval)
+                continue
+                
             response_json = r.json()
-            pass
+            
+            if response_json and response_json.get("command_ids"):
+                command_ids = response_json["command_ids"]
+                break
+            elif response_json and response_json.get("error"):
+                return {"error": f"Bridge server error: {response_json['error']}"}
+                
+        except requests.exceptions.RequestException as e:
+            attempts += 1
+            if attempts >= max_attempts:
+                return {"error": f"Failed to connect to bridge server after {max_attempts} attempts: {str(e)}"}
+            time.sleep(poll_interval)
+            continue
         except Exception as e:
-            pass
             attempts += 1
             time.sleep(poll_interval)
             continue
         
-        if response_json and response_json.get("command_ids"):
-            command_ids = response_json["command_ids"]
-            pass
-            break
-        
-        pass
         attempts += 1
         time.sleep(poll_interval)
     else:
-        pass
         return {"error": "No command_ids returned after max attempts"}
     
     params = [("command_id", cid) for cid in command_ids]
     params.append(("jwt_token", jwt_token))
     
     max_response_attempts = 30
-    response_poll_interval = 3
+    response_poll_interval = 2
     response_attempts = 0
+    last_progress = {}
+    is_chunked_transfer = False
     
     while response_attempts < max_response_attempts:
-        r2 = requests.get(f"{base_url}/cloud/response", headers=headers, params=params)
-        
         try:
+            r2 = requests.get(f"{base_url}/cloud/response", headers=headers, params=params, timeout=30)
+            
+            if r2.status_code != 200:
+                response_attempts += 1
+                time.sleep(response_poll_interval)
+                continue
+                
             response_data = r2.json()
-            pass
+            
+            for command_id, command_response in response_data.get("responses", {}).items():
+                
+                if command_response.get("chunked", False):
+                    is_chunked_transfer = True
+                    if max_response_attempts < 60:
+                        max_response_attempts = 60
+                
+                if command_response.get("completed", False):
+                    if command_response.get("chunked", False):
+                        chunks_received = command_response.get("chunks_received", 0)
+                        total_chunks = command_response.get("total_chunks", 0)
+                        
+                        if total_chunks > 0 and chunks_received == total_chunks:
+                            if "assembled_data" in command_response:
+                                return command_response["assembled_data"]
+                            elif "response" in command_response:
+                                return command_response["response"]
+                        else:
+                            continue
+                    else:
+                        if "response" in command_response and command_response["response"] is not None:
+                            return command_response["response"]
+                        else:
+                            return command_response
+                            
+                elif command_response.get("chunked", False):
+                    chunks_received = command_response.get("chunks_received", 0)
+                    total_chunks = command_response.get("total_chunks", 0)
+                    
+                    if command_id not in last_progress or last_progress[command_id] != chunks_received:
+                        last_progress[command_id] = chunks_received
+                        
+                        if total_chunks > 0:
+                            progress = (chunks_received / total_chunks) * 100
+                        else:
+                            progress = 0
+                            
+        except requests.exceptions.RequestException as e:
+            response_attempts += 1
+            if response_attempts >= max_response_attempts:
+                return {"error": f"Network error while polling response: {str(e)}"}
+            time.sleep(response_poll_interval)
+            continue
         except Exception as e:
-            pass
             response_attempts += 1
             time.sleep(response_poll_interval)
             continue
         
-        for command_id, command_response in response_data.get("responses", {}).items():
-            pass
-            
-            if command_response.get("completed", False):
-                if "response" in command_response and command_response["response"] is not None:
-                    pass
-                    return command_response["response"]
-                else:
-                    pass
-                    return command_response
-            else:
-                pass
-        
         response_attempts += 1
+        
+        if response_attempts > 20:
+            response_poll_interval = min(response_poll_interval * 1.1, 5)
+        
         time.sleep(response_poll_interval)
     
-    pass
-    return {"error": "Command timeout - no completed response received", "raw_data": response_data}
+    return {"error": "Command timeout - response not received within time limit", "last_status": response_data if 'response_data' in locals() else None}
 
 @app.route('/', methods=['POST'])
 def index():

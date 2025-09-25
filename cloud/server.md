@@ -15,3 +15,4 @@ This section will contain implementation instructions once cloud features are av
 ---
 
 **Note**: Cloud-based functionality is currently under development and not yet available in Shareify. This document will be updated as features are implemented.
+Not the latest cloud code is running on the server!
