@@ -49,7 +49,7 @@ struct AppLoad: View {
                                 
                                 Image(systemName: "icloud.fill")
                                     .font(.system(size: 50, weight: .medium))
-                                    .foregroundColor(Color(red: 0x3B/255, green: 0x82/255, blue: 0xF6/255))
+                                    .foregroundColor(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
                                     .scaleEffect(logoScale)
                                     .opacity(logoOpacity)
                             }
@@ -74,16 +74,7 @@ struct AppLoad: View {
                                     .frame(width: 200, height: 6)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 8)
-                                            .fill(
-                                                LinearGradient(
-                                                    gradient: Gradient(colors: [
-                                                        Color(red: 0x3B/255, green: 0x82/255, blue: 0xF6/255),
-                                                        Color(red: 0x29/255, green: 0x6D/255, blue: 0xE0/255)
-                                                    ]),
-                                                    startPoint: .leading,
-                                                    endPoint: .trailing
-                                                )
-                                            )
+                                            .fill(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
                                             .frame(width: progressWidth)
                                             .animation(.easeInOut(duration: 2.0), value: progressWidth),
                                         alignment: .leading

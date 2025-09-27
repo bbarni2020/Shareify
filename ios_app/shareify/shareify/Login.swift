@@ -125,16 +125,7 @@ struct Login: View {
                                         .frame(height: 55)
                                         .background(
                                             RoundedRectangle(cornerRadius: 15)
-                                                .fill(
-                                                    LinearGradient(
-                                                        gradient: Gradient(colors: [
-                                                            Color(red: 0x3B/255, green: 0x82/255, blue: 0xF6/255),
-                                                            Color(red: 0x29/255, green: 0x6D/255, blue: 0xE0/255)
-                                                        ]),
-                                                        startPoint: .topLeading,
-                                                        endPoint: .bottomTrailing
-                                                    )
-                                                )
+                                                .fill(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
                                         )
                                     }
                                     .disabled(isLoading || username.isEmpty || password.isEmpty)

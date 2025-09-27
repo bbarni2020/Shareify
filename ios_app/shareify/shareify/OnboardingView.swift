@@ -83,7 +83,7 @@ struct OnboardingView: View {
                                     
                                     Image(systemName: steps[currentStep].icon)
                                         .font(.system(size: 40, weight: .medium))
-                                        .foregroundColor(Color(red: 0x3B/255, green: 0x82/255, blue: 0xF6/255))
+                                        .foregroundColor(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
                                         .scaleEffect(logoScale)
                                         .animation(.spring(response: 0.6, dampingFraction: 0.8), value: logoScale)
                                         .frame(width: 120, height: 120)
@@ -116,7 +116,7 @@ struct OnboardingView: View {
                                         ForEach(0..<steps.count, id: \.self) { index in
                                             RoundedRectangle(cornerRadius: 4)
                                                 .fill(index == currentStep ? 
-                                                      Color(red: 0x3B/255, green: 0x82/255, blue: 0xF6/255) : 
+                                                      Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255) : 
                                                       Color.gray.opacity(0.3))
                                                 .frame(width: index == currentStep ? 24 : 8, height: 8)
                                                 .animation(.easeInOut(duration: 0.3), value: currentStep)
@@ -161,16 +161,7 @@ struct OnboardingView: View {
                                                 .frame(width: currentStep < steps.count - 1 ? 80 : 120, height: 45)
                                                 .background(
                                                     RoundedRectangle(cornerRadius: 12)
-                                                        .fill(
-                                                            LinearGradient(
-                                                                gradient: Gradient(colors: [
-                                                                    Color(red: 0x3B/255, green: 0x82/255, blue: 0xF6/255),
-                                                                    Color(red: 0x29/255, green: 0x6D/255, blue: 0xE0/255)
-                                                                ]),
-                                                                startPoint: .topLeading,
-                                                                endPoint: .bottomTrailing
-                                                            )
-                                                        )
+                                                        .fill(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
                                                 )
                                                 .animation(.easeInOut(duration: 0.3), value: currentStep)
                                         }

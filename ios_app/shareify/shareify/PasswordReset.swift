@@ -182,22 +182,13 @@ struct PasswordReset: View {
                                         .frame(height: 55)
                                         .background(
                                             RoundedRectangle(cornerRadius: 25)
-                                                .fill(
-                                                    LinearGradient(
-                                                        gradient: Gradient(colors: [
-                                                            isCloudAccount ? Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255) : Color(red: 0x65/255, green: 0xdc/255, blue: 0x50/255),
-                                                            isCloudAccount ? Color(red: 0x2d/255, green: 0x6b/255, blue: 0xdb/255) : Color(red: 0x4a/255, green: 0xc1/255, blue: 0x3a/255)
-                                                        ]),
-                                                        startPoint: .topLeading,
-                                                        endPoint: .bottomTrailing
-                                                    )
-                                                )
+                                                .fill(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
                                         )
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 25)
                                                 .stroke(Color.white.opacity(0.3), lineWidth: 1)
                                         )
-                                        .shadow(color: (isCloudAccount ? Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255) : Color(red: 0x65/255, green: 0xdc/255, blue: 0x50/255)).opacity(0.3), radius: 8, x: 0, y: 4)
+                                        .shadow(color: Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255).opacity(0.3), radius: 8, x: 0, y: 4)
                                     }
                                     .disabled(isLoading || (isCloudAccount && currentPassword.isEmpty) || newPassword.isEmpty || confirmPassword.isEmpty)
                                     .opacity(((isCloudAccount && currentPassword.isEmpty) || newPassword.isEmpty || confirmPassword.isEmpty) ? 0.6 : 1.0)

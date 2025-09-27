@@ -119,16 +119,7 @@ struct ServerLogin: View {
                                         .frame(height: 55)
                                         .background(
                                             RoundedRectangle(cornerRadius: 15)
-                                                .fill(
-                                                    LinearGradient(
-                                                        gradient: Gradient(colors: [
-                                                            Color(red: 0x3B/255, green: 0x82/255, blue: 0xF6/255),
-                                                            Color(red: 0x29/255, green: 0x6D/255, blue: 0xE0/255)
-                                                        ]),
-                                                        startPoint: .topLeading,
-                                                        endPoint: .bottomTrailing
-                                                    )
-                                                )
+                                                .fill(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
                                         )
                                     }
                                     .disabled(isLoading || serverUsername.isEmpty || serverPassword.isEmpty)
@@ -215,7 +206,22 @@ struct ServerLogin: View {
                     self.navigateToHome = true
                 }
             case .failure(let error):
-                self.handleServerLoginError(error.localizedDescription)
+                let message = error.localizedDescription
+                if message.lowercased().contains("no command_ids returned after max attempts") {
+                    UserDefaults.standard.set(self.serverUsername, forKey: "server_username")
+                    UserDefaults.standard.set(self.serverPassword, forKey: "server_password")
+                    UserDefaults.standard.set(true, forKey: "server_offline")
+                    UserDefaults.standard.synchronize()
+
+                    NotificationCenter.default.post(name: NSNotification.Name("ShowServerError"), object: nil)
+
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        self.isLoading = false
+                        self.navigateToHome = true
+                    }
+                } else {
+                    self.handleServerLoginError(message)
+                }
             }
         }
     }

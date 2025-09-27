@@ -203,6 +203,13 @@ struct Home: View {
                 if let timestamp = UserDefaults.standard.value(forKey: "last_successful_call") as? Double {
                     lastSuccessfulCall = Date(timeIntervalSince1970: timestamp)
                 }
+                if UserDefaults.standard.bool(forKey: "server_offline") {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        hasServerError = true
+                        isFlickering = false
+                    }
+                    UserDefaults.standard.removeObject(forKey: "server_offline")
+                }
             }
         )
         .fullScreenCover(isPresented: $navigateToLogin) {

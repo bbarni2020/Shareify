@@ -170,21 +170,14 @@ struct Settings: View {
                                                     .frame(maxWidth: .infinity)
                                                     .padding(.vertical, 14)
                                                     .background(
-                                                        LinearGradient(
-                                                            gradient: Gradient(colors: [
-                                                                Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255),
-                                                                Color(red: 0x2d/255, green: 0x6b/255, blue: 0xdb/255)
-                                                            ]),
-                                                            startPoint: .topLeading,
-                                                            endPoint: .bottomTrailing
-                                                        ),
-                                                        in: RoundedRectangle(cornerRadius: 25)
+                                                        RoundedRectangle(cornerRadius: 25)
+                                                            .fill(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
                                                     )
                                                     .overlay(
                                                         RoundedRectangle(cornerRadius: 25)
                                                             .stroke(Color.white.opacity(0.3), lineWidth: 1)
                                                     )
-                                                    .shadow(color: Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255).opacity(0.3), radius: 8, x: 0, y: 4)
+                                                    .shadow(color: Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255).opacity(0.3), radius: 8, x: 0, y: 4)
                                             }
                                         
                                         Button(action: logoutCloud) {
@@ -253,14 +246,8 @@ struct Settings: View {
                                                     .frame(maxWidth: .infinity)
                                                     .padding(.vertical, 15)
                                                     .background(
-                                                        LinearGradient(
-                                                            gradient: Gradient(colors: [
-                                                                Color.gray.opacity(0.5),
-                                                                Color.gray.opacity(0.6)
-                                                            ]),
-                                                            startPoint: .topLeading,
-                                                            endPoint: .bottomTrailing
-                                                        )
+                                                        RoundedRectangle(cornerRadius: 25)
+                                                            .fill(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
                                                     )
                                                     .overlay(
                                                         RoundedRectangle(cornerRadius: 25)
@@ -343,14 +330,14 @@ struct Settings: View {
                                         HStack {
                                             Image(systemName: "book.fill")
                                                 .font(.system(size: 16))
-                                                .foregroundColor(Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255))
+                                                .foregroundColor(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
                                             Text("Guides")
                                                 .font(.system(size: 16, weight: .medium))
-                                                .foregroundColor(Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255))
+                                                .foregroundColor(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
                                             Spacer()
                                             Image(systemName: "arrow.up.right")
                                                 .font(.system(size: 14))
-                                                .foregroundColor(Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255))
+                                                .foregroundColor(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
                                         }
                                         .padding(.vertical, 15)
                                         .padding(.horizontal, 20)
@@ -358,7 +345,7 @@ struct Settings: View {
                                         .colorScheme(.light)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 20)
-                                                .stroke(Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255).opacity(0.4), lineWidth: 1)
+                                                .stroke(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255).opacity(0.4), lineWidth: 1)
                                         )
                                         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                                     }
@@ -467,12 +454,13 @@ struct Settings: View {
                 }
                 .navigationTitle("Guides")
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbarColorScheme(.dark, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button("Done") {
                             showingWebView = false
                         }
-                        .foregroundColor(.blue)
+                        .foregroundColor(.white)
                     }
                 }
             }
