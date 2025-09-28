@@ -17,7 +17,10 @@ struct ServerLogin: View {
     @State private var navigateToLogin = false
     @State private var loginCardOpacity: Double = 0
     @State private var loginCardOffset: CGFloat = 50
+    @State private var showLoadingMessage = false
+    @State private var loadingDots = ""
     @StateObject private var backgroundManager = BackgroundManager.shared
+    @FocusState private var isTextFieldFocused: Bool
     
     var body: some View {
         if navigateToHome {
@@ -75,6 +78,7 @@ struct ServerLogin: View {
                                         TextField("Enter server username", text: $serverUsername)
                                             .textFieldStyle(CustomTextFieldStyle())
                                             .frame(height: 50)
+                                            .focused($isTextFieldFocused)
                                     }
                                     
                                     VStack(alignment: .leading, spacing: 8) {
@@ -85,6 +89,7 @@ struct ServerLogin: View {
                                         SecureField("Enter server password", text: $serverPassword)
                                             .textFieldStyle(CustomTextFieldStyle())
                                             .frame(height: 50)
+                                            .focused($isTextFieldFocused)
                                     }
                                     
                                     if showError {
@@ -101,14 +106,54 @@ struct ServerLogin: View {
                                         .transition(.opacity.combined(with: .move(edge: .top)))
                                     }
                                     
+                                    if showLoadingMessage {
+                                        VStack(spacing: 8) {
+                                            HStack {
+                                                Image(systemName: "clock")
+                                                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                                                    .font(.system(size: 14))
+                                                Text("Connecting to server\(loadingDots)")
+                                                    .font(.system(size: 14, weight: .medium))
+                                                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                                                Spacer()
+                                            }
+                                            
+                                            HStack {
+                                                Image(systemName: "info.circle")
+                                                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255).opacity(0.7))
+                                                    .font(.system(size: 12))
+                                                Text("This may take up to 30 seconds")
+                                                    .font(.system(size: 12, weight: .regular))
+                                                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255).opacity(0.7))
+                                                Spacer()
+                                            }
+                                        }
+                                        .padding(.vertical, 8)
+                                        .padding(.horizontal, 12)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .fill(Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255).opacity(0.1))
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .stroke(Color(red: 0x3b/255, green: 0x82/255, blue: 0xf6/255).opacity(0.3), lineWidth: 1)
+                                        )
+                                        .transition(.opacity.combined(with: .move(edge: .top)))
+                                    }
+                                    
                                     Button(action: {
                                         serverLoginAction()
                                     }) {
                                         HStack {
                                             if isLoading {
-                                                ProgressView()
-                                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                                    .scaleEffect(0.8)
+                                                HStack(spacing: 8) {
+                                                    ProgressView()
+                                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                                        .scaleEffect(0.9)
+                                                    Text("Connecting\(loadingDots)")
+                                                        .font(.system(size: min(containerGeometry.size.width * 0.04, 16), weight: .medium))
+                                                        .foregroundColor(.white)
+                                                }
                                             } else {
                                                 Text("Connect to Server")
                                                     .font(.system(size: min(containerGeometry.size.width * 0.045, 18), weight: .semibold))
@@ -185,12 +230,34 @@ struct ServerLogin: View {
     }
     
     private func serverLoginAction() {
+        isTextFieldFocused = false
+        
         withAnimation(.easeInOut(duration: 0.3)) {
             showError = false
             isLoading = true
+            showLoadingMessage = true
         }
         
+        startLoadingAnimation()
         performServerLogin()
+    }
+    
+    private func startLoadingAnimation() {
+        loadingDots = ""
+        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
+            if !isLoading {
+                timer.invalidate()
+                return
+            }
+            
+            withAnimation(.easeInOut(duration: 0.3)) {
+                if loadingDots.count >= 3 {
+                    loadingDots = ""
+                } else {
+                    loadingDots += "."
+                }
+            }
+        }
     }
     
     private func performServerLogin() {
@@ -203,6 +270,7 @@ struct ServerLogin: View {
                 
                 withAnimation(.easeInOut(duration: 0.3)) {
                     self.isLoading = false
+                    self.showLoadingMessage = false
                     self.navigateToHome = true
                 }
             case .failure(let error):
@@ -217,6 +285,7 @@ struct ServerLogin: View {
 
                     withAnimation(.easeInOut(duration: 0.3)) {
                         self.isLoading = false
+                        self.showLoadingMessage = false
                         self.navigateToHome = true
                     }
                 } else {
@@ -235,6 +304,7 @@ struct ServerLogin: View {
     private func handleServerLoginError(_ message: String) {
         withAnimation(.easeInOut(duration: 0.3)) {
             isLoading = false
+            showLoadingMessage = false
             showError = true
             errorMessage = message
         }
