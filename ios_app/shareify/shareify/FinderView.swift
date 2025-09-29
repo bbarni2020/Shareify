@@ -235,15 +235,11 @@ struct FinderView: View {
         .padding(.horizontal, 20)
         .padding(.top, 10)
         .confirmationDialog("Options", isPresented: $showingActionSheet, titleVisibility: .visible) {
-            Button("Create Folder") { }
-            Button("Import Files") { }
             Button("Refresh") { refreshCurrentFolder() }
             Button("Clear Cache") { 
                 folderCache.removeAll()
                 fetchFinderItems()
             }
-            Button("Select All") { }
-            Button("Cancel", role: .cancel) { }
         }
     }
     

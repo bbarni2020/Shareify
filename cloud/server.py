@@ -158,6 +158,21 @@ def init_sqlite_db():
         )
     ''')
     
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS file_storage (
+            file_id TEXT PRIMARY KEY,
+            password TEXT NOT NULL,
+            content BLOB NOT NULL,
+            content_type TEXT NOT NULL,
+            filename TEXT,
+            file_size INTEGER NOT NULL,
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            server_id TEXT,
+            user_id TEXT
+        )
+    ''')
+    
     conn.commit()
     conn.close()
 
@@ -298,6 +313,90 @@ def get_json_user_id_from_auth_token(auth_token):
         if user_info.get('auth_token') == auth_token:
             return user_id
     return None
+
+def store_file(content, content_type, filename=None, server_id=None, user_id=None):
+    import base64
+    
+    file_id = str(uuid.uuid4())
+    password = str(uuid.uuid4())
+    
+    if isinstance(content, str):
+        if content_type == 'binary':
+            try:
+                file_content = base64.b64decode(content)
+            except:
+                file_content = content.encode('utf-8')
+        else:
+            file_content = content.encode('utf-8')
+    else:
+        file_content = content
+    
+    expires_at = (datetime.now() + timedelta(hours=1)).isoformat()  # 1 hour expiry
+    
+    conn = sqlite3.connect(user_sqlite_db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        INSERT INTO file_storage 
+        (file_id, password, content, content_type, filename, file_size, created_at, expires_at, server_id, user_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        file_id, password, file_content, content_type, filename, 
+        len(file_content), datetime.now().isoformat(), expires_at, 
+        server_id, user_id
+    ))
+    
+    conn.commit()
+    conn.close()
+    
+    print(f"Stored file {file_id} ({len(file_content)} bytes) with password {password}")
+    return file_id, password
+
+def retrieve_file(file_id, password):
+    conn = sqlite3.connect(user_sqlite_db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT content, content_type, filename, file_size 
+        FROM file_storage 
+        WHERE file_id = ? AND password = ? AND expires_at > ?
+    ''', (file_id, password, datetime.now().isoformat()))
+    
+    result = cursor.fetchone()
+    
+    if result:
+        content, content_type, filename, file_size = result
+        
+        cursor.execute('DELETE FROM file_storage WHERE file_id = ? AND password = ?', (file_id, password))
+        conn.commit()
+        
+        print(f"Retrieved and deleted file {file_id} ({file_size} bytes)")
+        
+        conn.close()
+        return {
+            'content': content,
+            'content_type': content_type,
+            'filename': filename,
+            'file_size': file_size
+        }
+    
+    conn.close()
+    return None
+
+def cleanup_expired_files():
+    conn = sqlite3.connect(user_sqlite_db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute('DELETE FROM file_storage WHERE expires_at < ?', (datetime.now().isoformat(),))
+    deleted_count = cursor.rowcount
+    
+    conn.commit()
+    conn.close()
+    
+    if deleted_count > 0:
+        print(f"Cleaned up {deleted_count} expired files")
+    
+    return deleted_count
 
 users_db = load_users_database()
 
@@ -1353,6 +1452,89 @@ def edit_json_database():
     except Exception:
         return jsonify({'error': 'Failed to update database'}), 400
 
+@app.route('/cloud/file/store', methods=['POST'])
+def store_file_endpoint():
+    if not check_rate_limit(request.remote_addr, max_requests=20, window_minutes=1):
+        return jsonify({'error': 'Rate limit exceeded'}), 429
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'JSON data required'}), 400
+    
+    server_id = data.get('server_id')
+    auth_token = data.get('auth_token')
+    user_id = data.get('user_id')
+    
+    if not auth_token or not server_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    content = data.get('content')
+    content_type = data.get('content_type', 'text/plain')
+    filename = data.get('filename')
+    
+    if not content:
+        return jsonify({'error': 'Content required'}), 400
+    
+    try:
+        file_id, password = store_file(
+            content=content,
+            content_type=content_type,
+            filename=filename,
+            server_id=server_id,
+            user_id=user_id
+        )
+        
+        return jsonify({
+            'success': True,
+            'file_id': file_id,
+            'password': password,
+            'expires_in': 3600
+        })
+    
+    except Exception as e:
+        print(f"Error storing file: {e}")
+        return jsonify({'error': 'Failed to store file'}), 500
+
+@app.route('/cloud/file/retrieve', methods=['POST'])
+def retrieve_file_endpoint():
+    if not check_rate_limit(request.remote_addr, max_requests=50, window_minutes=1):
+        return jsonify({'error': 'Rate limit exceeded'}), 429
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'JSON data required'}), 400
+    
+    file_id = data.get('file_id')
+    password = data.get('password')
+    
+    if not file_id or not password:
+        return jsonify({'error': 'file_id and password required'}), 400
+    
+    try:
+        file_data = retrieve_file(file_id, password)
+        
+        if not file_data:
+            return jsonify({'error': 'File not found or expired'}), 404
+        
+        content = file_data['content']
+        if file_data['content_type'] == 'binary':
+            import base64
+            content = base64.b64encode(content).decode('utf-8')
+        else:
+            content = content.decode('utf-8') if isinstance(content, bytes) else content
+        
+        return jsonify({
+            'success': True,
+            'content': content,
+            'content_type': file_data['content_type'],
+            'filename': file_data['filename'],
+            'file_size': file_data['file_size']
+        })
+    
+    except Exception as e:
+        print(f"Error retrieving file: {e}")
+        return jsonify({'error': 'Failed to retrieve file'}), 500
+
 DATABASE_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
@@ -2180,7 +2362,8 @@ def periodic_cleanup():
         time.sleep(3600)
         cleanup_expired_jwts()
         cleanup_rate_limits()
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Periodic cleanup completed")
+        cleanup_expired_files()
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Periodic cleanup completed - cleaned expired JWTs, rate limits, and files")
 
 def create_app():
     init_sqlite_db()

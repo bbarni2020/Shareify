@@ -1,9 +1,54 @@
 import os
-from flask import Flask, jsonify, request
+import io
+import base64
+from flask import Flask, jsonify, request, send_file
 import requests
 import time
 
 app = Flask(__name__)
+
+def retrieve_stored_file(base_url, file_storage_response):
+    try:
+        file_id = file_storage_response.get("file_id")
+        password = file_storage_response.get("password")
+        original_type = file_storage_response.get("original_type", "text")
+        filename = file_storage_response.get("filename")
+        
+        if not file_id or not password:
+            print("Missing file_id or password in storage response")
+            return None
+        
+        print(f"Retrieving file {file_id} from storage...")
+        
+        retrieve_response = requests.post(
+            f"{base_url}/cloud/file/retrieve",
+            json={"file_id": file_id, "password": password},
+            timeout=30
+        )
+        
+        if retrieve_response.status_code == 200:
+            retrieve_data = retrieve_response.json()
+            
+            if retrieve_data.get("success"):
+                print(f"Successfully retrieved file ({retrieve_data.get('file_size', 0)} bytes)")
+
+                return {
+                    "status": file_storage_response.get("status", "File retrieved successfully"),
+                    "content": retrieve_data["content"],
+                    "type": original_type,
+                    "filename": filename,
+                    "file_size": retrieve_data.get("file_size", 0)
+                }
+            else:
+                print(f"Failed to retrieve file: {retrieve_data.get('error')}")
+                return None
+        else:
+            print(f"File retrieval failed with status {retrieve_response.status_code}")
+            return None
+            
+    except Exception as e:
+        print(f"Error retrieving stored file: {e}")
+        return None
 
 def cloud_full(base_url, jwt_token, command, method, shareify_jwt, wait_time, body={}):
     
@@ -99,7 +144,17 @@ def cloud_full(base_url, jwt_token, command, method, shareify_jwt, wait_time, bo
                             continue
                     else:
                         if "response" in command_response and command_response["response"] is not None:
-                            return command_response["response"]
+                            response = command_response["response"]
+                            
+                            if isinstance(response, dict) and response.get("type") == "file_storage":
+                                print("Detected file storage response, retrieving file...")
+                                file_result = retrieve_stored_file(base_url, response)
+                                if file_result:
+                                    return file_result
+                                else:
+                                    return {"error": "Failed to retrieve stored file"}
+                            
+                            return response
                         else:
                             return command_response
                             
@@ -183,6 +238,46 @@ def index():
                 'error': 'No response received from bridge server',
                 'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
             }), 500
+        
+        if isinstance(result, dict):
+            if 'content' in result:
+                content_size = len(result.get('content', ''))
+                print(f"Successfully retrieved content of size: {content_size} bytes")
+            elif 'error' in result:
+                print(f"Command completed with error: {result['error']}")
+            else:
+                print(f"Command completed successfully")
+        
+        if isinstance(result, dict) and command and 'get_file' in command:
+            if 'content' in result:
+                content = result['content']
+                content_type = result.get('type', 'text')
+                filename = result.get('filename', 'download')
+                mimetype = result.get('mime_type')
+
+                if not mimetype and filename:
+                    import mimetypes
+                    guessed_type, _ = mimetypes.guess_type(filename)
+                    mimetype = guessed_type
+
+                if content_type == 'binary':
+                    try:
+                        file_bytes = base64.b64decode(content)
+                    except Exception:
+                        file_bytes = content if isinstance(content, (bytes, bytearray)) else content.encode('utf-8', errors='replace')
+                    file_stream = io.BytesIO(file_bytes)
+                else:
+                    file_stream = io.BytesIO(str(content).encode('utf-8'))
+
+                file_stream.seek(0)
+                return send_file(
+                    file_stream,
+                    mimetype=mimetype or ('text/plain' if content_type == 'text' else 'application/octet-stream'),
+                    as_attachment=True,
+                    download_name=filename
+                )
+            elif result.get('error'):
+                return jsonify(result), 400
         
         return jsonify(result)
     except Exception as e:
