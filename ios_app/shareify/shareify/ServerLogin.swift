@@ -278,6 +278,7 @@ struct ServerLogin: View {
                 if message.lowercased().contains("no command_ids returned after max attempts") {
                     UserDefaults.standard.set(self.serverUsername, forKey: "server_username")
                     UserDefaults.standard.set(self.serverPassword, forKey: "server_password")
+                    UserDefaults.standard.set("dummy_jwt_token_offline", forKey: "shareify_jwt")
                     UserDefaults.standard.set(true, forKey: "server_offline")
                     UserDefaults.standard.synchronize()
 
