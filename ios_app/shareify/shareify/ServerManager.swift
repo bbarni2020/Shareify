@@ -66,6 +66,10 @@ class ServerManager: ObservableObject {
                     completion(.failure(ServerError.noData))
                     return
                 }
+
+                if let raw = String(data: data, encoding: .utf8) {
+                    print("[ServerManager] command=\(command) status=\(httpResponse.statusCode) -> \(raw)")
+                }
                 
                 if httpResponse.statusCode == 401 {
                     if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -198,6 +202,10 @@ class ServerManager: ObservableObject {
                     completion(.failure(ServerError.noData))
                     return
                 }
+
+                if let raw = String(data: data, encoding: .utf8) {
+                    print("[ServerManager] /user/login response status=\(httpResponse.statusCode) -> \(raw)")
+                }
                 
                 do {
                     let json = try JSONSerialization.jsonObject(with: data)
@@ -266,6 +274,10 @@ class ServerManager: ObservableObject {
                       let newJwtToken = json["jwt_token"] as? String else {
                     completion(.failure(ServerError.serverError("Failed to refresh login")))
                     return
+                }
+
+                if let raw = String(data: data, encoding: .utf8) {
+                    print("[ServerManager] bridge login refresh -> \(raw)")
                 }
                 
                 UserDefaults.standard.set(newJwtToken, forKey: "jwt_token")

@@ -10,553 +10,651 @@
             padding: 0;
             box-sizing: border-box;
         }
-
+        :root {
+            --surface: rgba(12, 16, 39, 0.7);
+            --highlight: #6d7dff;
+            --accent: #00f5a0;
+            --danger: #ff5f6d;
+            --text-primary: #f7f9ff;
+            --text-secondary: rgba(235, 240, 255, 0.65);
+            --glow: rgba(109, 125, 255, 0.35);
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             min-height: 100vh;
-            padding: 20px;
+            background: radial-gradient(circle at 15% 20%, rgba(0, 245, 160, 0.18), transparent 55%), radial-gradient(circle at 80% 0%, rgba(109, 125, 255, 0.22), transparent 45%), #020617;
+            color: var(--text-primary);
+            padding: 40px 20px;
+            position: relative;
+            overflow-x: hidden;
         }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .header h1 {
-            color: #333;
-            font-size: 2.5rem;
-            font-weight: 600;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: rgba(102, 126, 234, 0.1);
-            padding: 10px 15px;
-            border-radius: 12px;
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .orb {
+            position: fixed;
+            width: 420px;
+            height: 420px;
             border-radius: 50%;
-            display: flex;
+            filter: blur(120px);
+            z-index: 0;
+            opacity: 0.6;
+        }
+        .orb.one {
+            background: #4b5cff;
+            top: -160px;
+            right: -120px;
+        }
+        .orb.two {
+            background: #00f5a0;
+            bottom: -180px;
+            left: -120px;
+        }
+        .dashboard-shell {
+            position: relative;
+            z-index: 1;
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            gap: 28px;
+        }
+        .top-bar {
+            display: grid;
+            grid-template-columns: auto 1fr auto auto;
+            gap: 18px;
             align-items: center;
-            justify-content: center;
-            color: white;
+            background: var(--surface);
+            border-radius: 28px;
+            padding: 24px 32px;
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(109, 125, 255, 0.18);
+            box-shadow: 0 20px 40px rgba(2, 6, 23, 0.45);
+        }
+        .brand {
             font-weight: 600;
-            font-size: 1.2rem;
+            font-size: 1.4rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
-
-        .btn {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 12px;
-            border: none;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            font-size: 14px;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
-        }
-
-        .section {
-            margin-bottom: 40px;
-        }
-
-        .section-title {
-            font-size: 1.8rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 20px;
+        .time-chip {
+            justify-self: start;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
             display: flex;
             align-items: center;
             gap: 10px;
         }
-
-        .servers-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-
-        .server-card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-        }
-
-        .server-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-            border-color: #667eea;
-        }
-
-        .server-card.loading {
-            text-align: center;
-            padding: 40px;
-        }
-
-        .server-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 15px;
-        }
-
-        .server-info h3 {
-            color: #333;
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .server-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-
-        .status-indicator {
+        .time-indicator {
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: #28a745;
-            animation: pulse 2s infinite;
+            background: var(--accent);
+            box-shadow: 0 0 12px var(--accent);
         }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        .server-actions {
+        .user-bubble {
             display: flex;
-            gap: 8px;
-            margin-top: 15px;
+            align-items: center;
+            gap: 14px;
+            padding: 10px 18px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50px;
         }
-
-        .btn-small {
-            padding: 8px 16px;
-            font-size: 12px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-        .btn-small:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .database-section {
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 20px;
-            padding: 30px;
-            margin-top: 30px;
-            backdrop-filter: blur(10px);
-        }
-
-        .database-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 25px;
-        }
-
-        .database-card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-        }
-
-        .database-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
-            border-color: #667eea;
-        }
-
-        .database-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-            display: block;
-        }
-
-        .database-info h3 {
-            color: #333;
-            font-size: 1.4rem;
+        .user-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6d7dff, #00f5a0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-weight: 600;
-            margin-bottom: 10px;
+            font-size: 1.2rem;
+            color: #021027;
         }
-
-        .database-info p {
-            color: #666;
-            line-height: 1.6;
-            margin-bottom: 15px;
-        }
-
-        .database-features {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 20px;
-        }
-
-        .feature-tag {
-            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
-            color: #333;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
+        .user-name {
             font-weight: 500;
+            font-size: 0.95rem;
         }
-
-        .database-actions {
+        .primary-btn {
+            border: none;
+            border-radius: 50px;
+            padding: 12px 24px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            color: #020617;
+            background: linear-gradient(120deg, #ff9a5a, #ff5f6d);
+            box-shadow: 0 18px 32px rgba(255, 95, 109, 0.28);
+        }
+        .primary-btn:hover {
+            transform: translateY(-3px);
+        }
+        .grid-panels {
+            display: grid;
+            gap: 24px;
+        }
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+        }
+        .metric-card {
+            background: var(--surface);
+            border-radius: 24px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(109, 125, 255, 0.18);
+        }
+        .metric-card::after {
+            content: "";
+            position: absolute;
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            top: -60px;
+            right: -60px;
+        }
+        .metric-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        .metric-value {
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-top: 12px;
             display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+        .metric-trend {
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+        .content-columns {
+            display: grid;
+            grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+            gap: 24px;
+        }
+        .panel {
+            background: var(--surface);
+            border-radius: 28px;
+            padding: 26px;
+            border: 1px solid rgba(109, 125, 255, 0.18);
+            backdrop-filter: blur(18px);
+            display: flex;
+            flex-direction: column;
+            min-height: 340px;
+        }
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 22px;
+        }
+        .panel-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .panel-sub {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .servers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 18px;
+            flex: 1;
+        }
+        .server-card {
+            background: rgba(4, 10, 35, 0.7);
+            border-radius: 22px;
+            padding: 20px;
+            border: 1px solid rgba(109, 125, 255, 0.12);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+            display: grid;
+            gap: 14px;
+        }
+        .server-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .server-name {
+            font-weight: 600;
+            font-size: 1rem;
+            letter-spacing: 0.02em;
+        }
+        .server-pill {
+            font-size: 0.75rem;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: rgba(0, 245, 160, 0.12);
+            color: var(--accent);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .server-meta {
+            display: grid;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .server-meta span {
+            display: flex;
+            align-items: center;
             gap: 10px;
         }
-
-        .stats-grid {
+        .disconnect-btn {
+            border: none;
+            background: rgba(255, 95, 109, 0.14);
+            color: #ffb3bd;
+            padding: 9px 16px;
+            border-radius: 14px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .disconnect-btn:hover {
+            background: rgba(255, 95, 109, 0.26);
+        }
+        .activity-list {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            gap: 16px;
+            overflow-y: auto;
+            padding-right: 8px;
         }
-
-        .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
+        .activity-item {
+            display: grid;
+            gap: 6px;
+            background: rgba(7, 13, 35, 0.72);
+            border-radius: 18px;
+            padding: 16px 18px;
+            border: 1px solid rgba(109, 125, 255, 0.1);
+        }
+        .activity-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        .activity-id {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        .activity-time {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .activity-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .empty-state {
+            background: rgba(7, 13, 35, 0.7);
+            border-radius: 18px;
+            padding: 40px;
             text-align: center;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            color: var(--text-secondary);
+            border: 1px dashed rgba(109, 125, 255, 0.18);
         }
-
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #667eea;
-            margin-bottom: 5px;
+        .database-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
         }
-
-        .stat-label {
-            color: #666;
-            font-weight: 500;
+        .database-card {
+            background: var(--surface);
+            border-radius: 26px;
+            padding: 24px;
+            border: 1px solid rgba(109, 125, 255, 0.18);
+            display: grid;
+            gap: 14px;
         }
-
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
+        .database-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 18px;
+            display: grid;
+            place-items: center;
+            font-size: 1.4rem;
+            background: rgba(255, 255, 255, 0.08);
         }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .database-title {
+            font-weight: 600;
+            font-size: 1.05rem;
         }
-
-        .alert {
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-weight: 500;
+        .database-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
         }
-
-        .alert-success {
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-            color: #155724;
-            border: 1px solid #c3e6cb;
+        .database-actions {
+            display: flex;
+            gap: 12px;
         }
-
-        .alert-error {
-            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+        .database-link {
+            text-decoration: none;
+            padding: 10px 18px;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            letter-spacing: 0.04em;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            color: #020617;
+        }
+        .database-link.primary {
+            background: linear-gradient(130deg, #6d7dff, #a855f7);
+            box-shadow: 0 16px 30px rgba(109, 125, 255, 0.3);
+        }
+        .database-link.secondary {
+            background: linear-gradient(130deg, #30cfd0, #00f5a0);
+            box-shadow: 0 16px 30px rgba(0, 245, 160, 0.25);
+        }
+        .database-link:hover {
+            transform: translateY(-2px);
+        }
+        @media (max-width: 960px) {
+            .top-bar {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            .time-chip {
+                justify-self: center;
+            }
+            .content-columns {
+                grid-template-columns: 1fr;
+            }
+            body {
+                padding: 28px 18px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🚀 Shareify Cloud Dashboard</h1>
-            <div class="header-actions">
-                <div class="user-info">
-                    <div class="user-avatar">B</div>
-                    <span>Barnabás</span>
+    <div class="orb one"></div>
+    <div class="orb two"></div>
+    <div class="dashboard-shell">
+        <div class="top-bar">
+            <div class="brand">Shareify Command Bridge</div>
+            <div class="time-chip">
+                <span class="time-indicator"></span>
+                <span id="timeStamp">Synchronizing...</span>
+            </div>
+            <div class="user-bubble">
+                <div class="user-avatar">B</div>
+                <div class="user-name">Barnabás</div>
+            </div>
+            <button class="primary-btn" id="logoutBtn">Sign Out</button>
+        </div>
+        <div class="grid-panels">
+            <div class="metrics-row">
+                <div class="metric-card">
+                    <div class="metric-label">Live Servers</div>
+                    <div class="metric-value" id="metricServers">0</div>
+                    <div class="metric-trend" id="metricServersTrend">Awaiting data</div>
                 </div>
-                <button onclick="logout()" class="btn btn-danger">Logout</button>
+                <div class="metric-card">
+                    <div class="metric-label">Known Users</div>
+                    <div class="metric-value" id="metricUsers">0</div>
+                    <div class="metric-trend" id="metricUsersTrend">Loading</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Active Links</div>
+                    <div class="metric-value" id="metricActive">0</div>
+                    <div class="metric-trend" id="metricActiveTrend">Monitoring</div>
+                </div>
+            </div>
+            <div class="content-columns">
+                <div class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">Connected Servers</div>
+                            <div class="panel-sub" id="panelSubtitle">Status matrix updates every 30 seconds</div>
+                        </div>
+                        <button class="primary-btn" style="padding: 10px 18px; font-size: 0.82rem;" id="refreshBtn">Refresh Now</button>
+                    </div>
+                    <div class="servers-grid" id="serversGrid"></div>
+                    <div class="empty-state" id="serversEmpty" style="display:none;">
+                        No active bridge connections right now.
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">Bridge Activity Stream</div>
+                            <div class="panel-sub">Recent session touchpoints</div>
+                        </div>
+                    </div>
+                    <div class="activity-list" id="activityList"></div>
+                    <div class="empty-state" id="activityEmpty" style="display:none;">Activity stream populates once servers connect.</div>
+                </div>
+            </div>
+            <div class="panel" style="padding: 32px;">
+                <div class="panel-header" style="margin-bottom: 26px;">
+                    <div class="panel-title">Data Control Center</div>
+                    <div class="panel-sub">Secure management for relational and document stores</div>
+                </div>
+                <div class="database-row">
+                    <div class="database-card">
+                        <div class="database-icon">🧬</div>
+                        <div class="database-title">SQLite Core</div>
+                        <div class="database-desc">Browse structured credentials, execute live queries, and fine-tune access data with instant propagation across the bridge.</div>
+                        <div class="database-actions">
+                            <a class="database-link primary" href="/dashboard/database/sqlite">Launch Console</a>
+                        </div>
+                    </div>
+                    <div class="database-card">
+                        <div class="database-icon">🪄</div>
+                        <div class="database-title">JSON Directory</div>
+                        <div class="database-desc">Manipulate bridge metadata with schema hints, visualize raw payloads, and validate structures before committing changes.</div>
+                        <div class="database-actions">
+                            <a class="database-link secondary" href="/dashboard/database/json">Open Editor</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-
         <div id="alertContainer"></div>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-number" id="serverCount">-</div>
-                <div class="stat-label">Connected Servers</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="userCount">-</div>
-                <div class="stat-label">Total Servers</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="activeConnections">-</div>
-                <div class="stat-label">Active Connections</div>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2 class="section-title">🖥️ Connected Servers</h2>
-            <div class="servers-grid" id="serversGrid">
-                <div class="server-card loading">
-                    <div class="server-info">
-                        <div class="loading-spinner"></div>
-                        <h3>Loading servers...</h3>
-                        <p>Please wait while we fetch your connected servers</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="database-section">
-            <h2 class="section-title">🗄️ Database Management</h2>
-            <div class="database-grid">
-                <div class="database-card">
-                    <div class="database-icon">🗄️</div>
-                    <div class="database-info">
-                        <h3>SQLite Database</h3>
-                        <p>Manage your SQLite database with advanced table operations, query execution, and data editing</p>
-                        <div class="database-features">
-                            <span class="feature-tag">✏️ Edit Rows</span>
-                            <span class="feature-tag">➕ Add Data</span>
-                            <span class="feature-tag">🗑️ Delete</span>
-                            <span class="feature-tag">🔍 Query</span>
-                        </div>
-                    </div>
-                    <div class="database-actions">
-                        <a href="/dashboard/database/sqlite" class="btn btn-primary">Manage SQLite</a>
-                    </div>
-                </div>
-                
-                <div class="database-card">
-                    <div class="database-icon">📄</div>
-                    <div class="database-info">
-                        <h3>JSON Database</h3>
-                        <p>Manage user data stored in JSON format with user-friendly editing and validation</p>
-                        <div class="database-features">
-                            <span class="feature-tag">👤 User Management</span>
-                            <span class="feature-tag">✏️ Raw Editor</span>
-                            <span class="feature-tag">✅ Validation</span>
-                            <span class="feature-tag">💾 Backup</span>
-                        </div>
-                    </div>
-                    <div class="database-actions">
-                        <a href="/dashboard/database/json" class="btn btn-secondary">Manage JSON</a>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
-
     <script>
-        function showAlert(message, type = 'success') {
-            const alertContainer = document.getElementById('alertContainer');
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type}`;
-            alertDiv.textContent = message;
-            alertContainer.appendChild(alertDiv);
-            
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 5000);
+        const serversGrid = document.getElementById('serversGrid');
+        const serversEmpty = document.getElementById('serversEmpty');
+        const activityList = document.getElementById('activityList');
+        const activityEmpty = document.getElementById('activityEmpty');
+        const metricServers = document.getElementById('metricServers');
+        const metricActive = document.getElementById('metricActive');
+        const metricUsers = document.getElementById('metricUsers');
+        const metricServersTrend = document.getElementById('metricServersTrend');
+        const metricActiveTrend = document.getElementById('metricActiveTrend');
+        const metricUsersTrend = document.getElementById('metricUsersTrend');
+        const alertContainer = document.getElementById('alertContainer');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const timeStamp = document.getElementById('timeStamp');
+        let lastServerCount = 0;
+        function showAlert(message, tone = 'success') {
+            const toast = document.createElement('div');
+            toast.textContent = message;
+            toast.style.padding = '14px 20px';
+            toast.style.margin = '0 auto';
+            toast.style.maxWidth = '420px';
+            toast.style.background = tone === 'success' ? 'rgba(0, 245, 160, 0.14)' : 'rgba(255, 95, 109, 0.16)';
+            toast.style.color = tone === 'success' ? '#a6ffdd' : '#ffb3bd';
+            toast.style.borderRadius = '18px';
+            toast.style.backdropFilter = 'blur(14px)';
+            toast.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+            toast.style.fontSize = '0.9rem';
+            toast.style.textAlign = 'center';
+            toast.style.boxShadow = '0 12px 28px rgba(2, 6, 23, 0.45)';
+            alertContainer.appendChild(toast);
+            setTimeout(() => toast.remove(), 4200);
         }
-
+        function setTimestamp() {
+            const now = new Date();
+            timeStamp.textContent = now.toLocaleString();
+        }
         async function loadServers() {
             try {
                 const response = await fetch('/dashboard/servers');
                 const data = await response.json();
-                
                 if (data.success) {
-                    displayServers(data.servers);
-                    updateStats(data.servers);
+                    renderServers(data.servers);
+                    renderActivity(data.servers);
+                    updateMetrics(data.servers);
+                    setTimestamp();
                 } else {
-                    showAlert('Error loading servers: ' + data.error, 'error');
+                    renderServers([]);
+                    showAlert('Unable to load servers: ' + data.error, 'error');
                 }
             } catch (error) {
-                showAlert('Error loading servers: ' + error.message, 'error');
-                displayServers([]);
+                renderServers([]);
+                showAlert('Unable to load servers: ' + error.message, 'error');
             }
         }
-
-        function displayServers(servers) {
-            const container = document.getElementById('serversGrid');
-            
-            if (servers.length === 0) {
-                container.innerHTML = `
-                    <div class="server-card">
-                        <div class="server-info" style="text-align: center; padding: 20px;">
-                            <h3>No servers connected</h3>
-                            <p>No servers connected currently</p>
-                        </div>
-                    </div>
-                `;
+        function renderServers(servers) {
+            serversGrid.innerHTML = '';
+            if (!servers.length) {
+                serversEmpty.style.display = 'block';
                 return;
             }
-
-            let html = '';
+            serversEmpty.style.display = 'none';
             servers.forEach(server => {
-                html += `
-                    <div class="server-card">
-                        <div class="server-header">
-                            <div class="server-info">
-                                <h3>🖥️ ${server.name || 'Server'}</h3>
-                                <div class="server-status">
-                                    <div class="status-indicator"></div>
-                                    Connected
-                                </div>
-                            </div>
+                const card = document.createElement('div');
+                card.className = 'server-card';
+                const name = server.name || 'Unnamed Bridge';
+                const lastSeen = server.last_seen ? new Date(server.last_seen).toLocaleString() : 'Unknown';
+                const connectedAt = server.connected_at ? new Date(server.connected_at).toLocaleString() : 'Unknown';
+                card.innerHTML = `
+                    <div class="server-head">
+                        <div>
+                            <div class="server-name">${name}</div>
+                            <div class="server-pill">Online</div>
                         </div>
-                        <div class="server-actions">
-                            <button onclick="disconnectServer('${server.id}')" class="btn-small btn-danger">
-                                🔌 Disconnect
-                            </button>
-                        </div>
+                        <button class="disconnect-btn" data-id="${server.id}">Disconnect</button>
+                    </div>
+                    <div class="server-meta">
+                        <span>Connected • ${connectedAt}</span>
+                        <span>Last Seen • ${lastSeen}</span>
+                        <span>Auth Token • ${server.auth_token ? server.auth_token.slice(0, 8) + '...' : 'Unavailable'}</span>
                     </div>
                 `;
+                serversGrid.appendChild(card);
             });
-
-            container.innerHTML = html;
+            serversGrid.querySelectorAll('.disconnect-btn').forEach(btn => {
+                btn.addEventListener('click', () => disconnectServer(btn.dataset.id));
+            });
         }
-
-        function updateStats(servers) {
-            document.getElementById('serverCount').textContent = servers.length;
-            document.getElementById('activeConnections').textContent = servers.length;
-        }
-
-        async function disconnectServer(serverId) {
-            if (!confirm('Are you sure you want to disconnect this server?')) {
+        function renderActivity(servers) {
+            activityList.innerHTML = '';
+            if (!servers.length) {
+                activityEmpty.style.display = 'block';
                 return;
             }
-
-            try {
-                const response = await fetch(`/dashboard/servers/${serverId}/disconnect`, {
-                    method: 'POST'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showAlert('Server disconnected successfully');
-                    loadServers();
-                } else {
-                    showAlert('Error disconnecting server: ' + result.error, 'error');
-                }
-            } catch (error) {
-                showAlert('Error disconnecting server: ' + error.message, 'error');
-            }
+            activityEmpty.style.display = 'none';
+            const sorted = [...servers].sort((a, b) => new Date(b.last_seen || 0) - new Date(a.last_seen || 0));
+            sorted.slice(0, 6).forEach(server => {
+                const item = document.createElement('div');
+                item.className = 'activity-item';
+                const lastSeen = server.last_seen ? new Date(server.last_seen).toLocaleTimeString() : 'Unknown';
+                const pending = typeof server.pending_commands === 'number' ? server.pending_commands : 0;
+                item.innerHTML = `
+                    <div class="activity-top">
+                        <div>${server.name || 'Bridge Connection'}</div>
+                        <div class="activity-id">${server.id ? server.id.slice(0, 10) + '…' : 'N/A'}</div>
+                    </div>
+                    <div class="activity-meta">
+                        <span>Last ping ${lastSeen}</span>
+                        <span>${pending} pending commands</span>
+                    </div>
+                `;
+                activityList.appendChild(item);
+            });
         }
-
-        async function loadUserCount() {
+        function updateMetrics(servers) {
+            const serverCount = servers.length;
+            metricServers.textContent = serverCount;
+            metricActive.textContent = serverCount;
+            const delta = serverCount - lastServerCount;
+            if (delta > 0) {
+                metricServersTrend.textContent = '+' + delta + ' new bridge link';
+                metricActiveTrend.textContent = 'Topology expanding';
+            } else if (delta < 0) {
+                metricServersTrend.textContent = delta + ' bridge link';
+                metricActiveTrend.textContent = 'Some connections closed';
+            } else {
+                metricServersTrend.textContent = 'Stable mesh';
+                metricActiveTrend.textContent = 'Monitoring continuity';
+            }
+            lastServerCount = serverCount;
+        }
+        async function syncUserCount() {
             try {
                 const response = await fetch('/dashboard/database/json/data');
                 const data = await response.json();
-                
                 if (data.success) {
-                    const userCount = Object.keys(data.data).length;
-                    document.getElementById('userCount').textContent = userCount;
+                    const count = Object.keys(data.data || {}).length;
+                    metricUsers.textContent = count;
+                    metricUsersTrend.textContent = count ? 'Directory hydrated' : 'No identities yet';
+                } else {
+                    metricUsersTrend.textContent = 'Unavailable';
                 }
             } catch (error) {
-                console.error('Error loading user count:', error);
+                metricUsersTrend.textContent = 'Sync failed';
             }
         }
-
-        async function logout() {
-            if (confirm('Are you sure you want to logout?')) {
-                try {
-                    const response = await fetch('/dashboard/logout', {
-                        method: 'POST'
-                    });
-                    
-                    if (response.ok) {
-                        window.location.href = '/dashboard/login';
-                    } else {
-                        showAlert('Error logging out', 'error');
-                    }
-                } catch (error) {
-                    showAlert('Error logging out: ' + error.message, 'error');
+        async function disconnectServer(serverId) {
+            const confirmDisconnect = window.confirm('Disconnect this server from the bridge?');
+            if (!confirmDisconnect) {
+                return;
+            }
+            try {
+                const response = await fetch(`/dashboard/servers/${serverId}/disconnect`, { method: 'POST' });
+                const result = await response.json();
+                if (result.success) {
+                    showAlert('Server disconnected');
+                    loadServers();
+                } else {
+                    showAlert(result.error || 'Unable to disconnect', 'error');
                 }
+            } catch (error) {
+                showAlert(error.message || 'Unable to disconnect', 'error');
             }
         }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            loadServers();
-            loadUserCount();
+        refreshBtn.addEventListener('click', loadServers);
+        logoutBtn.addEventListener('click', async () => {
+            const confirmLogout = window.confirm('Sign out from the dashboard session?');
+            if (!confirmLogout) {
+                return;
+            }
+            try {
+                const response = await fetch('/dashboard/logout', { method: 'POST' });
+                if (response.ok) {
+                    window.location.href = '/dashboard/login';
+                } else {
+                    showAlert('Logout failed', 'error');
+                }
+            } catch (error) {
+                showAlert('Logout failed', 'error');
+            }
         });
-
+        document.addEventListener('DOMContentLoaded', () => {
+            loadServers();
+            syncUserCount();
+            setTimestamp();
+        });
         setInterval(loadServers, 30000);
+        setInterval(syncUserCount, 60000);
     </script>
 </body>
 </html>
