@@ -749,7 +749,7 @@ def get_file():
                     return jsonify({"error": "Unauthorized"}), 401
                 if os.path.exists(full_path):
                     mime_type, _ = mimetypes.guess_type(full_path)
-                    if mime_type and (mime_type.startswith('video/') or mime_type.startswith('image/')):
+                    if mime_type and (mime_type.startswith('video/') or mime_type.startswith('image/') or mime_type.startswith('audio/')):
                         with open(full_path, 'rb') as f:
                             content = f.read()
                         import base64
@@ -805,7 +805,7 @@ def edit_file():
 def get_logs():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM logs ORDER BY id DESC')
+    cursor.execute('SELECT * FROM logs ORDER BY id DESC LIMIT 125')
     logs = cursor.fetchall()
     conn.close()
     log_list = []
@@ -1116,7 +1116,7 @@ def login():
                 payload = {
                     'user_id': user[0],
                     'username': user[1],
-                    'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+                    'exp': datetime.datetime.now(datetime.UTC) + datetime.timedelta(hours=24)
                 }
                 token = jwt.encode(payload, app.config['JWT_SECRET_KEY'], algorithm='HS256')
                 return jsonify({"token": token}), 200

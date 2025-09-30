@@ -1,8 +1,10 @@
-🎉 Shareify 1.1.0 - Smarter, Faster, Better! 🎉
+🎉 Shareify 1.2.0 - Data Control & Polish! 🎉
 
 🆕 What's New:
-• 📱 iOS Finder & File Preview - Seamless mobile browsing and previews  
-• ☁️ Improved Cloud Commands - Faster, more reliable remote execution  
-• 🚀 Update System - Quicker, more stable updates
+• 🗄️ Bridge Database Management - SQLite Console & JSON Editor for cloud data  
+• 📱 iOS File Preview - Actually works now with proper rendering  
+• 🌐 Cloud Account Registration - Sign up directly from your dashboard  
+• ✨ SOM Demo Site - Showcase what Shareify can do  
+• 🎨 iOS App Polish - Better styling and smoother animations
 
-Experience a more modern and faster Shareify!
+Take control of your cloud data like never before!

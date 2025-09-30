@@ -11,6 +11,7 @@ import requests
 from colorama import init, Fore, Back, Style
 
 
+
 def print_status(message, status_type="info"):
     if status_type == "success":
         print(Fore.GREEN + message)
@@ -539,7 +540,7 @@ class ShareifyLocalClient:
                 response_data = response.json()
             except json.JSONDecodeError:
                 response_data = response.text
-
+            
             is_file_endpoint = url.endswith('/get_file') or 'get_file' in url
             if is_file_endpoint and isinstance(response_data, dict) and 'content' in response_data:
                 self.handle_large_file_response(command_id, response_data)
@@ -578,6 +579,214 @@ class ShareifyLocalClient:
                     })
                 except Exception as emit_error:
                     print(f"Failed to emit general error: {emit_error}")
+
+    def send_standard_response(self, command_id, response_data):
+        if self.sio.connected:
+            try:
+                self.sio.emit('command_response', {
+                    'command_id': command_id,
+                    'response': response_data
+                })
+                print(f"Successfully emitted response for command {command_id}")
+                time.sleep(0.1)
+            except Exception as emit_error:
+                print(f"Failed to emit response: {emit_error}")
+        else:
+            print("Socket not connected, cannot emit response")
+
+    def handle_large_file_response(self, command_id, response_data):
+        
+        if 'content' not in response_data:
+            self.send_standard_response(command_id, response_data)
+            return
+
+        content = response_data['content']
+        content_type = response_data.get('type', 'text')
+        filename = response_data.get('filename')
+
+        if content_type == 'binary':
+            content_size = len(content) * 3 // 4 if isinstance(content, str) else len(content)
+        else:
+            content_size = len(content.encode('utf-8')) if isinstance(content, str) else len(content)
+
+        file_storage_threshold = 512 * 1024
+
+        if content_size > file_storage_threshold:
+            print(f"File content size ({content_size} bytes) exceeds threshold ({file_storage_threshold} bytes), using file storage...")
+            self.send_file_via_storage(command_id, response_data)
+        else:
+            print(f"File content size ({content_size} bytes) within limit, sending normally")
+            self.send_standard_response(command_id, response_data)
+
+    def send_file_via_storage(self, command_id, response_data):
+        try:
+            content = response_data['content']
+            content_type = response_data.get('type', 'text')
+            filename = response_data.get('filename')
+
+            if content_type == 'binary':
+                content_size = len(content) * 3 // 4 if isinstance(content, str) else len(content)
+            else:
+                content_size = len(content.encode('utf-8')) if isinstance(content, str) else len(content)
+            
+            dynamic_timeout = min(300, max(30, 30 + (content_size // (100 * 1024))))
+            print(f"Using timeout of {dynamic_timeout}s for file size {content_size} bytes")
+
+            storage_data = {
+                'content': content,
+                'content_type': content_type,
+                'filename': filename,
+                'server_id': self.server_id,
+                'user_id': self.user_id,
+                'auth_token': self.auth_token
+            }
+            
+            print(f"Storing file on bridge server...")
+
+            max_retries = 3
+            last_error = None
+            
+            for attempt in range(max_retries):
+                try:
+                    print(f"Storage attempt {attempt + 1}/{max_retries}")
+                    
+                    store_response = requests.post(
+                        f"{self.cloud_url}/cloud/file/store",
+                        json=storage_data,
+                        timeout=dynamic_timeout,
+                        headers={'Connection': 'close'}
+                    )
+                    
+                    if store_response.status_code == 200:
+                        storage_result = store_response.json()
+                        
+                        if storage_result.get('success'):
+                            file_id = storage_result['file_id']
+                            password = storage_result['password']
+                            
+                            print(f"File stored successfully with ID: {file_id}")
+
+                            file_response = {
+                                'status': response_data.get('status', 'File stored successfully'),
+                                'type': 'file_storage',
+                                'file_id': file_id,
+                                'password': password,
+                                'original_type': content_type,
+                                'filename': filename,
+                                'file_size': content_size
+                            }
+                            
+                            self.send_standard_response(command_id, file_response)
+                            return
+                        else:
+                            error_msg = storage_result.get('error', 'Unknown error')
+                            print(f"Failed to store file: {error_msg}")
+                            self.send_error_response(command_id, f"Failed to store file: {error_msg}")
+                            return
+                    else:
+                        last_error = f"HTTP {store_response.status_code}: {store_response.text}"
+                        print(f"File storage request failed with status {store_response.status_code}")
+
+                        if 400 <= store_response.status_code < 500:
+                            self.send_error_response(command_id, f"File storage failed: {last_error}")
+                            return
+
+                        if attempt < max_retries - 1:
+                            wait_time = (attempt + 1) * 2
+                            print(f"Retrying in {wait_time} seconds...")
+                            time.sleep(wait_time)
+                        
+                except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+                    last_error = str(e)
+                    print(f"Network error on attempt {attempt + 1}: {e}")
+                    
+                    if attempt < max_retries - 1:
+                        wait_time = (attempt + 1) * 3
+                        print(f"Retrying in {wait_time} seconds...")
+                        time.sleep(wait_time)
+                    
+                except Exception as e:
+                    last_error = str(e)
+                    print(f"Unexpected error on attempt {attempt + 1}: {e}")
+                    
+                    if attempt < max_retries - 1:
+                        wait_time = (attempt + 1) * 2
+                        print(f"Retrying in {wait_time} seconds...")
+                        time.sleep(wait_time)
+            
+            print(f"All {max_retries} storage attempts failed")
+            
+            self.send_fallback_response(command_id, response_data, last_error)
+                
+        except Exception as e:
+            print(f"Error in file storage process: {e}")
+            self.send_error_response(command_id, f"File storage error: {str(e)}")
+
+    def send_fallback_response(self, command_id, response_data, storage_error):
+        try:
+            content = response_data['content']
+            content_type = response_data.get('type', 'text')
+            filename = response_data.get('filename', 'unknown')
+
+            if content_type == 'binary':
+                content_size = len(content) * 3 // 4 if isinstance(content, str) else len(content)
+            else:
+                content_size = len(content.encode('utf-8')) if isinstance(content, str) else len(content)
+            
+            if content_type == 'text' and isinstance(content, str):
+                max_fallback_size = 50 * 1024
+                if len(content.encode('utf-8')) > max_fallback_size:
+                    truncated_content = content[:max_fallback_size // 2]
+                    
+                    fallback_response = {
+                        'status': f'File too large for cloud storage, showing first {len(truncated_content)} characters',
+                        'content': truncated_content + f"\n\n[TRUNCATED - Original file was {content_size} bytes]",
+                        'type': 'text',
+                        'filename': filename,
+                        'truncated': True,
+                        'original_size': content_size,
+                        'storage_error': str(storage_error)
+                    }
+                    
+                    print(f"Sending truncated content fallback for {filename}")
+                    self.send_standard_response(command_id, fallback_response)
+                    return
+
+            error_response = {
+                'error': f'File storage failed and content too large for direct transfer',
+                'filename': filename,
+                'file_size': content_size,
+                'content_type': content_type,
+                'storage_error': str(storage_error),
+                'suggestion': 'Try downloading smaller files or check network connection'
+            }
+            
+            print(f"Sending error fallback for {filename}")
+            self.send_standard_response(command_id, error_response)
+            
+        except Exception as e:
+            print(f"Error in fallback response: {e}")
+            self.send_error_response(command_id, f"File storage and fallback failed: {str(e)}")
+
+    def send_error_response(self, command_id, error_message):
+        if self.sio.connected:
+            try:
+                self.sio.emit('command_response', {
+                    'command_id': command_id,
+                    'response': {
+                        'error': error_message,
+                        'status': 'error'
+                    }
+                })
+                print(f"Sent error response for command {command_id}: {error_message}")
+            except Exception as emit_error:
+                print(f"Failed to emit error response: {emit_error}")
+        else:
+            print("Socket not connected, cannot emit error response")
+
+    def send_chunked_file_response(self, command_id, response_data):
+        print("Warning: send_chunked_file_response called, redirecting to file storage")
+        self.send_file_via_storage(command_id, response_data)
     
 def main():
     try:
