@@ -805,7 +805,7 @@ def edit_file():
 def get_logs():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM logs ORDER BY id DESC')
+    cursor.execute('SELECT * FROM logs ORDER BY id DESC LIMIT 125')
     logs = cursor.fetchall()
     conn.close()
     log_list = []

@@ -10,221 +10,258 @@
             padding: 0;
             box-sizing: border-box;
         }
-
+        :root {
+            --surface: rgba(12, 16, 39, 0.7);
+            --highlight: #6d7dff;
+            --accent: #00f5a0;
+            --danger: #ff5f6d;
+            --text-primary: #f7f9ff;
+            --text-secondary: rgba(235, 240, 255, 0.65);
+            --glow: rgba(109, 125, 255, 0.35);
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             min-height: 100vh;
-            padding: 20px;
+            background: radial-gradient(circle at 15% 20%, rgba(0, 245, 160, 0.18), transparent 55%), radial-gradient(circle at 80% 0%, rgba(109, 125, 255, 0.22), transparent 45%), #020617;
+            color: var(--text-primary);
+            padding: 40px 20px;
+            position: relative;
+            overflow-x: hidden;
         }
-
+        .orb {
+            position: fixed;
+            width: 420px;
+            height: 420px;
+            border-radius: 50%;
+            filter: blur(120px);
+            z-index: 0;
+            opacity: 0.6;
+        }
+        .orb.one {
+            background: #4b5cff;
+            top: -160px;
+            right: -120px;
+        }
+        .orb.two {
+            background: #00f5a0;
+            bottom: -180px;
+            left: -120px;
+        }
         .container {
-            max-width: 1200px;
+            position: relative;
+            z-index: 1;
+            max-width: 1280px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            display: grid;
+            gap: 28px;
         }
-
         .header {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 18px;
             align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #f0f0f0;
+            background: var(--surface);
+            border-radius: 28px;
+            padding: 24px 32px;
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(109, 125, 255, 0.18);
+            box-shadow: 0 20px 40px rgba(2, 6, 23, 0.45);
         }
-
         .header h1 {
-            color: #333;
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
-
         .nav-buttons {
             display: flex;
-            gap: 10px;
+            gap: 12px;
         }
-
         .btn {
             padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: linear-gradient(130deg, #6d7dff, #a855f7);
+            color: #020617;
             text-decoration: none;
-            border-radius: 12px;
+            border-radius: 50px;
             border: none;
             cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            font-size: 14px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 0.04em;
+            transition: all 0.2s ease;
+            box-shadow: 0 16px 30px rgba(109, 125, 255, 0.3);
         }
-
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 20px 35px rgba(109, 125, 255, 0.4);
         }
-
         .btn-secondary {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(130deg, #30cfd0, #00f5a0);
+            box-shadow: 0 16px 30px rgba(0, 245, 160, 0.25);
         }
-
+        .btn-secondary:hover {
+            box-shadow: 0 20px 35px rgba(0, 245, 160, 0.35);
+        }
         .btn-danger {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            background: linear-gradient(130deg, #ff9a5a, #ff5f6d);
+            box-shadow: 0 16px 30px rgba(255, 95, 109, 0.25);
         }
-
+        .btn-danger:hover {
+            box-shadow: 0 20px 35px rgba(255, 95, 109, 0.35);
+        }
         .btn-success {
-            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            background: linear-gradient(130deg, #30cfd0, #00f5a0);
+            box-shadow: 0 16px 30px rgba(0, 245, 160, 0.25);
         }
-
-        .users-container {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        .panel {
+            background: var(--surface);
+            border-radius: 28px;
+            padding: 26px;
+            border: 1px solid rgba(109, 125, 255, 0.18);
+            backdrop-filter: blur(18px);
+            display: flex;
+            flex-direction: column;
         }
-
-        .users-header {
+        .panel-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 22px;
         }
-
-        .users-title {
-            font-size: 1.3rem;
+        .panel-title {
             font-weight: 600;
-            color: #333;
+            font-size: 1.1rem;
         }
-
         .user-card {
-            border: 2px solid #f0f0f0;
-            border-radius: 12px;
+            border: 1px solid rgba(109, 125, 255, 0.18);
+            border-radius: 22px;
             padding: 20px;
-            margin-bottom: 15px;
+            margin-bottom: 16px;
+            background: rgba(4, 10, 35, 0.7);
             transition: all 0.3s ease;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
         }
-
         .user-card:hover {
-            border-color: #667eea;
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+            border-color: rgba(109, 125, 255, 0.3);
         }
-
         .user-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 16px;
         }
-
         .user-id {
             font-weight: 600;
             font-size: 1.1rem;
-            color: #333;
+            color: var(--text-primary);
         }
-
         .user-actions {
             display: flex;
             gap: 8px;
         }
-
         .btn-small {
-            padding: 6px 12px;
-            font-size: 12px;
-            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 0.8rem;
+            border-radius: 14px;
             border: none;
             cursor: pointer;
-            font-weight: 500;
+            font-weight: 600;
             transition: all 0.2s ease;
         }
-
         .btn-edit {
-            background: #ffc107;
-            color: #212529;
+            background: rgba(255, 193, 7, 0.14);
+            color: #ffeb3b;
         }
-
+        .btn-edit:hover {
+            background: rgba(255, 193, 7, 0.26);
+        }
         .btn-delete {
-            background: #dc3545;
-            color: white;
+            background: rgba(255, 95, 109, 0.14);
+            color: #ffb3bd;
         }
-
+        .btn-delete:hover {
+            background: rgba(255, 95, 109, 0.26);
+        }
         .btn-save {
-            background: #28a745;
-            color: white;
+            background: rgba(0, 245, 160, 0.14);
+            color: #a6ffdd;
         }
-
+        .btn-save:hover {
+            background: rgba(0, 245, 160, 0.26);
+        }
         .btn-cancel {
-            background: #6c757d;
-            color: white;
+            background: rgba(108, 117, 125, 0.14);
+            color: var(--text-secondary);
         }
-
-        .btn-small:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        .btn-cancel:hover {
+            background: rgba(108, 117, 125, 0.26);
         }
-
         .user-data {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
         }
-
         .data-field {
-            background: #f8f9fa;
-            padding: 12px;
-            border-radius: 8px;
+            background: rgba(7, 13, 35, 0.72);
+            padding: 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(109, 125, 255, 0.1);
         }
-
         .field-label {
             font-weight: 600;
-            color: #495057;
-            margin-bottom: 5px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        .field-value {
+            color: var(--text-primary);
+            word-break: break-word;
+            font-family: 'Space Mono', monospace;
             font-size: 0.9rem;
         }
-
-        .field-value {
-            color: #333;
-            word-break: break-word;
-        }
-
-        .input-field {
+        .input-field, .textarea-field {
             width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            padding: 12px 16px;
+            border: 1px solid rgba(109, 125, 255, 0.18);
+            border-radius: 14px;
             font-size: 14px;
+            background: rgba(4, 10, 35, 0.7);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
         }
-
+        .input-field::placeholder, .textarea-field::placeholder {
+            color: var(--text-secondary);
+        }
+        .input-field:focus, .textarea-field:focus {
+            border-color: var(--highlight);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(109, 125, 255, 0.15);
+            background: rgba(7, 13, 35, 0.8);
+        }
         .textarea-field {
-            width: 100%;
-            height: 100px;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
+            height: 120px;
             resize: vertical;
+            font-family: 'Space Mono', monospace;
         }
-
         .alert {
-            padding: 15px;
-            border-radius: 10px;
+            padding: 16px 20px;
+            border-radius: 16px;
             margin-bottom: 20px;
             font-weight: 500;
+            text-align: center;
         }
-
         .alert-success {
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: rgba(0, 245, 160, 0.14);
+            color: #a6ffdd;
+            border: 1px solid rgba(0, 245, 160, 0.2);
         }
-
         .alert-error {
-            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: rgba(255, 95, 109, 0.14);
+            color: #ffb3bd;
+            border: 1px solid rgba(255, 95, 109, 0.2);
         }
-
         .modal {
             display: none;
             position: fixed;
@@ -232,146 +269,154 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(2, 6, 23, 0.7);
             z-index: 1000;
+            backdrop-filter: blur(8px);
         }
-
         .modal-content {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
+            background: var(--surface);
+            padding: 32px;
+            border-radius: 28px;
             width: 90%;
             max-width: 600px;
             max-height: 80vh;
             overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(109, 125, 255, 0.18);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 20px 60px rgba(2, 6, 23, 0.6);
         }
-
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(109, 125, 255, 0.18);
         }
-
         .close {
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
-            color: #aaa;
+            color: var(--text-secondary);
+            transition: color 0.2s ease;
         }
-
         .close:hover {
-            color: #333;
+            color: var(--text-primary);
         }
-
         .form-group {
             margin-bottom: 20px;
         }
-
         .form-group label {
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: #333;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
         }
-
-        .raw-editor {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-        }
-
         .raw-textarea {
             width: 100%;
             height: 400px;
-            padding: 15px;
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            font-family: 'Monaco', 'Consolas', monospace;
+            padding: 18px;
+            border: 1px solid rgba(109, 125, 255, 0.18);
+            border-radius: 18px;
+            font-family: 'Space Mono', monospace;
             font-size: 14px;
             resize: vertical;
-            margin-bottom: 15px;
+            margin-bottom: 16px;
+            background: rgba(4, 10, 35, 0.7);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
         }
-
         .raw-textarea:focus {
-            border-color: #667eea;
+            border-color: var(--highlight);
             outline: none;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            box-shadow: 0 0 0 3px rgba(109, 125, 255, 0.15);
+            background: rgba(7, 13, 35, 0.8);
         }
-
         .loading {
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #667eea;
+            border: 2px solid rgba(109, 125, 255, 0.2);
+            border-top: 2px solid var(--highlight);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
         .empty-state {
             text-align: center;
             padding: 40px;
-            color: #666;
+            color: var(--text-secondary);
+            background: rgba(7, 13, 35, 0.7);
+            border-radius: 18px;
+            border: 1px dashed rgba(109, 125, 255, 0.18);
         }
-
         .empty-state h3 {
             margin-bottom: 10px;
-            color: #333;
+            color: var(--text-primary);
+        }
+        @media (max-width: 960px) {
+            .header {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            .nav-buttons {
+                justify-content: center;
+            }
+            body {
+                padding: 28px 18px;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="orb one"></div>
+    <div class="orb two"></div>
     <div class="container">
         <div class="header">
-            <h1>JSON Database Management</h1>
+            <h1>JSON Directory Editor</h1>
             <div class="nav-buttons">
-                <a href="/dashboard" class="btn">← Back to Dashboard</a>
-                <a href="/dashboard/database/sqlite" class="btn btn-secondary">SQLite Database</a>
+                <a href="/dashboard" class="btn">← Command Bridge</a>
+                <a href="/dashboard/database/sqlite" class="btn btn-secondary">SQLite Console</a>
             </div>
         </div>
 
         <div id="alertContainer"></div>
 
-        <div class="raw-editor">
-            <div class="users-header">
-                <h3 class="users-title">Raw JSON Editor</h3>
-                <div>
-                    <button onclick="loadRawData()" class="btn btn-secondary">Load Raw Data</button>
-                    <button onclick="saveRawData()" class="btn btn-success">Save Changes</button>
-                    <button onclick="resetRawData()" class="btn btn-danger">Reset</button>
+        <div class="panel">
+            <div class="panel-header">
+                <h3 class="panel-title">🪄 Raw JSON Manipulation</h3>
+                <div class="nav-buttons">
+                    <button onclick="loadRawData()" class="btn btn-secondary">Load Schema</button>
+                    <button onclick="saveRawData()" class="btn btn-success">Commit Changes</button>
+                    <button onclick="resetRawData()" class="btn btn-danger">Reset Buffer</button>
                 </div>
             </div>
-            <textarea id="rawDataTextarea" class="raw-textarea" placeholder="Raw JSON data will appear here..."></textarea>
-            <div id="jsonValidation" style="color: #dc3545; font-weight: 500;"></div>
+            <textarea id="rawDataTextarea" class="raw-textarea" placeholder="Bridge metadata structures will populate here..."></textarea>
+            <div id="jsonValidation" style="color: var(--danger); font-weight: 500;"></div>
         </div>
 
-        <div class="users-container">
-            <div class="users-header">
-                <h3 class="users-title">Users Management</h3>
-                <div>
-                    <button onclick="loadUsers()" class="btn btn-secondary">Refresh Users</button>
-                    <button onclick="openAddUserModal()" class="btn btn-success">➕ Add User</button>
+        <div class="panel">
+            <div class="panel-header">
+                <h3 class="panel-title">🧬 Identity Management Interface</h3>
+                <div class="nav-buttons">
+                    <button onclick="loadUsers()" class="btn btn-secondary">Sync Directory</button>
+                    <button onclick="openAddUserModal()" class="btn btn-success">➕ Create Entity</button>
                 </div>
             </div>
             <div id="usersContainer">
                 <div class="empty-state">
-                    <h3>No users loaded</h3>
-                    <p>Click "Refresh Users" to load user data</p>
+                    <h3>Directory cache empty</h3>
+                    <p>Initialize synchronization to load entity registry</p>
                 </div>
             </div>
         </div>
@@ -379,22 +424,22 @@
     <div id="userModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modalTitle">Add New User</h3>
+                <h3 id="modalTitle">Create Bridge Entity</h3>
                 <span class="close" onclick="closeUserModal()">&times;</span>
             </div>
             <form id="userForm">
                 <div class="form-group">
-                    <label for="userId">User ID:</label>
+                    <label for="userId">Entity Identifier</label>
                     <input type="text" id="userId" name="userId" class="input-field" required>
                 </div>
                 <div class="form-group">
-                    <label for="userDataJson">User Data (JSON):</label>
+                    <label for="userDataJson">Metadata Schema (JSON)</label>
                     <textarea id="userDataJson" name="userDataJson" class="textarea-field" 
-                              placeholder='{"username": "example", "email": "user@example.com", "role": "user"}'></textarea>
+                              placeholder='{"username": "bridge_user", "role": "operator", "auth_level": "standard"}'></textarea>
                 </div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                    <button type="button" onclick="closeUserModal()" class="btn btn-cancel">Cancel</button>
-                    <button type="submit" class="btn btn-success" id="submitButton">Add User</button>
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                    <button type="button" onclick="closeUserModal()" class="btn btn-cancel">Abort</button>
+                    <button type="submit" class="btn btn-success" id="submitButton">Deploy Entity</button>
                 </div>
             </form>
         </div>
@@ -425,12 +470,12 @@
                 if (data.success) {
                     users = data.data;
                     displayUsers();
-                    showAlert('Users loaded successfully');
+                    showAlert('Entity directory synchronized');
                 } else {
-                    showAlert('Error loading users: ' + data.error, 'error');
+                    showAlert('Sync error: ' + data.error, 'error');
                 }
             } catch (error) {
-                showAlert('Error loading users: ' + error.message, 'error');
+                showAlert('Network failure: ' + error.message, 'error');
             }
         }
 
@@ -440,8 +485,8 @@
             if (Object.keys(users).length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <h3>No users found</h3>
-                        <p>Click "Add User" to create your first user</p>
+                        <h3>No entities registered</h3>
+                        <p>Deploy your first bridge entity to establish connectivity</p>
                     </div>
                 `;
                 return;
@@ -452,10 +497,10 @@
                 html += `
                     <div class="user-card" id="user-${userId}">
                         <div class="user-header">
-                            <div class="user-id">👤 ${userId}</div>
+                            <div class="user-id">� ${userId}</div>
                             <div class="user-actions">
-                                <button class="btn-small btn-edit" onclick="editUser('${userId}')">✏️ Edit</button>
-                                <button class="btn-small btn-delete" onclick="deleteUser('${userId}')">🗑️ Delete</button>
+                                <button class="btn-small btn-edit" onclick="editUser('${userId}')">✏️ Modify</button>
+                                <button class="btn-small btn-delete" onclick="deleteUser('${userId}')">🗑️ Purge</button>
                             </div>
                         </div>
                         <div class="user-data" id="data-${userId}">
@@ -488,22 +533,22 @@
 
         function openAddUserModal() {
             currentEditingUser = null;
-            document.getElementById('modalTitle').textContent = 'Add New User';
-            document.getElementById('submitButton').textContent = 'Add User';
+            document.getElementById('modalTitle').textContent = 'Create Bridge Entity';
+            document.getElementById('submitButton').textContent = 'Deploy Entity';
             document.getElementById('userId').value = '';
             document.getElementById('userId').disabled = false;
             document.getElementById('userDataJson').value = JSON.stringify({
                 "username": "",
-                "email": "",
-                "role": "user"
+                "role": "operator",
+                "auth_level": "standard"
             }, null, 2);
             document.getElementById('userModal').style.display = 'block';
         }
 
         function editUser(userId) {
             currentEditingUser = userId;
-            document.getElementById('modalTitle').textContent = 'Edit User';
-            document.getElementById('submitButton').textContent = 'Update User';
+            document.getElementById('modalTitle').textContent = 'Modify Bridge Entity';
+            document.getElementById('submitButton').textContent = 'Update Schema';
             document.getElementById('userId').value = userId;
             document.getElementById('userId').disabled = true;
             document.getElementById('userDataJson').value = JSON.stringify(users[userId], null, 2);
@@ -517,7 +562,7 @@
         }
 
         async function deleteUser(userId) {
-            if (!confirm(`Are you sure you want to delete user "${userId}"? This action cannot be undone.`)) {
+            if (!confirm(`Purge entity "${userId}" from bridge registry? This operation is irreversible.`)) {
                 return;
             }
 
@@ -535,14 +580,14 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showAlert('User deleted successfully');
+                    showAlert('Entity purged from registry');
                     delete users[userId];
                     displayUsers();
                 } else {
-                    showAlert('Error deleting user: ' + result.error, 'error');
+                    showAlert('Purge failed: ' + result.error, 'error');
                 }
             } catch (error) {
-                showAlert('Error deleting user: ' + error.message, 'error');
+                showAlert('Network failure: ' + error.message, 'error');
             }
         }
 
@@ -583,15 +628,15 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showAlert(currentEditingUser ? 'User updated successfully' : 'User added successfully');
+                    showAlert(currentEditingUser ? 'Entity schema updated' : 'Entity deployed to bridge');
                     users[userId] = userData;
                     displayUsers();
                     closeUserModal();
                 } else {
-                    showAlert(`Error ${currentEditingUser ? 'updating' : 'adding'} user: ` + result.error, 'error');
+                    showAlert(`Operation failed: ` + result.error, 'error');
                 }
             } catch (error) {
-                showAlert(`Error ${currentEditingUser ? 'updating' : 'adding'} user: ` + error.message, 'error');
+                showAlert(`Network failure: ` + error.message, 'error');
             }
         });
 
@@ -603,21 +648,21 @@
                 if (data.success) {
                     originalRawData = JSON.stringify(data.data, null, 2);
                     document.getElementById('rawDataTextarea').value = originalRawData;
-                    showAlert('Raw data loaded successfully');
+                    showAlert('Schema buffer loaded');
                     validateJson();
                 } else {
-                    showAlert('Error loading raw data: ' + data.error, 'error');
+                    showAlert('Buffer load failed: ' + data.error, 'error');
                 }
             } catch (error) {
-                showAlert('Error loading raw data: ' + error.message, 'error');
+                showAlert('Network failure: ' + error.message, 'error');
             }
         }
 
         function resetRawData() {
-            if (confirm('Are you sure you want to reset all changes? This will discard any unsaved modifications.')) {
+            if (confirm('Reset buffer to last synchronized state? Unsaved modifications will be lost.')) {
                 document.getElementById('rawDataTextarea').value = originalRawData;
                 validateJson();
-                showAlert('Raw data reset to original state');
+                showAlert('Buffer reset to baseline');
             }
         }
 
@@ -651,15 +696,15 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showAlert('Raw data saved successfully');
+                    showAlert('Schema committed to bridge registry');
                     originalRawData = rawData;
                     users = parsedData;
                     displayUsers();
                 } else {
-                    showAlert('Error saving raw data: ' + result.error, 'error');
+                    showAlert('Commit failed: ' + result.error, 'error');
                 }
             } catch (error) {
-                showAlert('Error saving raw data: ' + error.message, 'error');
+                showAlert('Network failure: ' + error.message, 'error');
             }
         }
 
@@ -674,11 +719,11 @@
 
             try {
                 JSON.parse(rawData);
-                validationDiv.textContent = '✅ Valid JSON';
-                validationDiv.style.color = '#28a745';
+                validationDiv.textContent = '✅ Schema valid';
+                validationDiv.style.color = 'var(--accent)';
             } catch (error) {
-                validationDiv.textContent = '❌ Invalid JSON: ' + error.message;
-                validationDiv.style.color = '#dc3545';
+                validationDiv.textContent = '❌ Parse error: ' + error.message;
+                validationDiv.style.color = 'var(--danger)';
             }
         }
 

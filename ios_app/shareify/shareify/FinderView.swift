@@ -127,17 +127,18 @@ struct FinderView: View {
             ZStack {
                 backgroundView(geometry: geometry)
                 
-                if let file = previewedFile, let content = previewedFileContent, let type = previewedFileType {
+                if let file = previewedFile {
                     FilePreviewView(
                         file: file,
-                        content: content,
-                        type: type,
+                        content: previewedFileContent ?? "",
+                        type: previewedFileType ?? "",
                         isLoading: isPreviewLoading,
                         onDismiss: {
                             withAnimation(.easeInOut(duration: 0.35)) {
                                 previewedFile = nil
                                 previewedFileContent = nil
                                 previewedFileType = nil
+                                isPreviewLoading = false
                             }
                         }
                     )
@@ -360,7 +361,7 @@ struct FinderView: View {
         HStack(spacing: 12) {
             Image(systemName: item.isFolder ? "folder.fill" : fileIcon(for: item.name))
                 .font(.system(size: 24))
-                .foregroundColor(item.isFolder ? Color.blue : Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                .foregroundColor(item.isFolder ? Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255) : Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
                 .frame(width: 32, height: 32)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.name)
@@ -472,7 +473,7 @@ struct FinderView: View {
         VStack(spacing: 8) {
             Image(systemName: item.isFolder ? "folder.fill" : fileIcon(for: item.name))
                 .font(.system(size: 32))
-                .foregroundColor(item.isFolder ? Color.blue : Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                .foregroundColor(item.isFolder ? Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255) : Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
                 .frame(height: 40)
             Text(item.name)
                 .font(.system(size: 12, weight: .medium))
@@ -616,13 +617,17 @@ struct FinderView: View {
     @ViewBuilder
     private func imagePreviewView(file: FinderItem, content: String) -> some View {
         if let imageData = Data(base64Encoded: content), let uiImage = UIImage(data: imageData) {
-            ScrollView([.horizontal, .vertical]) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(28)
+            GeometryReader { geometry in
+                ScrollView([.horizontal, .vertical]) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: geometry.size.width - 56, maxHeight: geometry.size.height - 200)
+                        .clipped()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .padding(28)
         } else {
             VStack {
                 Image(systemName: "photo.fill")
@@ -826,8 +831,16 @@ struct FilePreviewView: View {
                     headerView
                     
                     if isLoading {
-                        ProgressView()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        VStack(spacing: 20) {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                                .progressViewStyle(CircularProgressViewStyle(tint: Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255)))
+                            
+                            Text("Loading file...")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
                         contentView
                     }
@@ -925,13 +938,17 @@ struct PreviewHelper {
     @ViewBuilder
     static func imagePreviewView(file: FinderItem, content: String) -> some View {
         if let imageData = Data(base64Encoded: content), let uiImage = UIImage(data: imageData) {
-            ScrollView([.horizontal, .vertical]) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(28)
+            GeometryReader { geometry in
+                ScrollView([.horizontal, .vertical]) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: geometry.size.width - 56, maxHeight: geometry.size.height - 200)
+                        .clipped()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .padding(28)
         } else {
             VStack {
                 Image(systemName: "photo.fill")

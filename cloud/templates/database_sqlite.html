@@ -10,240 +10,261 @@
             padding: 0;
             box-sizing: border-box;
         }
-
+        :root {
+            --surface: rgba(12, 16, 39, 0.7);
+            --highlight: #6d7dff;
+            --accent: #00f5a0;
+            --danger: #ff5f6d;
+            --text-primary: #f7f9ff;
+            --text-secondary: rgba(235, 240, 255, 0.65);
+            --glow: rgba(109, 125, 255, 0.35);
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             min-height: 100vh;
-            padding: 20px;
-            max-width: 100vw;
+            background: radial-gradient(circle at 15% 20%, rgba(0, 245, 160, 0.18), transparent 55%), radial-gradient(circle at 80% 0%, rgba(109, 125, 255, 0.22), transparent 45%), #020617;
+            color: var(--text-primary);
+            padding: 40px 20px;
+            position: relative;
             overflow-x: hidden;
         }
-
+        .orb {
+            position: fixed;
+            width: 420px;
+            height: 420px;
+            border-radius: 50%;
+            filter: blur(120px);
+            z-index: 0;
+            opacity: 0.6;
+        }
+        .orb.one {
+            background: #4b5cff;
+            top: -160px;
+            right: -120px;
+        }
+        .orb.two {
+            background: #00f5a0;
+            bottom: -180px;
+            left: -120px;
+        }
         .container {
-            max-width: 1200px;
+            position: relative;
+            z-index: 1;
+            max-width: 1280px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            max-width: 100%;
+            display: grid;
+            gap: 28px;
         }
-
         .header {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 18px;
             align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #f0f0f0;
+            background: var(--surface);
+            border-radius: 28px;
+            padding: 24px 32px;
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(109, 125, 255, 0.18);
+            box-shadow: 0 20px 40px rgba(2, 6, 23, 0.45);
         }
-
         .header h1 {
-            color: #333;
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
         }
-
         .nav-buttons {
             display: flex;
-            gap: 10px;
+            gap: 12px;
         }
-
         .btn {
             padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: linear-gradient(130deg, #6d7dff, #a855f7);
+            color: #020617;
             text-decoration: none;
-            border-radius: 12px;
+            border-radius: 50px;
             border: none;
             cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            font-size: 14px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 0.04em;
+            transition: all 0.2s ease;
+            box-shadow: 0 16px 30px rgba(109, 125, 255, 0.3);
         }
-
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 20px 35px rgba(109, 125, 255, 0.4);
         }
-
         .btn-secondary {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(130deg, #30cfd0, #00f5a0);
+            box-shadow: 0 16px 30px rgba(0, 245, 160, 0.25);
         }
-
+        .btn-secondary:hover {
+            box-shadow: 0 20px 35px rgba(0, 245, 160, 0.35);
+        }
         .btn-danger {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            background: linear-gradient(130deg, #ff9a5a, #ff5f6d);
+            box-shadow: 0 16px 30px rgba(255, 95, 109, 0.25);
         }
-
+        .btn-danger:hover {
+            box-shadow: 0 20px 35px rgba(255, 95, 109, 0.35);
+        }
         .btn-success {
-            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            background: linear-gradient(130deg, #30cfd0, #00f5a0);
+            box-shadow: 0 16px 30px rgba(0, 245, 160, 0.25);
         }
-
-        .table-container {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            overflow: hidden;
-            max-width: 100%;
+        .panel {
+            background: var(--surface);
+            border-radius: 28px;
+            padding: 26px;
+            border: 1px solid rgba(109, 125, 255, 0.18);
+            backdrop-filter: blur(18px);
+            display: flex;
+            flex-direction: column;
         }
-
-        .table-header {
+        .panel-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 22px;
         }
-
-        .table-title {
-            font-size: 1.3rem;
+        .panel-title {
             font-weight: 600;
-            color: #333;
+            font-size: 1.1rem;
         }
-
         .table-wrapper {
             overflow: auto;
-            max-height: 400px;
-            max-width: 100%;
+            max-height: 500px;
+            border-radius: 18px;
+            border: 1px solid rgba(109, 125, 255, 0.12);
+            background: rgba(4, 10, 35, 0.7);
         }
-
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
             table-layout: fixed;
         }
-
         th, td {
-            padding: 8px 12px;
+            padding: 12px 16px;
             text-align: left;
-            border-bottom: 1px solid #f0f0f0;
-            font-size: 12px;
+            border-bottom: 1px solid rgba(109, 125, 255, 0.1);
+            font-size: 0.85rem;
             word-wrap: break-word;
             overflow: hidden;
         }
-
         th {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            background: rgba(7, 13, 35, 0.8);
             font-weight: 600;
-            color: #495057;
+            color: var(--text-secondary);
             position: sticky;
             top: 0;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-size: 0.75rem;
         }
-
         tr:hover {
-            background-color: #f8f9fa;
+            background-color: rgba(109, 125, 255, 0.05);
         }
-
         .row-actions {
             display: flex;
             gap: 8px;
         }
-
         .btn-small {
-            padding: 6px 12px;
-            font-size: 12px;
-            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 0.8rem;
+            border-radius: 14px;
             border: none;
             cursor: pointer;
-            font-weight: 500;
+            font-weight: 600;
             transition: all 0.2s ease;
         }
-
         .btn-edit {
-            background: #ffc107;
-            color: #212529;
+            background: rgba(255, 193, 7, 0.14);
+            color: #ffeb3b;
         }
-
+        .btn-edit:hover {
+            background: rgba(255, 193, 7, 0.26);
+        }
         .btn-delete {
-            background: #dc3545;
-            color: white;
+            background: rgba(255, 95, 109, 0.14);
+            color: #ffb3bd;
         }
-
+        .btn-delete:hover {
+            background: rgba(255, 95, 109, 0.26);
+        }
         .btn-save {
-            background: #28a745;
-            color: white;
+            background: rgba(0, 245, 160, 0.14);
+            color: #a6ffdd;
         }
-
+        .btn-save:hover {
+            background: rgba(0, 245, 160, 0.26);
+        }
         .btn-cancel {
-            background: #6c757d;
-            color: white;
+            background: rgba(108, 117, 125, 0.14);
+            color: var(--text-secondary);
         }
-
-        .btn-small:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        .btn-cancel:hover {
+            background: rgba(108, 117, 125, 0.26);
         }
-
         .input-field {
             width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
+            padding: 10px 14px;
+            border: 1px solid rgba(109, 125, 255, 0.18);
+            border-radius: 12px;
+            font-size: 0.85rem;
+            background: rgba(4, 10, 35, 0.7);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
         }
-
-        @media (max-width: 768px) {
-            th, td {
-                font-size: 10px;
-                padding: 4px 8px;
-            }
-            .btn-small {
-                padding: 4px 8px;
-                font-size: 10px;
-            }
-            .container {
-                padding: 15px;
-            }
+        .input-field::placeholder {
+            color: var(--text-secondary);
         }
-
-        .query-section {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        .input-field:focus {
+            border-color: var(--highlight);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(109, 125, 255, 0.15);
+            background: rgba(7, 13, 35, 0.8);
         }
-
         .query-input {
             width: 100%;
-            height: 120px;
-            padding: 12px;
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            font-family: 'Monaco', 'Consolas', monospace;
+            height: 140px;
+            padding: 18px;
+            border: 1px solid rgba(109, 125, 255, 0.18);
+            border-radius: 18px;
+            font-family: 'Space Mono', monospace;
             font-size: 14px;
             resize: vertical;
-            margin-bottom: 15px;
+            margin-bottom: 16px;
+            background: rgba(4, 10, 35, 0.7);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
         }
-
+        .query-input::placeholder {
+            color: var(--text-secondary);
+        }
         .query-input:focus {
-            border-color: #667eea;
+            border-color: var(--highlight);
             outline: none;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            box-shadow: 0 0 0 3px rgba(109, 125, 255, 0.15);
+            background: rgba(7, 13, 35, 0.8);
         }
-
         .alert {
-            padding: 15px;
-            border-radius: 10px;
+            padding: 16px 20px;
+            border-radius: 16px;
             margin-bottom: 20px;
             font-weight: 500;
+            text-align: center;
         }
-
         .alert-success {
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: rgba(0, 245, 160, 0.14);
+            color: #a6ffdd;
+            border: 1px solid rgba(0, 245, 160, 0.2);
         }
-
         .alert-error {
-            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: rgba(255, 95, 109, 0.14);
+            color: #ffb3bd;
+            border: 1px solid rgba(255, 95, 109, 0.2);
         }
-
         .modal {
             display: none;
             position: fixed;
@@ -251,125 +272,179 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(2, 6, 23, 0.7);
             z-index: 1000;
+            backdrop-filter: blur(8px);
         }
-
         .modal-content {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
+            background: var(--surface);
+            padding: 32px;
+            border-radius: 28px;
             width: 90%;
             max-width: 500px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(109, 125, 255, 0.18);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 20px 60px rgba(2, 6, 23, 0.6);
         }
-
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(109, 125, 255, 0.18);
         }
-
         .close {
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
-            color: #aaa;
+            color: var(--text-secondary);
+            transition: color 0.2s ease;
         }
-
         .close:hover {
-            color: #333;
+            color: var(--text-primary);
         }
-
         .form-group {
             margin-bottom: 20px;
         }
-
         .form-group label {
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: #333;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
         }
-
         .loading {
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #667eea;
+            border: 2px solid rgba(109, 125, 255, 0.2);
+            border-top: 2px solid var(--highlight);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+            background: rgba(7, 13, 35, 0.7);
+            border-radius: 18px;
+            border: 1px dashed rgba(109, 125, 255, 0.18);
+        }
+        .table-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .table-btn {
+            padding: 10px 16px;
+            background: rgba(109, 125, 255, 0.14);
+            color: var(--highlight);
+            border: 1px solid rgba(109, 125, 255, 0.18);
+            border-radius: 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .table-btn:hover {
+            background: rgba(109, 125, 255, 0.26);
+            transform: translateY(-1px);
+        }
+        @media (max-width: 960px) {
+            .header {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            .nav-buttons {
+                justify-content: center;
+            }
+            body {
+                padding: 28px 18px;
+            }
+            th, td {
+                font-size: 0.75rem;
+                padding: 8px 12px;
+            }
+            .btn-small {
+                padding: 6px 10px;
+                font-size: 0.7rem;
+            }
+        }
     </style>
 </head>
 <body>
+    <div class="orb one"></div>
+    <div class="orb two"></div>
     <div class="container">
         <div class="header">
-            <h1>SQLite Database Management</h1>
+            <h1>SQLite Core Console</h1>
             <div class="nav-buttons">
-                <a href="/dashboard" class="btn">← Back to Dashboard</a>
-                <a href="/dashboard/database/json" class="btn btn-secondary">JSON Database</a>
+                <a href="/dashboard" class="btn">← Command Bridge</a>
+                <a href="/dashboard/database/json" class="btn btn-secondary">JSON Directory</a>
             </div>
         </div>
 
         <div id="alertContainer"></div>
 
-        <div class="query-section">
-            <h3 class="table-title">Execute SQL Query</h3>
-            <textarea id="queryInput" class="query-input" placeholder="Enter your SQL query here...
+        <div class="panel">
+            <div class="panel-header">
+                <h3 class="panel-title">🧬 SQL Query Executor</h3>
+            </div>
+            <textarea id="queryInput" class="query-input" placeholder="Execute structured queries against core relational stores...
+
 Examples:
 SELECT * FROM users;
-INSERT INTO users (username, email) VALUES ('john', 'john@example.com');
-UPDATE users SET email = 'newemail@example.com' WHERE id = 1;
-DELETE FROM users WHERE id = 1;"></textarea>
+INSERT INTO users (username, email) VALUES ('bridge_op', 'op@shareify.local');
+UPDATE users SET role = 'admin' WHERE id = 1;
+DELETE FROM users WHERE inactive = 1;"></textarea>
             <button onclick="executeQuery()" class="btn">Execute Query</button>
         </div>
 
-        <div class="table-container">
-            <div class="table-header">
-                <h3 class="table-title">Database Tables</h3>
-                <button onclick="loadTables()" class="btn btn-secondary">Refresh Tables</button>
+        <div class="panel">
+            <div class="panel-header">
+                <h3 class="panel-title">📊 Schema Explorer</h3>
+                <button onclick="loadTables()" class="btn btn-secondary">Refresh Schema</button>
             </div>
-            <div id="tablesContainer">
-                <p>Click "Refresh Tables" to load database tables</p>
+            <div id="tablesContainer" class="table-selector">
+                <p style="color: var(--text-secondary);">Initialize schema discovery to explore available tables</p>
             </div>
         </div>
 
-        <div class="table-container">
-            <div class="table-header">
-                <h3 class="table-title">Query Results</h3>
+        <div class="panel">
+            <div class="panel-header">
+                <h3 class="panel-title">⚡ Execution Results</h3>
             </div>
             <div id="resultsContainer">
-                <p>Execute a query to see results here</p>
+                <div class="empty-state">
+                    <p>Query results will populate here after execution</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Add Row Modal -->
     <div id="addRowModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Add New Row</h3>
+                <h3>Insert Record</h3>
                 <span class="close" onclick="closeAddRowModal()">&times;</span>
             </div>
             <form id="addRowForm">
                 <div id="addRowFields"></div>
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                    <button type="button" onclick="closeAddRowModal()" class="btn btn-cancel">Cancel</button>
-                    <button type="submit" class="btn btn-success">Add Row</button>
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                    <button type="button" onclick="closeAddRowModal()" class="btn btn-cancel">Abort</button>
+                    <button type="submit" class="btn btn-success">Insert Record</button>
                 </div>
             </form>
         </div>
@@ -418,10 +493,10 @@ DELETE FROM users WHERE id = 1;"></textarea>
                     }
                     loadTables();
                 } else {
-                    showAlert(result.error, 'error');
+                    showAlert('Execution failed: ' + result.error, 'error');
                 }
             } catch (error) {
-                showAlert('Error executing query: ' + error.message, 'error');
+                showAlert('Network failure: ' + error.message, 'error');
             }
         }
 
@@ -429,7 +504,7 @@ DELETE FROM users WHERE id = 1;"></textarea>
             const container = document.getElementById('resultsContainer');
             
             if (rows.length === 0) {
-                container.innerHTML = '<p>No results found</p>';
+                container.innerHTML = '<div class="empty-state"><p>Query returned no records</p></div>';
                 return;
             }
 
@@ -442,7 +517,7 @@ DELETE FROM users WHERE id = 1;"></textarea>
             rows.forEach(row => {
                 html += '<tr>';
                 row.forEach(cell => {
-                    html += `<td>${cell || ''}</td>`;
+                    html += `<td>${cell || '<em style="color: var(--text-secondary);">null</em>'}</td>`;
                 });
                 html += '</tr>';
             });
@@ -468,10 +543,10 @@ DELETE FROM users WHERE id = 1;"></textarea>
                 if (result.success && result.rows) {
                     displayTables(result.rows);
                 } else {
-                    showAlert('Error loading tables: ' + (result.error || 'Unknown error'), 'error');
+                    showAlert('Schema discovery failed: ' + (result.error || 'Unknown error'), 'error');
                 }
             } catch (error) {
-                showAlert('Error loading tables: ' + error.message, 'error');
+                showAlert('Network failure: ' + error.message, 'error');
             }
         }
 
@@ -479,20 +554,19 @@ DELETE FROM users WHERE id = 1;"></textarea>
             const container = document.getElementById('tablesContainer');
             
             if (tables.length === 0) {
-                container.innerHTML = '<p>No tables found in database</p>';
+                container.innerHTML = '<div class="empty-state"><p>No tables discovered in schema</p></div>';
                 return;
             }
 
-            let html = '<div style="display: flex; flex-wrap: wrap; gap: 10px;">';
+            let html = '';
             tables.forEach(table => {
                 const tableName = table[0];
                 html += `
-                    <button onclick="loadTableData('${tableName}')" class="btn btn-secondary">
+                    <button onclick="loadTableData('${tableName}')" class="table-btn">
                         📊 ${tableName}
                     </button>
                 `;
             });
-            html += '</div>';
             container.innerHTML = html;
         }
 
@@ -513,12 +587,12 @@ DELETE FROM users WHERE id = 1;"></textarea>
                 
                 if (result.success) {
                     displayTableData(tableName, result.columns, result.rows);
-                    showAlert(`Loaded data from table: ${tableName}`);
+                    showAlert(`Schema loaded: ${tableName}`);
                 } else {
-                    showAlert('Error loading table data: ' + result.error, 'error');
+                    showAlert('Table load failed: ' + result.error, 'error');
                 }
             } catch (error) {
-                showAlert('Error loading table data: ' + error.message, 'error');
+                showAlert('Network failure: ' + error.message, 'error');
             }
         }
 
@@ -526,16 +600,16 @@ DELETE FROM users WHERE id = 1;"></textarea>
             const container = document.getElementById('resultsContainer');
             
             let html = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h4>Table: ${tableName}</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+                    <h4 style="color: var(--text-primary);">Table: ${tableName}</h4>
                     <button onclick="openAddRowModal('${tableName}', ${JSON.stringify(columns).replace(/"/g, '&quot;')})" class="btn btn-success">
-                        ➕ Add Row
+                        ➕ Insert Record
                     </button>
                 </div>
             `;
 
             if (rows.length === 0) {
-                html += '<p>No data in this table</p>';
+                html += '<div class="empty-state"><p>Table contains no records</p></div>';
                 container.innerHTML = html;
                 return;
             }
@@ -637,22 +711,22 @@ DELETE FROM users WHERE id = 1;"></textarea>
                 const result = await response.json();
                 
                 if (result.success) {
-                    showAlert('Row updated successfully');
+                    showAlert('Record updated successfully');
                     cancelEdit(rowIndex);
                     const displays = row.querySelectorAll('.cell-display');
                     inputs.forEach((input, index) => {
                         displays[index].textContent = input.value;
                     });
                 } else {
-                    showAlert('Error updating row: ' + result.error, 'error');
+                    showAlert('Update failed: ' + result.error, 'error');
                 }
             } catch (error) {
-                showAlert('Error updating row: ' + error.message, 'error');
+                showAlert('Network failure: ' + error.message, 'error');
             }
         }
 
         async function deleteRow(tableName, rowId) {
-            if (!confirm('Are you sure you want to delete this row? This action cannot be undone.')) {
+            if (!confirm('Remove this record permanently? This operation cannot be undone.')) {
                 return;
             }
 
@@ -671,13 +745,13 @@ DELETE FROM users WHERE id = 1;"></textarea>
                 const result = await response.json();
                 
                 if (result.success) {
-                    showAlert('Row deleted successfully');
+                    showAlert('Record deleted successfully');
                     loadTableData(tableName);
                 } else {
-                    showAlert('Error deleting row: ' + result.error, 'error');
+                    showAlert('Deletion failed: ' + result.error, 'error');
                 }
             } catch (error) {
-                showAlert('Error deleting row: ' + error.message, 'error');
+                showAlert('Network failure: ' + error.message, 'error');
             }
         }
 
@@ -691,7 +765,7 @@ DELETE FROM users WHERE id = 1;"></textarea>
                 if (column.toLowerCase() !== 'id') {
                     html += `
                         <div class="form-group">
-                            <label for="field-${column}">${column}:</label>
+                            <label for="field-${column}">${column}</label>
                             <input type="text" id="field-${column}" name="${column}" class="input-field">
                         </div>
                     `;
@@ -735,14 +809,14 @@ DELETE FROM users WHERE id = 1;"></textarea>
                 const result = await response.json();
                 
                 if (result.success) {
-                    showAlert('Row added successfully');
+                    showAlert('Record inserted successfully');
                     closeAddRowModal();
                     loadTableData(currentTable);
                 } else {
-                    showAlert('Error adding row: ' + result.error, 'error');
+                    showAlert('Insert failed: ' + result.error, 'error');
                 }
             } catch (error) {
-                showAlert('Error adding row: ' + error.message, 'error');
+                showAlert('Network failure: ' + error.message, 'error');
             }
         });
 

@@ -7,6 +7,85 @@ import time
 
 app = Flask(__name__)
 
+def store_file_on_server(base_url, jwt_token, file_response, shareify_jwt=None):
+    try:
+        content = file_response.get("content")
+        content_type = file_response.get("type", "text")
+        filename = file_response.get("filename", "download")
+        
+        if not content:
+            return None
+        
+        headers = {
+            "Authorization": f"Bearer {jwt_token}",
+            "Content-Type": "application/json"
+        }
+        
+        if shareify_jwt:
+            headers["X-Shareify-JWT"] = shareify_jwt
+
+        store_payload = {
+            "content": content,
+            "content_type": content_type,
+            "filename": filename,
+            "server_id": "cloud_command",
+            "user_id": "api_user"
+        }
+
+        print(f"Storing file {filename} on server...")
+        
+        store_response = requests.post(
+            f"{base_url}/cloud/file/store",
+            json=store_payload,
+            headers=headers,
+            timeout=30
+        )
+        
+        if store_response.status_code == 200:
+            store_data = store_response.json()
+            
+            if store_data.get("success"):
+                print(f"File stored successfully with ID: {store_data.get('file_id')}")
+                
+                retrieve_response = requests.post(
+                    f"{base_url}/cloud/file/retrieve",
+                    json={
+                        "file_id": store_data.get("file_id"), 
+                        "password": store_data.get("password")
+                    },
+                    headers=headers,
+                    timeout=30
+                )
+                
+                if retrieve_response.status_code == 200:
+                    retrieve_data = retrieve_response.json()
+                    
+                    if retrieve_data.get("success"):
+                        print(f"File retrieved successfully ({retrieve_data.get('file_size', 0)} bytes)")
+                        return {
+                            "content": retrieve_data["content"],
+                            "type": retrieve_data.get("content_type", content_type),
+                            "filename": retrieve_data.get("filename", filename),
+                            "file_size": retrieve_data.get("file_size", 0),
+                            "status": "File retrieved from server storage"
+                        }
+                    else:
+                        print(f"Failed to retrieve stored file: {retrieve_data.get('error')}")
+                        return None
+                else:
+                    print(f"File retrieval failed with status {retrieve_response.status_code}")
+                    return None
+            else:
+                print(f"Failed to store file: {store_data.get('error')}")
+                return None
+        else:
+            print(f"File storage failed with status {store_response.status_code}")
+            return None
+            
+    except Exception as e:
+        print(f"Error storing file on server: {e}")
+        return None
+
 def retrieve_stored_file(base_url, file_storage_response):
     try:
         file_id = file_storage_response.get("file_id")
@@ -36,7 +115,7 @@ def retrieve_stored_file(base_url, file_storage_response):
                     "status": file_storage_response.get("status", "File retrieved successfully"),
                     "content": retrieve_data["content"],
                     "type": original_type,
-                    "filename": filename,
+                    "filename": filename or "unknown_file",
                     "file_size": retrieve_data.get("file_size", 0)
                 }
             else:
@@ -137,9 +216,33 @@ def cloud_full(base_url, jwt_token, command, method, shareify_jwt, wait_time, bo
                         
                         if total_chunks > 0 and chunks_received == total_chunks:
                             if "assembled_data" in command_response:
-                                return command_response["assembled_data"]
+                                assembled_response = command_response["assembled_data"]
+
+                                if (isinstance(assembled_response, dict) and 
+                                    'content' in assembled_response and 
+                                    command and 
+                                    ('get_file' in command or 'download' in command or 'file' in command)):
+                                    
+                                    print("Detected chunked file response, storing on server...")
+                                    stored_file_response = store_file_on_server(base_url, jwt_token, assembled_response, shareify_jwt)
+                                    if stored_file_response:
+                                        return stored_file_response
+                                
+                                return assembled_response
                             elif "response" in command_response:
-                                return command_response["response"]
+                                response = command_response["response"]
+
+                                if (isinstance(response, dict) and 
+                                    'content' in response and 
+                                    command and 
+                                    ('get_file' in command or 'download' in command or 'file' in command)):
+                                    
+                                    print("Detected chunked file response, storing on server...")
+                                    stored_file_response = store_file_on_server(base_url, jwt_token, response, shareify_jwt)
+                                    if stored_file_response:
+                                        return stored_file_response
+                                
+                                return response
                         else:
                             continue
                     else:
@@ -153,6 +256,16 @@ def cloud_full(base_url, jwt_token, command, method, shareify_jwt, wait_time, bo
                                     return file_result
                                 else:
                                     return {"error": "Failed to retrieve stored file"}
+
+                            if (isinstance(response, dict) and 
+                                'content' in response and 
+                                command and 
+                                ('get_file' in command or 'download' in command or 'file' in command)):
+                                
+                                print("Detected file response, storing on server...")
+                                stored_file_response = store_file_on_server(base_url, jwt_token, response, shareify_jwt)
+                                if stored_file_response:
+                                    return stored_file_response
                             
                             return response
                         else:
@@ -248,17 +361,35 @@ def index():
             else:
                 print(f"Command completed successfully")
         
-        if isinstance(result, dict) and command and 'get_file' in command:
-            if 'content' in result:
+        download_param = request.args.get('download', '').lower() == 'true'
+        browser_request = 'mozilla' in request.headers.get('User-Agent', '').lower() or 'chrome' in request.headers.get('User-Agent', '').lower()
+        
+        if isinstance(result, dict) and 'content' in result and (download_param or browser_request):
+            is_file_response = (
+                result.get('filename') or
+                result.get('type') == 'binary' or
+                (command and ('get_file' in command or 'download' in command or 'file' in command)) or
+                result.get('file_size') or
+                'mime_type' in result
+            )
+            
+            if is_file_response:
                 content = result['content']
                 content_type = result.get('type', 'text')
                 filename = result.get('filename', 'download')
                 mimetype = result.get('mime_type')
+                file_size = result.get('file_size', len(str(content)))
 
                 if not mimetype and filename:
                     import mimetypes
                     guessed_type, _ = mimetypes.guess_type(filename)
                     mimetype = guessed_type
+
+                if '.' not in filename and mimetype:
+                    import mimetypes
+                    ext = mimetypes.guess_extension(mimetype)
+                    if ext:
+                        filename += ext
 
                 if content_type == 'binary':
                     try:
@@ -270,14 +401,55 @@ def index():
                     file_stream = io.BytesIO(str(content).encode('utf-8'))
 
                 file_stream.seek(0)
-                return send_file(
+                
+                response = send_file(
                     file_stream,
                     mimetype=mimetype or ('text/plain' if content_type == 'text' else 'application/octet-stream'),
                     as_attachment=True,
-                    download_name=filename
+                    download_name=filename or 'download'
                 )
-            elif result.get('error'):
-                return jsonify(result), 400
+                
+                response.headers['Content-Length'] = str(len(file_stream.getvalue()))
+                if file_size:
+                    response.headers['X-File-Size'] = str(file_size)
+                response.headers['X-Original-Filename'] = filename
+                
+                return response
+        
+        if isinstance(result, dict) and 'content' in result:
+            filename = result.get('filename') or 'unknown_file'
+            content_type = result.get('type', 'text')
+            
+            if not result.get('mime_type') and filename and filename != 'unknown_file':
+                import mimetypes
+                guessed_type, _ = mimetypes.guess_type(filename)
+                if guessed_type:
+                    result['mime_type'] = guessed_type
+            
+            if content_type == 'binary' and filename and filename != 'unknown_file':
+                file_ext = filename.split('.')[-1].lower() if '.' in filename else ''
+                
+                if file_ext in ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico']:
+                    result['file_type'] = 'image'
+                elif file_ext in ['mp4', 'mov', 'avi', 'mkv', 'webm', 'mpeg', 'mpg', 'm4v']:
+                    result['file_type'] = 'video'
+                elif file_ext in ['mp3', 'wav', 'aac', 'ogg', 'flac', 'm4a', 'wma']:
+                    result['file_type'] = 'audio'
+                elif file_ext == 'pdf':
+                    result['file_type'] = 'pdf'
+                elif file_ext in ['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx']:
+                    result['file_type'] = 'document'
+                elif file_ext in ['txt', 'md', 'csv', 'log', 'json', 'xml', 'html', 'css', 'js']:
+                    result['file_type'] = 'text'
+                    result['type'] = 'text'
+                else:
+                    result['file_type'] = 'binary'
+            elif content_type == 'binary':
+                result['file_type'] = 'binary'
+            else:
+                result['file_type'] = 'text'
+            
+            result['filename'] = filename
         
         return jsonify(result)
     except Exception as e:
