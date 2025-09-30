@@ -1,14 +1,8 @@
-🎉 Shareify 1.0.0 - First Stable Release! 🎉
-
-The complete personal cloud storage solution is here!
+🎉 Shareify 1.1.0 - Smarter, Faster, Better! 🎉
 
 🆕 What's New:
-• 📱 Native iOS App - Beautiful SwiftUI interface with real-time monitoring
-• ☁️ Cloud Services - Multi-server management with WebSocket communication  
-• 🔐 Enhanced Security - JWT authentication & role-based access control
-• 📁 Advanced File Management - Batch operations, previews & syntax highlighting
-• 👥 Complete User System - Granular permissions & activity tracking
-• 📊 System Monitoring - Live resource tracking & enhanced logging
-• 🔧 FTP Server Integration - Built-in FTP with full management tools
+• 📱 iOS Finder & File Preview - Seamless mobile browsing and previews  
+• ☁️ Improved Cloud Commands - Faster, more reliable remote execution  
+• 🚀 Update System - Quicker, more stable updates
 
-From beta to production-ready - experience the future of file sharing!
+Experience a more modern and faster Shareify!
