@@ -73,24 +73,40 @@ Shareify/
 │   ├── main.py        # Flask app entry point
 │   ├── cloud_connection.py  # Bridge communication
 │   ├── database.py    # SQLite wrapper
-│   └── web/          # Static files (HTML/CSS/JS)
+│   └── web/           # Static files (HTML/CSS/JS)
 │
 ├── cloud/             # Bridge services (I host these)
 │   ├── server.py      # WebSocket relay server
 │   ├── main.py        # Command API server
 │   └── templates/     # Web dashboard for bridge
 │
-├── ios_app/           # Native iOS app
-│   └── shareify/      # Xcode project folder
+├── current/           # Development helpers (installers, launchers, mirrors)
+│   ├── main.py
+│   ├── launcher.py
+│   └── settings/
 │
-├── guides/            # Documentation
-│   ├── Install.md     # Step-by-step setup
-│   ├── API.md         # REST API docs  
-│   └── ios_app.md     # iOS app guide
+├── static/            # Shared static assets and templates used by cloud/host
+│   └── templates/
 │
-└── info/              # Version info
-    ├── version        # Current version number
-    └── msg.json       # Update messages
+├── ios_app/           # Native iOS app (Xcode project)
+│   └── shareify/
+│
+├── guides/            # Documentation (Install, API, iOS guide...)
+│
+├── website/           # Marketing / website assets
+│
+├── info/              # Version info (version file, update messages)
+│   ├── version
+│   └── msg.json
+│
+├── som-demo/          # small demo site
+│
+├── cloud-bridge.html  # misc root-level files
+├── index.html
+├── README.md
+├── package.json
+├── style.css
+└── LICENSE
 ```
 
 ## Getting started
