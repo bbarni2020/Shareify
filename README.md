@@ -111,7 +111,7 @@ Shareify/
 
 ## Getting started
 
-**Requirements**: Python 3.7+, works on Windows/Mac/Linux. You'll need about 100MB for the app itself, plus whatever space you want for your files.
+**Requirements**: Python 3.7+, works on Windows 10+/Linux/Mac (tested on macOS). You'll need about 100MB for the app itself, plus whatever space you want for your files.
 
 The installation is pretty simple - check out [guides/Install.md](guides/Install.md) for the full walkthrough.
 
