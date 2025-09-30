@@ -34,6 +34,9 @@ struct FinderView: View {
     @State private var previewedFileContent: String? = nil
     @State private var previewedFileType: String? = nil
     @State private var isPreviewLoading: Bool = false
+    @State private var showingMediaPlayer = false
+    @State private var mediaFile: FinderItem? = nil
+    @State private var mediaContent: String? = nil
     
     
     var currentItems: [FinderItem] {
@@ -142,6 +145,21 @@ struct FinderView: View {
                             }
                         }
                     )
+                }
+                
+                if showingMediaPlayer, let file = mediaFile, let content = mediaContent {
+                    MediaPlayerView(
+                        file: file,
+                        content: content,
+                        onDismiss: {
+                            withAnimation(.easeInOut(duration: 0.35)) {
+                                showingMediaPlayer = false
+                                mediaFile = nil
+                                mediaContent = nil
+                            }
+                        }
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
         }
@@ -428,40 +446,74 @@ struct FinderView: View {
                     }
                 }
             } else {
-                isPreviewLoading = true
-                previewedFile = item
-                previewedFileContent = nil
-                previewedFileType = nil
-                let filePath = (currentPath + [item.name]).joined(separator: "/")
+                let lowerName = item.name.lowercased()
                 
-                let command = "/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
-                let requestBody: [String: Any] = [:]
-                
-                ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
-                    DispatchQueue.main.async {
-                        isPreviewLoading = false
-                        switch result {
-                        case .success(let response):
-                            if let json = response as? [String: Any],
-                               let status = json["status"] as? String, status == "File content retrieved" {
-                                previewedFileContent = json["content"] as? String
-                                previewedFileType = json["type"] as? String
-                                
-                                withAnimation(.easeInOut(duration: 0.35)) {
+                if PreviewHelper.isVideoFile(lowerName) || PreviewHelper.isAudioFile(lowerName) {
+                    mediaFile = item
+                    mediaContent = ""
+                    
+                    withAnimation(.easeInOut(duration: 0.35)) {
+                        showingMediaPlayer = true
+                    }
+                    
+                    let filePath = (currentPath + [item.name]).joined(separator: "/")
+                    let command = "/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
+                    let requestBody: [String: Any] = [:]
+                    
+                    ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
+                        DispatchQueue.main.async {
+                            switch result {
+                            case .success(let response):
+                                if let json = response as? [String: Any],
+                                   let status = json["status"] as? String, status == "File content retrieved",
+                                   let content = json["content"] as? String {
+                                    
+                                    mediaContent = content
+                                } else if let json = response as? [String: Any],
+                                          let error = json["error"] as? String {
+                                    print("Server error: \(error)")
                                 }
-                            } else if let json = response as? [String: Any],
-                                      let error = json["error"] as? String {
-                                print("Server error: \(error)")
-                                previewedFileContent = "Server error: \(error)"
-                                previewedFileType = "text"
-                            } else {
-                                previewedFileContent = "Failed to load file - unexpected response format."
+                            case .failure(let error):
+                                print("Failed to load media file: \(error)")
+                            }
+                        }
+                    }
+                } else {
+                    isPreviewLoading = true
+                    previewedFile = item
+                    previewedFileContent = nil
+                    previewedFileType = nil
+                    let filePath = (currentPath + [item.name]).joined(separator: "/")
+                    
+                    let command = "/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
+                    let requestBody: [String: Any] = [:]
+                    
+                    ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
+                        DispatchQueue.main.async {
+                            isPreviewLoading = false
+                            switch result {
+                            case .success(let response):
+                                if let json = response as? [String: Any],
+                                   let status = json["status"] as? String, status == "File content retrieved" {
+                                    previewedFileContent = json["content"] as? String
+                                    previewedFileType = json["type"] as? String
+                                    
+                                    withAnimation(.easeInOut(duration: 0.35)) {
+                                    }
+                                } else if let json = response as? [String: Any],
+                                          let error = json["error"] as? String {
+                                    print("Server error: \(error)")
+                                    previewedFileContent = "Server error: \(error)"
+                                    previewedFileType = "text"
+                                } else {
+                                    previewedFileContent = "Failed to load file - unexpected response format."
+                                    previewedFileType = "text"
+                                }
+                            case .failure(let error):
+                                print("Failed to load file: \(error)")
+                                previewedFileContent = "Failed to load file: \(error.localizedDescription)"
                                 previewedFileType = "text"
                             }
-                        case .failure(let error):
-                            print("Failed to load file: \(error)")
-                            previewedFileContent = "Failed to load file: \(error.localizedDescription)"
-                            previewedFileType = "text"
                         }
                     }
                 }
@@ -530,6 +582,78 @@ struct FinderView: View {
                             self.cacheItems(finderItems, for: newPathString)
                         case .failure(_):
                             self.items = []
+                        }
+                    }
+                }
+            } else {
+                let lowerName = item.name.lowercased()
+                
+                if PreviewHelper.isVideoFile(lowerName) || PreviewHelper.isAudioFile(lowerName) {
+                    mediaFile = item
+                    mediaContent = ""
+                    
+                    withAnimation(.easeInOut(duration: 0.35)) {
+                        showingMediaPlayer = true
+                    }
+                    
+                    let filePath = (currentPath + [item.name]).joined(separator: "/")
+                    let command = "/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
+                    let requestBody: [String: Any] = [:]
+                    
+                    ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
+                        DispatchQueue.main.async {
+                            switch result {
+                            case .success(let response):
+                                if let json = response as? [String: Any],
+                                   let status = json["status"] as? String, status == "File content retrieved",
+                                   let content = json["content"] as? String {
+                                    
+                                    mediaContent = content
+                                } else if let json = response as? [String: Any],
+                                          let error = json["error"] as? String {
+                                    print("Server error: \(error)")
+                                }
+                            case .failure(let error):
+                                print("Failed to load media file: \(error)")
+                            }
+                        }
+                    }
+                } else {
+                    isPreviewLoading = true
+                    previewedFile = item
+                    previewedFileContent = nil
+                    previewedFileType = nil
+                    let filePath = (currentPath + [item.name]).joined(separator: "/")
+                    
+                    let command = "/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
+                    let requestBody: [String: Any] = [:]
+                    
+                    ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
+                        DispatchQueue.main.async {
+                            isPreviewLoading = false
+                            switch result {
+                            case .success(let response):
+                                if let json = response as? [String: Any],
+                                   let status = json["status"] as? String, status == "File content retrieved" {
+                                    previewedFileContent = json["content"] as? String
+                                    previewedFileType = json["type"] as? String
+                                    
+                                    withAnimation(.easeInOut(duration: 0.35)) {
+                                    }
+                                } else if let json = response as? [String: Any],
+                                          let error = json["error"] as? String {
+                                    print("Server error: \(error)")
+                                    previewedFileContent = "Server error: \(error)"
+                                    previewedFileType = "text"
+                                } else {
+                                    previewedFileContent = "Failed to load file - unexpected response format."
+                                    previewedFileType = "text"
+                                }
+                            case .failure(let error):
+                                print("Failed to load file: \(error)")
+                                previewedFileContent = "Failed to load file: \(error.localizedDescription)"
+                                previewedFileType = "text"
+                            }
                         }
                     }
                 }
@@ -938,17 +1062,8 @@ struct PreviewHelper {
     @ViewBuilder
     static func imagePreviewView(file: FinderItem, content: String) -> some View {
         if let imageData = Data(base64Encoded: content), let uiImage = UIImage(data: imageData) {
-            GeometryReader { geometry in
-                ScrollView([.horizontal, .vertical]) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: geometry.size.width - 56, maxHeight: geometry.size.height - 200)
-                        .clipped()
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .padding(28)
+            ZoomableImageView(image: uiImage)
+                .padding(28)
         } else {
             VStack {
                 Image(systemName: "photo.fill")
