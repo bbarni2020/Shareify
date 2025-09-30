@@ -309,7 +309,7 @@ def index():
         
         data = request.get_json() or {}
         
-        base_url = 'https://bridge.bbarni.hackclub.app'
+        base_url = 'http://0.0.0.0:5698'
         
         jwt_token = data.get('jwt_token')
         if not jwt_token:
