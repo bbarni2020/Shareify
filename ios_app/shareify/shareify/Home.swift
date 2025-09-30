@@ -64,7 +64,7 @@ struct Home: View {
                                             isFlickering = true
                                         }
                                     }
-                                    Text("Shareify 2.")
+                                    Text("Shareify 1.")
                                         .foregroundColor(hasServerError ? Color.red : Color(red: 0x6F/255, green: 0xE6/255, blue: 0x8A/255))
                                         .font(.system(size: 16, weight: .medium))
                                 }
