@@ -43,6 +43,15 @@ struct NowPlayingIndicator: View {
             
             Spacer()
             
+            Button(action: {
+                media.player.pause()
+                playbackManager.currentlyPlaying = nil
+            }) {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+            }
+            
             playPauseButton(for: media, size: 32)
         }
         .padding(.horizontal, 12)
@@ -68,9 +77,8 @@ struct NowPlayingIndicator: View {
                 Spacer()
                 
                 Button(action: {
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                        isExpanded = false
-                    }
+                    media.player.pause()
+                    playbackManager.currentlyPlaying = nil
                 }) {
                     Image(systemName: "chevron.down")
                         .font(.system(size: 14, weight: .medium))
