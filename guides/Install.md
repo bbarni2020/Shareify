@@ -66,7 +66,7 @@ powershell Expand-Archive -Path Shareify.zip -DestinationPath .
 Everything else:
 ```bash
 unzip Shareify.zip
-cd Shareify/host
+cd Shareify
 ```
 
 ### Run the installer
