@@ -76,6 +76,9 @@ This is the easy part:
 python3 install.py
 ```
 
+If it freezes for a long time, press Ctrl+C to continue.  
+
+
 The script does a bunch of stuff automatically:
 - Checks if pip is installed (installs it if missing)
 - Updates pip to latest version
