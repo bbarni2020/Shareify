@@ -32,7 +32,7 @@ Need Python 3.7+ and about 100MB space. Works on Windows/Mac/Linux.
 
 ```bash
 git clone https://github.com/bbarni2020/Shareify.git
-cd Shareify/host
+cd Shareify
 pip install -r requirements.txt
 python3 main.py
 ```
