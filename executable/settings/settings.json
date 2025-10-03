@@ -1,1 +1,1 @@
-"ftp": false, "ftp_host": "localhost", "ftp_port": 5656, "ftp_timeout": 300, "host": "0.0.0.0", "path": "", "port": 6969, "version": "1.2.0"}
+{"ftp": false, "ftp_host": "localhost", "ftp_port": 5656, "ftp_timeout": 300, "host": "0.0.0.0", "path": "", "port": 6969, "version": "1.2.0"}

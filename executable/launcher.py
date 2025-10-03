@@ -5,7 +5,7 @@ import platform
 import json
 import requests
 try:
-    from . import update
+    import update
 except ImportError:
     import update
 import threading

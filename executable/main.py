@@ -19,7 +19,7 @@ import threading
 import sys
 import ctypes
 try:
-    from . import update
+    import update
 except ImportError:
     import update
 from werkzeug.utils import secure_filename
@@ -67,8 +67,8 @@ class CustomAuthorizer(DummyAuthorizer):
             user_list.append([username, user_data.get('pwd', ''), user_data.get('home', ''), user_data.get('perm', '')])
         return user_list
 authorizer = CustomAuthorizer()
-logs_db_path = os.path.join(os.path.dirname(__file__), 'db/logs.db')
-users_db_path = os.path.join(os.path.dirname(__file__), 'db/users.db')
+logs_db_path = os.path.join(os.path.dirname(__file__), 'db', 'logs.db')
+users_db_path = os.path.join(os.path.dirname(__file__), 'db', 'users.db')
 ftp_server_instance = None
 
 def initialize_logs_db():
@@ -79,7 +79,7 @@ def initialize_logs_db():
     conn.close()
 
 def initialize_users_db():
-    db_path = os.path.join(os.path.dirname(__file__), 'db/users.db')
+    db_path = os.path.join(os.path.dirname(__file__), 'db', 'users.db')
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute('\n        CREATE TABLE IF NOT EXISTS users (\n            id INTEGER PRIMARY KEY AUTOINCREMENT,\n            username TEXT NOT NULL UNIQUE,\n            password TEXT NOT NULL,\n            name TEXT NOT NULL,\n            ip TEXT,\n            role TEXT NOT NULL,\n            ftp_users TEXT,\n            paths TEXT,\n            settings TEXT,\n            API_KEY TEXT NOT NULL,\n            paths_write TEXT\n        )\n    ')
@@ -221,8 +221,8 @@ def stop_completely():
         print_status(f'Error during shutdown: {e}', 'error')
         log(f'Error during shutdown: {e}', '-')
         os._exit(1)
-settings_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings/settings.json')
-roles_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings/roles.json')
+settings_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings', 'settings.json')
+roles_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings', 'roles.json')
 settings = load_settings(settings_file)
 roles = load_roles(roles_file)
 

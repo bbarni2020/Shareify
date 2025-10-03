@@ -44,10 +44,12 @@ sys.path.insert(0, application_path)
 
 if __name__ == "__main__":
     try:
-        from main import main
-        main()
+        import main
+        main.main()
     except ImportError as e:
         print(f"Error importing main module: {e}")
+        print(f"Current working directory: {os.getcwd()}")
+        print(f"Python path: {sys.path}")
         sys.exit(1)
     except Exception as e:
         print(f"Error running Shareify: {e}")
@@ -61,10 +63,18 @@ if __name__ == "__main__":
 
     def create_spec_file(self, entry_script):
         spec_content = f'''import os
+from pathlib import Path
 
 block_cipher = None
 
 datas = []
+
+# Include all Python files from the executable directory
+executable_dir = r"{self.script_dir}"
+python_files = []
+for py_file in Path(executable_dir).glob("*.py"):
+    if py_file.name not in ['build_executable.py', 'shareify_entry.py']:
+        python_files.append(str(py_file))
 
 web_dir = r"{self.script_dir / 'web'}"
 if os.path.exists(web_dir):
@@ -79,11 +89,18 @@ if os.path.exists(db_dir):
     datas.append((db_dir, 'db'))
 
 a = Analysis(
-    [r'{entry_script}'],
+    [r'{entry_script}'] + python_files,
     pathex=[r'{self.script_dir}'],
     binaries=[],
     datas=datas,
     hiddenimports=[
+        'main',
+        'launcher', 
+        'install',
+        'update',
+        'cloud_connection',
+        'venv_manager',
+        'startup',
         'flask',
         'flask_cors',
         'flask_limiter',

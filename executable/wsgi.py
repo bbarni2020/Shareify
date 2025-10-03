@@ -3,7 +3,7 @@ import os
 import json
 sys.path.insert(0, os.path.dirname(__file__))
 try:
-    from . import update
+    import update
 except ImportError:
     import update
 
@@ -21,7 +21,7 @@ def load_settings():
         return None
 settings = load_settings()
 try:
-    from .main import create_app
+    from main import create_app
 except ImportError:
     from main import create_app
 application = create_app()
