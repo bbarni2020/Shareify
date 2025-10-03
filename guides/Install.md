@@ -30,6 +30,40 @@ Quick sanity check:
 
 ## Installation
 
+## (Shortcut) Running the prebuilt executables (Windows & macOS)
+
+If you don't want to install Python or run the installer script you can totally skip ahead and just use the prebuilt binaries from the GitHub Releases page.
+
+When this makes sense:
+- You just want to try it quickly
+- You're on a secondary machine and don't want to pollute it with Python packages
+- You plan to run it headless and auto‑start the exe/app
+
+Where to get them:
+1. Go to https://github.com/bbarni2020/Shareify/releases/latest
+2. Grab the archive that mentions Windows (contains `shareify.exe`) or macOS (app/binary)
+3. Extract it somewhere you have write access (NOT inside Program Files on Windows)
+
+Run it:
+- Windows: double‑click `shareify.exe` (or make a shortcut). A console window opens and logs will start scrolling.
+- macOS first launch: right‑click the app/binary > Open (Gatekeeper will complain the first time). After that you can open normally.
+
+Then point your browser at: http://localhost:6969
+
+Default credentials for the executable build:
+```
+user: admin
+password: root
+```
+Change them immediately after logging in (Settings → Users). Different default than the source install example earlier on purpose.
+
+
+Want it to auto start?
+- Windows: drop a shortcut into `shell:startup`
+- macOS: System Settings → Login Items → add the app
+
+If you later decide to hack the code or enable features I forgot to bundle, switch to the full "Installation" path below. Both can coexist.
+
 ### Getting the files
 
 **Option 1: One-liner (works everywhere)**
