@@ -12,3 +12,5 @@ postcss.config.js
 package.json
 package-lock.json
 /.github
+/executable/build
+/executable/dist
