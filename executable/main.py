@@ -151,14 +151,15 @@ def log(action, ip):
     conn.commit()
 
 def print_status(message, status_type='info'):
+    messager = f'[Shareify] {message}'
     if status_type == 'success':
-        print(Fore.GREEN + message)
+        print(Fore.GREEN + messager)
     elif status_type == 'error':
-        print(Fore.RED + message)
+        print(Fore.RED + messager)
     elif status_type == 'warning':
-        print(Fore.YELLOW + message)
+        print(Fore.YELLOW + messager)
     else:
-        print(Fore.BLUE + message)
+        print(Fore.BLUE + messager)
 
 def load_settings(file_path):
     if os.path.exists(file_path):

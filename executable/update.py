@@ -92,6 +92,9 @@ def run_main():
     os.system(f'''python3 "{os.path.join(os.path.dirname(os.path.abspath(__file__)), 'main.py')}"''')
 
 def update():
+    return
+
+def updater():
     if requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version').text != settings['version']:
         try:
             api_key = get_admin_api_key()

@@ -11,14 +11,15 @@ import requests
 from colorama import init, Fore, Back, Style
 
 def print_status(message, status_type='info'):
+    messager = f'[Shareify] {message}'
     if status_type == 'success':
-        print(Fore.GREEN + message)
+        print(Fore.GREEN + messager)
     elif status_type == 'error':
-        print(Fore.RED + message)
+        print(Fore.RED + messager)
     elif status_type == 'warning':
-        print(Fore.YELLOW + message)
+        print(Fore.YELLOW + messager)
     else:
-        print(Fore.BLUE + message)
+        print(Fore.BLUE + messager)
 
 def load_cloud_config():
     settings_dir = Path(__file__).parent / 'settings'

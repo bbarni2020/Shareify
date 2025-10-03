@@ -44,10 +44,10 @@ sys.path.insert(0, application_path)
 
 if __name__ == "__main__":
     try:
-        import main
-        main.main()
+        import launcher
+        launcher.main()
     except ImportError as e:
-        print(f"Error importing main module: {e}")
+        print(f"Error importing launcher module: {e}")
         print(f"Current working directory: {os.getcwd()}")
         print(f"Python path: {sys.path}")
         sys.exit(1)
