@@ -69,7 +69,6 @@ block_cipher = None
 
 datas = []
 
-# Include all Python files from the executable directory
 executable_dir = r"{self.script_dir}"
 python_files = []
 for py_file in Path(executable_dir).glob("*.py"):
@@ -183,29 +182,6 @@ coll = COLLECT(
         except Exception as e:
             self.log(f'✗ Error during build: {e}', 'ERROR')
             return False
-
-    def copy_required_folders(self):
-        self.log('Copying required folders to dist...')
-        
-        shareify_dist = self.dist_dir / 'shareify'
-        if not shareify_dist.exists():
-            self.log('✗ Shareify executable folder not found', 'ERROR')
-            return False
-        
-        folders = ['web', 'settings', 'db']
-        for folder_name in folders:
-            src_folder = self.script_dir / folder_name
-            dst_folder = shareify_dist / folder_name
-            
-            if dst_folder.exists():
-                shutil.rmtree(dst_folder)
-            
-            if src_folder.exists():
-                shutil.copytree(src_folder, dst_folder)
-                self.log(f'✓ Copied {folder_name} folder')
-            else:
-                dst_folder.mkdir(exist_ok=True)
-                self.log(f'✓ Created empty {folder_name} folder')
         
         return True
 
@@ -232,8 +208,6 @@ coll = COLLECT(
         if not self.build_executable(spec_path):
             return False
         
-        if not self.copy_required_folders():
-            return False
         
         self.cleanup_temp_files()
         
