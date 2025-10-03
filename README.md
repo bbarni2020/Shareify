@@ -37,7 +37,7 @@ pip install -r requirements.txt
 python3 main.py
 ```
 
-Open `http://localhost:3333` and you're running. Default login is admin/admin (change it immediately).
+Open `http://localhost:6969` and you're running. Default login is admin/admin (change it immediately).
 
 Full setup guide is in [guides/Install.md](guides/Install.md) if you want the details.
 
@@ -145,7 +145,7 @@ pip install -r requirements.txt
 python3 main.py
 ```
 
-Then open http://localhost:3333 and you're good to go.
+Then open http://localhost:6969 and you're good to go.
 
 ## The iOS app situation
 
