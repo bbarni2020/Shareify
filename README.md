@@ -41,6 +41,28 @@ Open `http://localhost:3333` and you're running. Default login is admin/admin (c
 
 Full setup guide is in [guides/Install.md](guides/Install.md) if you want the details.
 
+### Or just use the prebuilt executables (Windows & macOS)
+
+If you don't feel like installing Python or any deps: grab the latest release from the **Releases** page. There are standalone executables for Windows (.exe) and macOS (app / binary bundle).
+
+How that works:
+- Download the archive (zip) for your OS
+- Unzip it somewhere (Desktop, Downloads, wherever)
+- On Windows: double‑click `Shareify.exe`
+- On macOS: first launch may get a Gatekeeper warning – right‑click > Open the first time
+- A console / terminal window pops up and the server starts immediately
+
+Then hit: http://localhost:6969
+
+Default credentials when using the executable build:
+```
+user: admin
+password: root
+```
+(Yes, different from the source install example above — change it right away in either case.)
+
+No “installation” step, no virtualenv, no pip. Just run it. You can still switch to a full source setup later if you want to hack on the code.
+
 ## What you actually get
 
 The web interface is drag-and-drop simple. I kept it minimal because I got tired of bloated file managers. You can:

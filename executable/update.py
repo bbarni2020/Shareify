@@ -163,7 +163,10 @@ def updater():
         print('Waiting for 5 seconds before restarting...')
         sleep(5)
         print('Restarting the program...')
-        executable_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shareify.exe')
+        if os.name == 'nt':
+            executable_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shareify.exe')
+        else:
+            executable_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shareify')
         if os.path.exists(executable_path):
             t = threading.Thread(target=lambda: os.system(f'"{executable_path}"'))
         else:
