@@ -270,6 +270,78 @@ def create_jsons():
         except Exception as e:
             print(f"Failed to fetch or write cloud.json: {e}")
 
+def _list_windows_drives():
+    drives = []
+    try:
+        import string
+        for letter in string.ascii_uppercase:
+            drive = f"{letter}:\\"
+            if os.path.isdir(drive):
+                drives.append({
+                    "name": f"{letter}:",
+                    "path": drive
+                })
+    except Exception:
+        pass
+    return drives
+
+@app.route('/browse', methods=['GET'])
+def browse_directories():
+    requested = request.args.get('path', '').strip()
+    system_name = platform.system().lower()
+
+    if not requested:
+        if system_name == "windows":
+            return jsonify({
+                "path": None,
+                "parent": None,
+                "is_root": True,
+                "directories": _list_windows_drives()
+            })
+        requested = '/'
+
+    if system_name == "windows" and len(requested) == 2 and requested[1] == ':':
+        requested = f"{requested}\\"
+
+    candidate = Path(requested).expanduser()
+
+    try:
+        if system_name != "windows":
+            candidate = candidate.resolve()
+    except Exception:
+        return jsonify({"error": "Directory not accessible"}), 400
+
+    if not candidate.exists() or not candidate.is_dir():
+        return jsonify({"error": "Directory not found"}), 404
+
+    try:
+        directories = []
+        for item in sorted(candidate.iterdir(), key=lambda value: value.name.lower()):
+            if item.is_dir():
+                directories.append({
+                    "name": item.name or str(item),
+                    "path": str(item)
+                })
+    except PermissionError:
+        return jsonify({"error": "Permission denied"}), 403
+    except Exception:
+        return jsonify({"error": "Unable to browse directory"}), 500
+
+    parent_path = None
+    if candidate.parent != candidate:
+        parent_path = str(candidate.parent)
+    elif system_name == "windows" and candidate.anchor:
+        parent_path = ''
+
+    response = {
+        "path": str(candidate),
+        "parent": parent_path,
+        "is_root": False,
+        "directories": directories
+    }
+
+    return jsonify(response)
+
 @app.route('/')
 def install_page():
     return render_template('install.html')
