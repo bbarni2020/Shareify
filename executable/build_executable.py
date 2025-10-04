@@ -62,6 +62,8 @@ if __name__ == "__main__":
         return entry_script_path
 
     def create_spec_file(self, entry_script):
+        icon_path = self.script_dir / 'web' / 'assets' / 'icon.ico'
+
         spec_content = f'''import os
 from pathlib import Path
 
@@ -86,6 +88,10 @@ if os.path.exists(settings_dir):
 db_dir = r"{self.script_dir / 'db'}"
 if os.path.exists(db_dir):
     datas.append((db_dir, 'db'))
+
+icon_candidate = r"{icon_path}"
+if not os.path.exists(icon_candidate):
+    icon_candidate = None
 
 a = Analysis(
     [r'{entry_script}'] + python_files,
@@ -142,6 +148,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=icon_candidate,
 )
 
 coll = COLLECT(
