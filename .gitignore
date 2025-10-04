@@ -14,3 +14,4 @@ package-lock.json
 /.github
 /executable/build
 /executable/dist
+*.pyc
