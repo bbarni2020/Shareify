@@ -2,6 +2,8 @@ import SwiftUI
 import AVKit
 import AVFoundation
 import Combine
+import MediaPlayer
+import UIKit
 
 struct MediaPlayerView: View {
     let file: FinderItem
@@ -313,6 +315,8 @@ struct CustomAudioPlayerView: View {
     @State private var duration: Double = 0
     @State private var cancellables = Set<AnyCancellable>()
     @State private var isPlayerReady = false
+    @State private var timeObserver: Any?
+    @State private var remoteConfigured = false
     @StateObject private var playbackManager = PlaybackManager.shared
     @StateObject private var backgroundManager = BackgroundManager.shared
     
@@ -510,9 +514,12 @@ struct CustomAudioPlayerView: View {
                 type: .audio,
                 player: player!
             )
+
+            configureRemoteCommands()
             
-            player?.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { time in
+            timeObserver = player?.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { time in
                 currentTime = time.seconds
+                updateNowPlayingInfo()
             }
             
             NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: player?.currentItem, queue: .main) { _ in
@@ -538,6 +545,7 @@ struct CustomAudioPlayerView: View {
                     case .readyToPlay:
                         print("Audio player ready to play")
                         self.isPlayerReady = true
+                        self.updateNowPlayingInfo()
                     case .failed:
                         if let error = self.player?.currentItem?.error {
                             print("Audio player failed: \(error.localizedDescription)")
@@ -574,6 +582,7 @@ struct CustomAudioPlayerView: View {
             print("Starting player")
         }
         isPlaying.toggle()
+        updateNowPlayingInfo()
         
         if let currentMedia = playbackManager.currentlyPlaying {
             currentMedia.isPlaying = isPlaying
@@ -597,21 +606,54 @@ struct CustomAudioPlayerView: View {
     }
     
     private func cleanup() {
-        player?.pause()
-        playbackManager.currentlyPlaying = nil
-        isPlayerReady = false
-        
+        if let token = timeObserver { player?.removeTimeObserver(token) }
         if let player = player, let currentItem = player.currentItem {
             NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: currentItem)
         }
-
-        do {
-            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-        } catch {
-            print("Failed to deactivate audio session: \(error)")
-        }
-        
         cancellables.removeAll()
+    }
+
+    private func updateNowPlayingInfo() {
+        guard isPlayerReady else { return }
+        var info: [String: Any] = [
+            MPMediaItemPropertyTitle: file.name,
+            MPMediaItemPropertyArtist: "",
+            MPNowPlayingInfoPropertyElapsedPlaybackTime: currentTime,
+            MPMediaItemPropertyPlaybackDuration: duration,
+            MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? 1 : 0,
+            MPNowPlayingInfoPropertyDefaultPlaybackRate: 1.0
+        ]
+        if let item = player?.currentItem, let asset = item.asset as? AVURLAsset {
+            info[MPMediaItemPropertyAssetURL] = asset.url
+        }
+        if let img = UIImage(systemName: "music.note")?.withTintColor(.white, renderingMode: .alwaysOriginal) {
+            let artwork = MPMediaItemArtwork(boundsSize: img.size) { _ in img }
+            info[MPMediaItemPropertyArtwork] = artwork
+        }
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+    }
+
+    private func configureRemoteCommands() {
+        if remoteConfigured { return }
+        remoteConfigured = true
+        let center = MPRemoteCommandCenter.shared()
+        center.playCommand.isEnabled = true
+        center.pauseCommand.isEnabled = true
+        center.togglePlayPauseCommand.isEnabled = true
+        center.playCommand.addTarget { _ in
+            if !isPlaying { togglePlayPause() }
+            return .success
+        }
+        center.pauseCommand.addTarget { _ in
+            if isPlaying { togglePlayPause() }
+            return .success
+        }
+        center.togglePlayPauseCommand.addTarget { _ in
+            togglePlayPause()
+            return .success
+        }
+        center.nextTrackCommand.isEnabled = false
+        center.previousTrackCommand.isEnabled = false
     }
 }
 
