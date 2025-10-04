@@ -492,7 +492,7 @@ struct CustomAudioPlayerView: View {
         }
         
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.allowBluetooth, .allowBluetoothA2DP])
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.allowBluetoothHFP, .allowBluetoothA2DP])
             try AVAudioSession.sharedInstance().setActive(true)
             print("Audio session configured successfully")
         } catch {
