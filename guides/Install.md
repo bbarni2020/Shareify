@@ -30,39 +30,51 @@ Quick sanity check:
 
 ## Installation
 
-## (Shortcut) Running the prebuilt executables (Windows & macOS)
+## (Shortcut) Running the prebuilt executables (Windows, macOS & Linux)
 
-If you don't want to install Python or run the installer script you can totally skip ahead and just use the prebuilt binaries from the GitHub Releases page.
+If you don't feel like messing with Python or installer scripts, you can just grab the prebuilt binaries from the GitHub Releases page and get rolling.
 
 When this makes sense:
-- You just want to try it quickly
-- You're on a secondary machine and don't want to pollute it with Python packages
-- You plan to run it headless and auto‑start the exe/app
+- You want to kick the tires fast
+- It's a spare machine and you don't want to clutter it with Python stuff
+- You're planning to run it headless and want it to auto‑start
 
 Where to get them:
-1. Go to https://github.com/bbarni2020/Shareify/releases/latest
-2. Grab the archive that mentions Windows (contains `shareify.exe`) or macOS (app/binary)
-3. Extract it somewhere you have write access (NOT inside Program Files on Windows)
+1. Head to https://github.com/bbarni2020/Shareify/releases/latest
+2. Download the archive for your OS:
+    - Windows: contains `shareify.exe`
+    - macOS: contains the app/binary
+    - Linux: look for the one with `shareify` (no extension)
+3. Extract it somewhere you have write access (avoid Program Files on Windows, `/usr/bin` on Linux unless you know what you're doing)
 
 Run it:
-- Windows: double‑click `shareify.exe` (or make a shortcut). A console window opens and logs will start scrolling.
-- macOS first launch: right‑click the app/binary > Open (Gatekeeper will complain the first time). After that you can open normally.
+- **Windows:** double‑click `shareify.exe` (or make a shortcut). You'll see a console window with logs.
+- **macOS:** right‑click the app/binary > Open (Gatekeeper will complain the first time, then you're good).
+- **Linux:** open a terminal, `cd` to the folder, then:
+  ```bash
+  ./shareify
+  ```
+  If you get a "permission denied" error, try:
+  ```bash
+  chmod +x shareify
+  ./shareify
+  ```
 
-Then point your browser at: http://localhost:6969
+Point your browser at: [http://localhost:6969](http://localhost:6969)
 
 Default credentials for the executable build:
 ```
 user: admin
 password: root
 ```
-Change them immediately after logging in (Settings → Users). Different default than the source install example earlier on purpose.
-
+Change these ASAP after logging in (Settings → Users). They're different from the source install defaults, just to keep things interesting.
 
 Want it to auto start?
-- Windows: drop a shortcut into `shell:startup`
-- macOS: System Settings → Login Items → add the app
+- **Windows:** drop a shortcut into `shell:startup`
+- **macOS:** System Settings → Login Items → add the app
+- **Linux:** toss it in your `.bashrc`, use `systemd`, or whatever startup voodoo you prefer
 
-If you later decide to hack the code or enable features I forgot to bundle, switch to the full "Installation" path below. Both can coexist.
+If you get the itch to hack the code or want features I forgot to bundle, switch to the full "Installation" path below. Both can live side by side.
 
 ### Getting the files
 

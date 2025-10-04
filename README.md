@@ -41,27 +41,28 @@ Open `http://localhost:6969` and you're running. Default login is admin/admin (c
 
 Full setup guide is in [guides/Install.md](guides/Install.md) if you want the details.
 
-### Or just use the prebuilt executables (Windows & macOS)
+### Or just use the prebuilt executables (Windows, macOS & Linux)
 
-If you don't feel like installing Python or any deps: grab the latest release from the **Releases** page. There are standalone executables for Windows (.exe) and macOS (app / binary bundle).
+If you don't feel like messing with Python or pip, grab the latest release from the **Releases** page. There are standalone executables for Windows (.exe), macOS (app/bundle), and Linux (`shareify` binary).
 
-How that works:
-- Download the archive (zip) for your OS
-- Unzip it somewhere (Desktop, Downloads, wherever)
+How it goes:
+- Download the archive (zip/tar) for your OS
+- Unzip/extract it wherever (Desktop, Downloads, etc)
 - On Windows: double‑click `Shareify.exe`
-- On macOS: first launch may get a Gatekeeper warning – right‑click > Open the first time
-- A console / terminal window pops up and the server starts immediately
+- On macOS: first launch might trigger Gatekeeper — right‑click > Open the first time
+- On Linux: run `chmod +x shareify`, then launch it from your terminal or file manager
+- A console/terminal window pops up and the server starts right away
 
-Then hit: http://localhost:6969
+Then just hit: http://localhost:6969
 
-Default credentials when using the executable build:
+Default credentials for the executable builds:
 ```
 user: admin
 password: root
 ```
-(Yes, different from the source install example above — change it right away in either case.)
+(Yep, that's different from the source install example above — change it ASAP either way.)
 
-No “installation” step, no virtualenv, no pip. Just run it. You can still switch to a full source setup later if you want to hack on the code.
+No install steps, no virtualenv, no pip. Just run it. If you ever want to hack on the code, you can always switch to the full source setup later.
 
 ## What you actually get
 
