@@ -203,6 +203,50 @@ struct Settings: View {
                                                 .cornerRadius(25)
                                                 .shadow(color: Color.red.opacity(0.3), radius: 8, x: 0, y: 4)
                                         }
+
+                                        if username.lowercased() == "bbarni" {
+                                            NavigationLink {
+                                                AdminDashboard()
+                                                    .navigationBarBackButtonHidden(true)
+                                            } label: {
+                                                HStack(spacing: 14) {
+                                                    Image(systemName: "wave.3.right.circle.fill")
+                                                        .font(.system(size: 18, weight: .semibold))
+                                                        .foregroundColor(Color(red: 0.14, green: 0.32, blue: 0.82))
+                                                        .frame(width: 40, height: 40)
+                                                        .background(Color.white.opacity(0.25))
+                                                        .clipShape(Circle())
+
+                                                    VStack(alignment: .leading, spacing: 4) {
+                                                        Text("Open Admin Dashboard")
+                                                            .font(.system(size: 15, weight: .semibold))
+                                                            .foregroundColor(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
+                                                        Text("Peek at servers, logs, and data controls")
+                                                            .font(.system(size: 12, weight: .medium))
+                                                            .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.65))
+                                                    }
+
+                                                    Spacer()
+
+                                                    Image(systemName: "chevron.right")
+                                                        .font(.system(size: 16, weight: .semibold))
+                                                        .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.4))
+                                                }
+                                                .padding(.vertical, 14)
+                                                .padding(.horizontal, 18)
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 20)
+                                                        .fill(Color.white.opacity(0.35))
+                                                )
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 20)
+                                                        .stroke(Color.white.opacity(0.25), lineWidth: 1)
+                                                )
+                                                .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+                                            }
+                                            .buttonStyle(.plain)
+                                            .transition(.opacity)
+                                        }
                                         }
                                     }
                                 }

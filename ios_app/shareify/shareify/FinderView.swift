@@ -379,7 +379,7 @@ struct FinderView: View {
         HStack(spacing: 12) {
             Image(systemName: item.isFolder ? "folder.fill" : fileIcon(for: item.name))
                 .font(.system(size: 24))
-                .foregroundColor(item.isFolder ? Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255) : Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                .foregroundColor(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
                 .frame(width: 32, height: 32)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.name)
@@ -525,7 +525,7 @@ struct FinderView: View {
         VStack(spacing: 8) {
             Image(systemName: item.isFolder ? "folder.fill" : fileIcon(for: item.name))
                 .font(.system(size: 32))
-                .foregroundColor(item.isFolder ? Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255) : Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                .foregroundColor(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
                 .frame(height: 40)
             Text(item.name)
                 .font(.system(size: 12, weight: .medium))

@@ -312,6 +312,7 @@ struct CustomAudioPlayerView: View {
     @State private var currentTime: Double = 0
     @State private var duration: Double = 0
     @State private var cancellables = Set<AnyCancellable>()
+    @State private var isPlayerReady = false
     @StateObject private var playbackManager = PlaybackManager.shared
     @StateObject private var backgroundManager = BackgroundManager.shared
     
@@ -450,16 +451,25 @@ struct CustomAudioPlayerView: View {
             
             Button(action: togglePlayPause) {
                 Circle()
-                    .fill(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
+                    .fill(isPlayerReady ? Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255) : Color.gray)
                     .frame(width: 70, height: 70)
                     .overlay(
-                        Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                            .font(.system(size: 28))
-                            .foregroundColor(.white)
-                            .offset(x: isPlaying ? 0 : 2)
+                        Group {
+                            if !isPlayerReady {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            } else {
+                                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundColor(.white)
+                                    .offset(x: isPlaying ? 0 : 2)
+                            }
+                        }
                     )
                     .shadow(color: Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255).opacity(0.3), radius: 8, x: 0, y: 4)
             }
+            .disabled(!isPlayerReady)
             
             Button(action: seekForward) {
                 Image(systemName: "goforward.15")
@@ -470,12 +480,30 @@ struct CustomAudioPlayerView: View {
     }
     
     private func setupPlayer() {
-        guard let audioData = Data(base64Encoded: content) else { return }
+        guard let audioData = Data(base64Encoded: content) else { 
+            print("Failed to decode base64 content")
+            print("Content length: \(content.count)")
+            print("Content preview: \(String(content.prefix(100)))")
+            return 
+        }
+        
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.allowBluetooth, .allowBluetoothA2DP])
+            try AVAudioSession.sharedInstance().setActive(true)
+            print("Audio session configured successfully")
+        } catch {
+            print("Failed to configure audio session: \(error)")
+        }
         
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
         do {
             try audioData.write(to: tempURL)
+            print("Audio file written to: \(tempURL)")
+            print("File size: \(audioData.count) bytes")
+            
             player = AVPlayer(url: tempURL)
+
+            player?.automaticallyWaitsToMinimizeStalling = false
             
             playbackManager.currentlyPlaying = MediaItem(
                 name: file.name,
@@ -502,18 +530,48 @@ struct CustomAudioPlayerView: View {
                     self.duration = duration
                 }
                 .store(in: &cancellables)
+
+            player?.currentItem?.publisher(for: \.status)
+                .receive(on: DispatchQueue.main)
+                .sink { status in
+                    switch status {
+                    case .readyToPlay:
+                        print("Audio player ready to play")
+                        self.isPlayerReady = true
+                    case .failed:
+                        if let error = self.player?.currentItem?.error {
+                            print("Audio player failed: \(error.localizedDescription)")
+                        }
+                        self.isPlayerReady = false
+                    case .unknown:
+                        print("Audio player status unknown")
+                        self.isPlayerReady = false
+                    @unknown default:
+                        print("Audio player unknown status")
+                        self.isPlayerReady = false
+                    }
+                }
+                .store(in: &cancellables)
         } catch {
             print("Failed to setup audio player: \(error)")
         }
     }
     
     private func togglePlayPause() {
-        guard let player = player else { return }
+        guard let player = player, isPlayerReady else { 
+            print("Player not available or not ready")
+            return 
+        }
+        
+        print("Toggle play/pause - current state: \(isPlaying ? "playing" : "paused")")
+        print("Player rate: \(player.rate)")
         
         if isPlaying {
             player.pause()
+            print("Pausing player")
         } else {
             player.play()
+            print("Starting player")
         }
         isPlaying.toggle()
         
@@ -541,9 +599,16 @@ struct CustomAudioPlayerView: View {
     private func cleanup() {
         player?.pause()
         playbackManager.currentlyPlaying = nil
+        isPlayerReady = false
         
         if let player = player, let currentItem = player.currentItem {
             NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: currentItem)
+        }
+
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            print("Failed to deactivate audio session: \(error)")
         }
         
         cancellables.removeAll()
