@@ -3,6 +3,7 @@ import json
 import threading
 import sys
 import errno
+import multiprocessing
 from pathlib import Path
 from colorama import Fore
 try:
@@ -88,7 +89,7 @@ def start_cloud_connection():
         import cloud_connection
         cloud_connection.main()
     except Exception as e:
-        print(f'Error starting cloud connection: {e}')
+        print(f'Error starting cloud connection: {e}', flush=True)
 
 def start_wsgi_server():
     try:
@@ -119,10 +120,10 @@ def start_wsgi_server():
                     server = make_server(host, port, wsgi.application)
                 else:
                     raise
-            print(f'Server running on http://{host}:{port}')
+            print(f'Server running on http://{host}:{port}', flush=True)
             server.serve_forever()
     except Exception as e:
-        print(f'Error starting WSGI server: {e}')
+        print(f'Error starting WSGI server: {e}', flush=True)
 
 def main():
     if os.name == 'nt':
@@ -134,33 +135,35 @@ def main():
         relaunch_as_admin()
         sys.exit(0)
     
-    print("\n __ _                     __       \n/ _\\ |__   __ _ _ __ ___ / _|_   _ \n\\ \\| '_ \\ / _` | '__/ _ \\ |_| | | |\n_\\ \\ | | | (_| | | |  __/  _| |_| |\n\\__/_| |_|\\__,_|_|  \\___|_|  \\__, |\n                             |___/ \n")
-    print("[Shareify] Starting Shareify..."+ Fore.RESET)
+    print("\n __ _                     __       \n/ _\\ |__   __ _ _ __ ___ / _|_   _ \n\\ \\| '_ \\ / _` | '__/ _ \\ |_| | | |\n_\\ \\ | | | (_| | | |  __/  _| |_| |\n\\__/_| |_|\\__,_|_|  \\___|_|  \\__, |\n                             |___/ \n", flush=True)
+    print("[Shareify] Starting Shareify..."+ Fore.RESET, flush=True)
     
     if _already_running():
-        print("[Shareify] Another instance is already running" + Fore.GREEN)
+        print("[Shareify] Another instance is already running" + Fore.GREEN, flush=True)
         sys.exit(0)
     threads = []
     
     wsgi_thread = threading.Thread(target=start_wsgi_server, daemon=True)
     wsgi_thread.start()
     threads.append(wsgi_thread)
-    print("[Shareify] WSGI server started" + Fore.GREEN)    
+    print("[Shareify] WSGI server started" + Fore.GREEN, flush=True)    
     
     if is_cloud_on():
         cloud_thread = threading.Thread(target=start_cloud_connection, daemon=True)
         cloud_thread.start()
         threads.append(cloud_thread)
-        print("[Shareify] Cloud connection started" + Fore.GREEN)
+        print("[Shareify] Cloud connection started" + Fore.GREEN, flush=True)
 
-    print("[Shareify] Shareify startup complete" + Fore.GREEN)
-    print(Fore.RESET)
+    print("[Shareify] Shareify startup complete" + Fore.GREEN, flush=True)
+    print(Fore.RESET, flush=True)
 
     try:
         for thread in threads:
             thread.join()
     except KeyboardInterrupt:
-        print('Shutting down...')
+        print('Shutting down...', flush=True)
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
+    
     main()
