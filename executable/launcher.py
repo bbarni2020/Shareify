@@ -57,7 +57,7 @@ def _get_settings_port(default_port=8000):
 def _lockfile_path():
     port = _get_settings_port()
     tmp_dir = os.path.abspath(os.getenv('TMPDIR') or os.getenv('TMP') or '/tmp')
-    return os.path.join(tmp_dir, f'shareify-{port}.pid')
+    return os.path.join(tmp_dir, f'shareify-admin-{port}.pid')
 
 def _already_running():
     pid_file = _lockfile_path()
@@ -129,10 +129,14 @@ def main():
         os.system('title Shareify Server 1.2.0')
     else:
         print('\033]0;Shareify Server 1.2.0\007', end='')
-    print("\n __ _                     __       \n/ _\\ |__   __ _ _ __ ___ / _|_   _ \n\\ \\| '_ \\ / _` | '__/ _ \\ |_| | | |\n_\\ \\ | | | (_| | | |  __/  _| |_| |\n\\__/_| |_|\\__,_|_|  \\___|_|  \\__, |\n                             |___/ \n")
-    print("[Shareify] Starting Shareify..."+ Fore.RESET)
+    
     if not is_admin():
         relaunch_as_admin()
+        exit(0)
+    
+    print("\n __ _                     __       \n/ _\\ |__   __ _ _ __ ___ / _|_   _ \n\\ \\| '_ \\ / _` | '__/ _ \\ |_| | | |\n_\\ \\ | | | (_| | | |  __/  _| |_| |\n\\__/_| |_|\\__,_|_|  \\___|_|  \\__, |\n                             |___/ \n")
+    print("[Shareify] Starting Shareify..."+ Fore.RESET)
+    
     if _already_running():
         print("[Shareify] Another instance is already running" + Fore.GREEN)
         return

@@ -76,7 +76,7 @@ def create_databases():
                 default_user['paths_write']
             ))
             
-            print(f"[Shareify] ✓ Created default admin user")
+            print(f"[Shareify] ✓ Loaded default admin user")
             print(f"[Shareify]   Username: {default_user['username']}")
             print(f"[Shareify]   Password: {default_user['password']}")
             print(f"[Shareify]   API Key: {api_key}")
@@ -85,7 +85,7 @@ def create_databases():
         
         conn.commit()
         conn.close()
-        print(f"[Shareify] ✓ Users database created successfully")
+        print(f"[Shareify] ✓ Users database loaded successfully")
         
     except Exception as e:
         print(f"[Shareify] ✗ Error creating users database: {e}")
@@ -107,15 +107,15 @@ def create_databases():
         
         conn.commit()
         conn.close()
-        print(f"[Shareify] ✓ Logs database created successfully")
+        print(f"[Shareify] ✓ Logs database loaded successfully")
         
     except Exception as e:
         print(f"[Shareify] ✗ Error creating logs database: {e}")
         return False
-    
-    print("[Shareify] \n✓ All databases created successfully!")
+
+    print("[Shareify] ✓ All databases loaded successfully!")
     print(f"[Shareify] Database location: {db_dir}")
-    print(f"[Shareify] Files created:")
+    print(f"[Shareify] Files loaded:")
     print(f"[Shareify]   - {users_db_path}")
     print(f"[Shareify]   - {logs_db_path}")
     

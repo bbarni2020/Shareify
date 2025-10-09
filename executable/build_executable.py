@@ -104,7 +104,6 @@ a = Analysis(
         'install',
         'update',
         'cloud_connection',
-        'venv_manager',
         'startup',
         'flask',
         'flask_cors',
