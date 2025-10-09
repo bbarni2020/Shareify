@@ -101,10 +101,8 @@ a = Analysis(
     hiddenimports=[
         'main',
         'launcher', 
-        'install',
         'update',
         'cloud_connection',
-        'startup',
         'flask',
         'flask_cors',
         'flask_limiter',

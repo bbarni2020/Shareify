@@ -25,9 +25,9 @@ def relaunch_as_admin():
         import ctypes
         params = ' '.join([f'"{arg}"' for arg in sys.argv])
         ctypes.windll.shell32.ShellExecuteW(None, 'runas', sys.executable, params, None, 1)
-        sys.exit(0)
     else:
         os.execvp('sudo', ['sudo', sys.executable, os.path.abspath(__file__)])
+    sys.exit(0)
 
 def is_cloud_on():
     try:
@@ -132,14 +132,14 @@ def main():
     
     if not is_admin():
         relaunch_as_admin()
-        exit(0)
+        sys.exit(0)
     
     print("\n __ _                     __       \n/ _\\ |__   __ _ _ __ ___ / _|_   _ \n\\ \\| '_ \\ / _` | '__/ _ \\ |_| | | |\n_\\ \\ | | | (_| | | |  __/  _| |_| |\n\\__/_| |_|\\__,_|_|  \\___|_|  \\__, |\n                             |___/ \n")
     print("[Shareify] Starting Shareify..."+ Fore.RESET)
     
     if _already_running():
         print("[Shareify] Another instance is already running" + Fore.GREEN)
-        return
+        sys.exit(0)
     threads = []
     
     wsgi_thread = threading.Thread(target=start_wsgi_server, daemon=True)

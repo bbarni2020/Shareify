@@ -1,5 +1,4 @@
 import socketio
-import subprocess
 import json
 import time
 import threading
@@ -563,7 +562,7 @@ def main():
         if isinstance(enabled, str):
             enabled = enabled.lower() == 'true'
         if not enabled:
-            print_status("Cloud connection is disabled. Use 'shareify:enable' to enable it.", 'warning')
+            print_status("Cloud connection is disabled.", 'warning')
             sys.exit(0)
         client = ShareifyLocalClient()
         print()
@@ -579,7 +578,7 @@ def main():
         print_status('=' * 50)
         print()
         if not client.enabled:
-            print_status("Cloud connection is disabled. Use 'shareify:enable' to enable it.", 'warning')
+            print_status("Cloud connection is disabled.", 'warning')
             sys.exit(0)
         if client.connect():
             print_status('Client started successfully', 'success')
