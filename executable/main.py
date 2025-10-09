@@ -80,6 +80,8 @@ def initialize_logs_db():
 
 def initialize_users_db():
     db_path = os.path.join(os.path.dirname(__file__), 'db', 'users.db')
+    if os.path.exists(db_path):
+        return
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute('\n        CREATE TABLE IF NOT EXISTS users (\n            id INTEGER PRIMARY KEY AUTOINCREMENT,\n            username TEXT NOT NULL UNIQUE,\n            password TEXT NOT NULL,\n            name TEXT NOT NULL,\n            ip TEXT,\n            role TEXT NOT NULL,\n            ftp_users TEXT,\n            paths TEXT,\n            settings TEXT,\n            API_KEY TEXT NOT NULL,\n            paths_write TEXT\n        )\n    ')

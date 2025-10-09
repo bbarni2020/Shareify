@@ -55,7 +55,7 @@ class ShareifyLocalClient:
         self.auth_token = auth_token or self.cloud_config.get('auth_token')
         self.username = username or self.cloud_config.get('username')
         self.password = password or self.cloud_config.get('password')
-        self.enabled = self.cloud_config.get('enabled', True)
+        self.enabled = self.cloud_config.get('enabled', False)
         self.authenticated = False
         self.sio = socketio.Client(reconnection=True, reconnection_attempts=5, reconnection_delay=1, reconnection_delay_max=5, logger=False, engineio_logger=False)
         self.connected = False
@@ -558,6 +558,13 @@ class ShareifyLocalClient:
 
 def main():
     try:
+        cfg = load_cloud_config()
+        enabled = cfg.get('enabled', False)
+        if isinstance(enabled, str):
+            enabled = enabled.lower() == 'true'
+        if not enabled:
+            print_status("Cloud connection is disabled. Use 'shareify:enable' to enable it.", 'warning')
+            sys.exit(0)
         client = ShareifyLocalClient()
         print()
         print_status(f'\n=== Shareify Cloud Client Starting ===')

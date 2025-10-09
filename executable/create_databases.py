@@ -11,9 +11,9 @@ def create_databases():
     users_db_path = db_dir / 'users.db'
     logs_db_path = db_dir / 'logs.db'
     
-    print("Creating Shareify databases...")
+    print("[Shareify] Creating Shareify databases...")
     try:
-        print(f"Creating users database: {users_db_path}")
+        print(f"[Shareify] Creating users database: {users_db_path}")
         conn = sqlite3.connect(users_db_path)
         cursor = conn.cursor()
         
@@ -76,23 +76,23 @@ def create_databases():
                 default_user['paths_write']
             ))
             
-            print(f"✓ Created default admin user")
-            print(f"  Username: {default_user['username']}")
-            print(f"  Password: {default_user['password']}")
-            print(f"  API Key: {api_key}")
+            print(f"[Shareify] ✓ Created default admin user")
+            print(f"[Shareify]   Username: {default_user['username']}")
+            print(f"[Shareify]   Password: {default_user['password']}")
+            print(f"[Shareify]   API Key: {api_key}")
         else:
-            print("✓ Admin user already exists")
+            print("[Shareify] ✓ Admin user already exists")
         
         conn.commit()
         conn.close()
-        print(f"✓ Users database created successfully")
+        print(f"[Shareify] ✓ Users database created successfully")
         
     except Exception as e:
-        print(f"✗ Error creating users database: {e}")
+        print(f"[Shareify] ✗ Error creating users database: {e}")
         return False
     
     try:
-        print(f"Creating logs database: {logs_db_path}")
+        print(f"[Shareify] Creating logs database: {logs_db_path}")
         conn = sqlite3.connect(logs_db_path)
         cursor = conn.cursor()
         
@@ -107,17 +107,17 @@ def create_databases():
         
         conn.commit()
         conn.close()
-        print(f"✓ Logs database created successfully")
+        print(f"[Shareify] ✓ Logs database created successfully")
         
     except Exception as e:
-        print(f"✗ Error creating logs database: {e}")
+        print(f"[Shareify] ✗ Error creating logs database: {e}")
         return False
     
-    print("\n✓ All databases created successfully!")
-    print(f"Database location: {db_dir}")
-    print(f"Files created:")
-    print(f"  - {users_db_path}")
-    print(f"  - {logs_db_path}")
+    print("[Shareify] \n✓ All databases created successfully!")
+    print(f"[Shareify] Database location: {db_dir}")
+    print(f"[Shareify] Files created:")
+    print(f"[Shareify]   - {users_db_path}")
+    print(f"[Shareify]   - {logs_db_path}")
     
     return True
 
