@@ -6,18 +6,21 @@ This is the standalone version of Shareify - no Python setup required, just down
 
 ## System Requirements
 
-- **Windows 10+** or **macOS 10.14+**
-- Admin privileges for initial setup
+- **Windows 10+**, **macOS 10.14+**, or **any Linux distro** (x86_64)
+- Admin/sudo privileges for initial setup
 - About 50MB disk space
 - Internet connection for remote access features
 
-*Note: Linux users need to build from source - check the main repo.*
+The Linux build uses StaticX so it'll work on basically anything - old Ubuntu, fresh Arch, whatever.
 
 ## Quick Start
 
 1. Extract this zip wherever you want Shareify to live
-2. Run `shareify.exe` (Windows) or `shareify` (Mac)
-3. If prompted for admin rights, click "Yes" - needed for initial setup
+2. Run the executable:
+   - Windows: Double-click `shareify.exe`
+   - Mac: `./shareify` in terminal
+   - Linux: `chmod +x shareify && ./shareify`
+3. If prompted for admin/sudo, allow it - just for initial setup
 4. Open your browser to `http://localhost:6969`
 
 ## Default Login
@@ -42,6 +45,10 @@ No external dependencies - everything's bundled in.
 **Can't connect to localhost:6969?**
 - Check if another app is using port 6969
 - Try running as administrator/sudo
+
+**Linux: "error while loading shared libraries"?**
+- Shouldn't happen with StaticX but if it does, try `ldd shareify` to see what's missing
+- Worst case, build from source
 
 **Files not uploading?**
 - Make sure you have write permissions to the Shareify folder
