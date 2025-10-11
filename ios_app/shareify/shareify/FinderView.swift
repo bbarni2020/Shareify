@@ -1095,6 +1095,7 @@ struct FilePreviewView: View {
     let onDismiss: () -> Void
     @State private var showShareSheet = false
     @Namespace private var glassNamespace
+    @State private var isFullScreen = true
     
     var body: some View {
         GeometryReader { geometry in
@@ -1255,12 +1256,18 @@ struct FilePreviewView: View {
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.horizontal, 28)
-                .frame(minHeight: geometry.size.height - 140)
+                .padding(.horizontal, isFullScreen ? 16 : 28)
+                .frame(minHeight: geometry.size.height)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.top, 100)
-            .padding(.bottom, 40)
+            .padding(.top, isFullScreen ? 0 : 100)
+            .padding(.bottom, isFullScreen ? 0 : 40)
+            .ignoresSafeArea(isFullScreen ? .all : [])
+            .onTapGesture(count: 2) {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    isFullScreen.toggle()
+                }
+            }
         }
     }
     
@@ -1269,17 +1276,17 @@ struct FilePreviewView: View {
         let lowerName = file.name.lowercased()
         
         if PreviewHelper.isImageFile(lowerName) {
-            PreviewHelper.imagePreviewView(file: file, content: content)
+            PreviewHelper.imagePreviewView(file: file, content: content, isFullScreen: $isFullScreen)
         } else if PreviewHelper.isVideoFile(lowerName) {
-            PreviewHelper.videoPreviewView(file: file, content: content)
+            PreviewHelper.videoPreviewView(file: file, content: content, isFullScreen: $isFullScreen)
         } else if PreviewHelper.isAudioFile(lowerName) {
-            PreviewHelper.audioPreviewView(file: file, content: content)
+            PreviewHelper.audioPreviewView(file: file, content: content, isFullScreen: $isFullScreen)
         } else if lowerName.hasSuffix(".pdf") {
-            PreviewHelper.pdfPreviewView(file: file, content: content)
+            PreviewHelper.pdfPreviewView(file: file, content: content, isFullScreen: $isFullScreen)
         } else if PreviewHelper.isDocumentFile(lowerName) {
-            PreviewHelper.documentPreviewView(file: file, content: content)
+            PreviewHelper.documentPreviewView(file: file, content: content, isFullScreen: $isFullScreen)
         } else {
-            PreviewHelper.unsupportedFileView(file: file)
+            PreviewHelper.unsupportedFileView(file: file, isFullScreen: $isFullScreen)
         }
     }
 }
@@ -1306,16 +1313,29 @@ struct PreviewHelper {
     }
     
     @ViewBuilder
-    static func imagePreviewView(file: FinderItem, content: String) -> some View {
+    static func imagePreviewView(file: FinderItem, content: String, isFullScreen: Binding<Bool>) -> some View {
         if let imageData = Data(base64Encoded: content), let uiImage = UIImage(data: imageData) {
             GeometryReader { geometry in
                 VStack {
-                    Spacer()
+                    if !isFullScreen.wrappedValue {
+                        Spacer()
+                    }
                     ZoomableImageView(image: uiImage)
-                        .frame(maxWidth: geometry.size.width - 56, maxHeight: geometry.size.height - 200)
-                    Spacer()
+                        .frame(
+                            maxWidth: isFullScreen.wrappedValue ? geometry.size.width : geometry.size.width - 56,
+                            maxHeight: isFullScreen.wrappedValue ? geometry.size.height : geometry.size.height - 200
+                        )
+                    if !isFullScreen.wrappedValue {
+                        Spacer()
+                    }
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height)
+                .ignoresSafeArea(isFullScreen.wrappedValue ? .all : [])
+                .onTapGesture(count: 2) {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        isFullScreen.wrappedValue.toggle()
+                    }
+                }
             }
         } else {
             VStack {
@@ -1333,20 +1353,32 @@ struct PreviewHelper {
     }
     
     @ViewBuilder
-    static func videoPreviewView(file: FinderItem, content: String) -> some View {
+    static func videoPreviewView(file: FinderItem, content: String, isFullScreen: Binding<Bool>) -> some View {
         if let videoData = Data(base64Encoded: content) {
             let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
             if (try? videoData.write(to: tempURL)) != nil {
                 GeometryReader { geometry in
                     VStack {
-                        Spacer()
+                        if !isFullScreen.wrappedValue {
+                            Spacer()
+                        }
                         VideoPlayer(player: AVPlayer(url: tempURL))
-                            .frame(maxWidth: geometry.size.width - 56)
+                            .frame(
+                                maxWidth: isFullScreen.wrappedValue ? geometry.size.width : geometry.size.width - 56
+                            )
                             .aspectRatio(16/9, contentMode: .fit)
-                            .cornerRadius(12)
-                        Spacer()
+                            .cornerRadius(isFullScreen.wrappedValue ? 0 : 12)
+                        if !isFullScreen.wrappedValue {
+                            Spacer()
+                        }
                     }
                     .frame(width: geometry.size.width, height: geometry.size.height)
+                    .ignoresSafeArea(isFullScreen.wrappedValue ? .all : [])
+                    .onTapGesture(count: 2) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            isFullScreen.wrappedValue.toggle()
+                        }
+                    }
                 }
             } else {
                 VStack {
@@ -1375,19 +1407,32 @@ struct PreviewHelper {
     }
     
     @ViewBuilder
-    static func audioPreviewView(file: FinderItem, content: String) -> some View {
+    static func audioPreviewView(file: FinderItem, content: String, isFullScreen: Binding<Bool>) -> some View {
         if let audioData = Data(base64Encoded: content) {
             let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
             if (try? audioData.write(to: tempURL)) != nil {
                 GeometryReader { geometry in
                     VStack {
-                        Spacer()
+                        if !isFullScreen.wrappedValue {
+                            Spacer()
+                        }
                         VideoPlayer(player: AVPlayer(url: tempURL))
-                            .frame(width: geometry.size.width - 56, height: 200)
-                            .cornerRadius(16)
-                        Spacer()
+                            .frame(
+                                width: isFullScreen.wrappedValue ? geometry.size.width : geometry.size.width - 56,
+                                height: isFullScreen.wrappedValue ? geometry.size.height : 200
+                            )
+                            .cornerRadius(isFullScreen.wrappedValue ? 0 : 16)
+                        if !isFullScreen.wrappedValue {
+                            Spacer()
+                        }
                     }
                     .frame(width: geometry.size.width, height: geometry.size.height)
+                    .ignoresSafeArea(isFullScreen.wrappedValue ? .all : [])
+                    .onTapGesture(count: 2) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            isFullScreen.wrappedValue.toggle()
+                        }
+                    }
                 }
             } else {
                 VStack {
@@ -1416,17 +1461,30 @@ struct PreviewHelper {
     }
     
     @ViewBuilder
-    static func pdfPreviewView(file: FinderItem, content: String) -> some View {
+    static func pdfPreviewView(file: FinderItem, content: String, isFullScreen: Binding<Bool>) -> some View {
         if let pdfData = Data(base64Encoded: content), let pdfDocument = PDFDocument(data: pdfData) {
             GeometryReader { geometry in
                 VStack {
-                    Spacer()
+                    if !isFullScreen.wrappedValue {
+                        Spacer()
+                    }
                     PDFKitRepresentedView(document: pdfDocument)
-                        .frame(maxWidth: geometry.size.width - 56, maxHeight: geometry.size.height - 200)
-                        .cornerRadius(12)
-                    Spacer()
+                        .frame(
+                            maxWidth: isFullScreen.wrappedValue ? geometry.size.width : geometry.size.width - 56,
+                            maxHeight: isFullScreen.wrappedValue ? geometry.size.height : geometry.size.height - 200
+                        )
+                        .cornerRadius(isFullScreen.wrappedValue ? 0 : 12)
+                    if !isFullScreen.wrappedValue {
+                        Spacer()
+                    }
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height)
+                .ignoresSafeArea(isFullScreen.wrappedValue ? .all : [])
+                .onTapGesture(count: 2) {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        isFullScreen.wrappedValue.toggle()
+                    }
+                }
             }
         } else {
             VStack {
@@ -1444,19 +1502,32 @@ struct PreviewHelper {
     }
     
     @ViewBuilder
-    static func documentPreviewView(file: FinderItem, content: String) -> some View {
+    static func documentPreviewView(file: FinderItem, content: String, isFullScreen: Binding<Bool>) -> some View {
         if let docData = Data(base64Encoded: content) {
             let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
             if (try? docData.write(to: tempURL)) != nil {
                 GeometryReader { geometry in
                     VStack {
-                        Spacer()
+                        if !isFullScreen.wrappedValue {
+                            Spacer()
+                        }
                         QuickLookPreview(url: tempURL)
-                            .frame(maxWidth: geometry.size.width - 56, maxHeight: geometry.size.height - 200)
-                            .cornerRadius(12)
-                        Spacer()
+                            .frame(
+                                maxWidth: isFullScreen.wrappedValue ? geometry.size.width : geometry.size.width - 56,
+                                maxHeight: isFullScreen.wrappedValue ? geometry.size.height : geometry.size.height - 200
+                            )
+                            .cornerRadius(isFullScreen.wrappedValue ? 0 : 12)
+                        if !isFullScreen.wrappedValue {
+                            Spacer()
+                        }
                     }
                     .frame(width: geometry.size.width, height: geometry.size.height)
+                    .ignoresSafeArea(isFullScreen.wrappedValue ? .all : [])
+                    .onTapGesture(count: 2) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            isFullScreen.wrappedValue.toggle()
+                        }
+                    }
                 }
             } else {
                 VStack {
@@ -1491,7 +1562,7 @@ struct PreviewHelper {
     }
     
     @ViewBuilder
-    static func unsupportedFileView(file: FinderItem) -> some View {
+    static func unsupportedFileView(file: FinderItem, isFullScreen: Binding<Bool>) -> some View {
         VStack {
             Spacer()
             Image(systemName: "doc")
@@ -1508,6 +1579,12 @@ struct PreviewHelper {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 28)
             Spacer()
+        }
+        .ignoresSafeArea(isFullScreen.wrappedValue ? .all : [])
+        .onTapGesture(count: 2) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                isFullScreen.wrappedValue.toggle()
+            }
         }
     }
 }
