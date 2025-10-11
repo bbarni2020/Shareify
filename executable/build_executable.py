@@ -34,6 +34,7 @@ class ShareifyExecutableBuilder:
     def create_main_script(self):
         main_script = '''import sys
 import os
+import multiprocessing
 
 if getattr(sys, 'frozen', False):
     application_path = sys._MEIPASS
@@ -43,6 +44,8 @@ else:
 sys.path.insert(0, application_path)
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
+    
     try:
         import launcher
         launcher.main()
@@ -71,12 +74,6 @@ block_cipher = None
 
 datas = []
 
-executable_dir = r"{self.script_dir}"
-python_files = []
-for py_file in Path(executable_dir).glob("*.py"):
-    if py_file.name not in ['build_executable.py', 'shareify_entry.py']:
-        python_files.append(str(py_file))
-
 web_dir = r"{self.script_dir / 'web'}"
 if os.path.exists(web_dir):
     datas.append((web_dir, 'web'))
@@ -94,7 +91,7 @@ if not os.path.exists(icon_candidate):
     icon_candidate = None
 
 a = Analysis(
-    [r'{entry_script}'] + python_files,
+    [r'{entry_script}'],
     pathex=[r'{self.script_dir}'],
     binaries=[],
     datas=datas,
