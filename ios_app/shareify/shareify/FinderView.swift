@@ -1094,74 +1094,129 @@ struct FilePreviewView: View {
     let isLoading: Bool
     let onDismiss: () -> Void
     @State private var showShareSheet = false
+    @Namespace private var glassNamespace
     
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                Color.black.opacity(0.15)
+                Color.black.opacity(0.3)
                     .ignoresSafeArea()
-                    .transition(.opacity)
-                    .onTapGesture {
-                        onDismiss()
+                
+                Rectangle()
+                    .foregroundColor(.clear)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(.ultraThinMaterial)
+                    .ignoresSafeArea()
+                
+                if isLoading {
+                    VStack(spacing: 20) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                            .progressViewStyle(CircularProgressViewStyle(tint: Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255)))
+                        
+                        Text("Loading file...")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
                     }
+                    .transition(.scale.combined(with: .opacity))
+                } else {
+                    contentView
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .transition(.scale(scale: 0.95).combined(with: .opacity))
+                }
                 
                 VStack {
-                    headerView
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                    
-                    if isLoading {
-                        VStack(spacing: 20) {
-                            ProgressView()
-                                .scaleEffect(1.5)
-                                .progressViewStyle(CircularProgressViewStyle(tint: Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255)))
-                            
-                            Text("Loading file...")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                    if #available(iOS 26.0, *) {
+                        GlassEffectContainer(spacing: 12) {
+                            HStack(spacing: 12) {
+                                Text(file.name)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(.primary)
+                                    .lineLimit(1)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 10)
+                                    .frame(height: 44)
+                                    .glassEffect()
+                                
+                                HStack(spacing: 16) {
+                                    Button(action: {
+                                        showShareSheet = true
+                                    }) {
+                                        Image(systemName: "square.and.arrow.up")
+                                            .font(.system(size: 18, weight: .medium))
+                                            .foregroundColor(.primary)
+                                            .frame(width: 24, height: 24)
+                                    }
+                                    .sheet(isPresented: $showShareSheet) {
+                                        if let fileURL = createTemporaryFile() {
+                                            ShareSheet(activityItems: [fileURL])
+                                        }
+                                    }
+                                    
+                                    Button(action: onDismiss) {
+                                        Image(systemName: "xmark")
+                                            .font(.system(size: 18, weight: .medium))
+                                            .foregroundColor(.primary)
+                                            .frame(width: 24, height: 24)
+                                    }
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .frame(height: 44)
+                                .glassEffect()
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 60)
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .transition(.scale.combined(with: .opacity))
                     } else {
-                        contentView
-                            .transition(.scale(scale: 0.95).combined(with: .opacity))
+                        HStack(spacing: 12) {
+                            Text(file.name)
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .frame(height: 44)
+                                .background(.thinMaterial)
+                                .clipShape(Capsule())
+                            
+                            HStack(spacing: 16) {
+                                Button(action: {
+                                    showShareSheet = true
+                                }) {
+                                    Image(systemName: "square.and.arrow.up")
+                                        .font(.system(size: 18, weight: .medium))
+                                        .foregroundColor(.primary)
+                                        .frame(width: 24, height: 24)
+                                }
+                                .sheet(isPresented: $showShareSheet) {
+                                    if let fileURL = createTemporaryFile() {
+                                        ShareSheet(activityItems: [fileURL])
+                                    }
+                                }
+                                
+                                Button(action: onDismiss) {
+                                    Image(systemName: "xmark")
+                                        .font(.system(size: 18, weight: .medium))
+                                        .foregroundColor(.primary)
+                                        .frame(width: 24, height: 24)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .frame(height: 44)
+                            .background(.thinMaterial)
+                            .clipShape(Capsule())
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 60)
                     }
                     
                     Spacer()
                 }
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .background(.ultraThinMaterial)
-                .cornerRadius(0)
             }
         }
-    }
-    
-    private var headerView: some View {
-        HStack {
-            Text(file.name)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-            Spacer()
-            Button(action: {
-                showShareSheet = true
-            }) {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 24))
-                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
-            }
-            .padding(.trailing, 12)
-            .sheet(isPresented: $showShareSheet) {
-                if let fileURL = createTemporaryFile() {
-                    ShareSheet(activityItems: [fileURL])
-                }
-            }
-            Button(action: onDismiss) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
-            }
-        }
-        .padding(.horizontal, 28)
-        .padding(.top, 70)
+        .ignoresSafeArea()
     }
     
     private func createTemporaryFile() -> URL? {
@@ -1191,18 +1246,22 @@ struct FilePreviewView: View {
     }
     
     private var textPreview: some View {
-        ScrollView(.vertical) {
-            VStack(alignment: .leading) {
-                Text(content)
-                    .font(.system(size: 14, design: .monospaced))
-                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+        GeometryReader { geometry in
+            ScrollView(.vertical) {
+                VStack(alignment: .leading) {
+                    Text(content)
+                        .font(.system(size: 14, design: .monospaced))
+                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 28)
+                .frame(minHeight: geometry.size.height - 140)
             }
-            .padding(.horizontal, 28)
-            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.top, 100)
+            .padding(.bottom, 40)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     @ViewBuilder
@@ -1249,10 +1308,18 @@ struct PreviewHelper {
     @ViewBuilder
     static func imagePreviewView(file: FinderItem, content: String) -> some View {
         if let imageData = Data(base64Encoded: content), let uiImage = UIImage(data: imageData) {
-            ZoomableImageView(image: uiImage)
-                .padding(28)
+            GeometryReader { geometry in
+                VStack {
+                    Spacer()
+                    ZoomableImageView(image: uiImage)
+                        .frame(maxWidth: geometry.size.width - 56, maxHeight: geometry.size.height - 200)
+                    Spacer()
+                }
+                .frame(width: geometry.size.width, height: geometry.size.height)
+            }
         } else {
             VStack {
+                Spacer()
                 Image(systemName: "photo.fill")
                     .font(.system(size: 48))
                     .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
@@ -1260,8 +1327,7 @@ struct PreviewHelper {
                 Text("Failed to decode image.")
                     .font(.system(size: 17))
                     .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 16)
+                Spacer()
             }
         }
     }
@@ -1271,25 +1337,29 @@ struct PreviewHelper {
         if let videoData = Data(base64Encoded: content) {
             let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
             if (try? videoData.write(to: tempURL)) != nil {
-                VStack {
-                    Text("Video File")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                        .padding(.bottom, 20)
-                    VideoPlayer(player: AVPlayer(url: tempURL))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .cornerRadius(12)
+                GeometryReader { geometry in
+                    VStack {
+                        Spacer()
+                        VideoPlayer(player: AVPlayer(url: tempURL))
+                            .frame(maxWidth: geometry.size.width - 56)
+                            .aspectRatio(16/9, contentMode: .fit)
+                            .cornerRadius(12)
+                        Spacer()
+                    }
+                    .frame(width: geometry.size.width, height: geometry.size.height)
                 }
-                .padding(28)
             } else {
-                Text("Failed to write video file for preview.")
-                    .font(.system(size: 17))
-                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 16)
+                VStack {
+                    Spacer()
+                    Text("Failed to write video file for preview.")
+                        .font(.system(size: 17))
+                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    Spacer()
+                }
             }
         } else {
             VStack {
+                Spacer()
                 Image(systemName: "video.fill")
                     .font(.system(size: 48))
                     .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
@@ -1299,8 +1369,8 @@ struct PreviewHelper {
                     .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 28)
+                Spacer()
             }
-            .padding(.vertical, 40)
         }
     }
     
@@ -1309,25 +1379,28 @@ struct PreviewHelper {
         if let audioData = Data(base64Encoded: content) {
             let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
             if (try? audioData.write(to: tempURL)) != nil {
-                VStack {
-                    Text("Audio File")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                        .padding(.bottom, 20)
-                    VideoPlayer(player: AVPlayer(url: tempURL))
-                        .frame(maxWidth: .infinity, maxHeight: 120)
-                        .cornerRadius(12)
+                GeometryReader { geometry in
+                    VStack {
+                        Spacer()
+                        VideoPlayer(player: AVPlayer(url: tempURL))
+                            .frame(width: geometry.size.width - 56, height: 200)
+                            .cornerRadius(16)
+                        Spacer()
+                    }
+                    .frame(width: geometry.size.width, height: geometry.size.height)
                 }
-                .padding(28)
             } else {
-                Text("Failed to write audio file for preview.")
-                    .font(.system(size: 17))
-                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 16)
+                VStack {
+                    Spacer()
+                    Text("Failed to write audio file for preview.")
+                        .font(.system(size: 17))
+                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                    Spacer()
+                }
             }
         } else {
             VStack {
+                Spacer()
                 Image(systemName: "music.note")
                     .font(.system(size: 48))
                     .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
@@ -1337,26 +1410,27 @@ struct PreviewHelper {
                     .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 28)
+                Spacer()
             }
-            .padding(.vertical, 40)
         }
     }
     
     @ViewBuilder
     static func pdfPreviewView(file: FinderItem, content: String) -> some View {
         if let pdfData = Data(base64Encoded: content), let pdfDocument = PDFDocument(data: pdfData) {
-            VStack {
-                Text("PDF Document")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                    .padding(.bottom, 20)
-                PDFKitRepresentedView(document: pdfDocument)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .cornerRadius(12)
+            GeometryReader { geometry in
+                VStack {
+                    Spacer()
+                    PDFKitRepresentedView(document: pdfDocument)
+                        .frame(maxWidth: geometry.size.width - 56, maxHeight: geometry.size.height - 200)
+                        .cornerRadius(12)
+                    Spacer()
+                }
+                .frame(width: geometry.size.width, height: geometry.size.height)
             }
-            .padding(28)
         } else {
             VStack {
+                Spacer()
                 Image(systemName: "doc.fill")
                     .font(.system(size: 48))
                     .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
@@ -1364,8 +1438,7 @@ struct PreviewHelper {
                 Text("Failed to decode PDF.")
                     .font(.system(size: 17))
                     .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 16)
+                Spacer()
             }
         }
     }
@@ -1375,18 +1448,19 @@ struct PreviewHelper {
         if let docData = Data(base64Encoded: content) {
             let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
             if (try? docData.write(to: tempURL)) != nil {
-                VStack {
-                    Text("Document Preview")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
-                        .padding(.bottom, 20)
-                    QuickLookPreview(url: tempURL)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .cornerRadius(12)
+                GeometryReader { geometry in
+                    VStack {
+                        Spacer()
+                        QuickLookPreview(url: tempURL)
+                            .frame(maxWidth: geometry.size.width - 56, maxHeight: geometry.size.height - 200)
+                            .cornerRadius(12)
+                        Spacer()
+                    }
+                    .frame(width: geometry.size.width, height: geometry.size.height)
                 }
-                .padding(28)
             } else {
                 VStack {
+                    Spacer()
                     Image(systemName: "doc.richtext.fill")
                         .font(.system(size: 48))
                         .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
@@ -1396,11 +1470,12 @@ struct PreviewHelper {
                         .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 28)
-                        .padding(.vertical, 16)
+                    Spacer()
                 }
             }
         } else {
             VStack {
+                Spacer()
                 Image(systemName: "doc.richtext.fill")
                     .font(.system(size: 48))
                     .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
@@ -1410,7 +1485,7 @@ struct PreviewHelper {
                     .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 28)
-                    .padding(.vertical, 16)
+                Spacer()
             }
         }
     }
@@ -1418,6 +1493,7 @@ struct PreviewHelper {
     @ViewBuilder
     static func unsupportedFileView(file: FinderItem) -> some View {
         VStack {
+            Spacer()
             Image(systemName: "doc")
                 .font(.system(size: 48))
                 .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
@@ -1428,10 +1504,10 @@ struct PreviewHelper {
                 .padding(.bottom, 8)
             Text("Binary file preview not supported.")
                 .font(.system(size: 17))
-                .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
+                .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 28)
-                .padding(.vertical, 16)
+            Spacer()
         }
     }
 }

@@ -23,14 +23,14 @@ struct AdminDashboard: View {
             dashboardBackground
             VStack(spacing: 0) {
                 ScrollView {
-                    VStack(spacing: 24) {
+                    VStack(spacing: 32) {
                         metricsSection
                         controlsSection
                     }
                     .frame(maxWidth: contentMaxWidth, alignment: .center)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 28)
-                    .padding(.bottom, 40)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 100)
+                    .padding(.bottom, 60)
                     .frame(maxWidth: .infinity)
                 }
                 .scrollIndicators(.hidden)
@@ -99,26 +99,26 @@ struct AdminDashboard: View {
     }
 
     private var metricsSection: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 28) {
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Shareify Command Bridge")
-                        .font(.system(size: 22, weight: .bold))
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundColor(.white)
                         .textCase(.uppercase)
                         .tracking(1.2)
                     
-                    HStack(spacing: 8) {
+                    HStack(spacing: 10) {
                         Circle()
                             .fill(Color(red: 0.0, green: 0.96, blue: 0.63))
                             .frame(width: 10, height: 10)
                             .shadow(color: Color(red: 0.0, green: 0.96, blue: 0.63), radius: 8)
                         
                         Text(viewModel.lastUpdatedText)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.white.opacity(0.65))
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
                     }
-                    .padding(.top, 2)
+                    .padding(.top, 4)
                 }
                 
                 Spacer()
@@ -134,11 +134,11 @@ struct AdminDashboard: View {
                                 .scaleEffect(0.7)
                         }
                         Text(viewModel.isLoading ? "Refreshing…" : "Refresh Now")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.white)
                     }
-                    .padding(.vertical, 11)
-                    .padding(.horizontal, 18)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 20)
                     .background(
                         LinearGradient(
                             colors: [Color(red: 1.0, green: 0.6, blue: 0.35), Color(red: 1.0, green: 0.37, blue: 0.43)],
@@ -152,7 +152,7 @@ struct AdminDashboard: View {
                 .disabled(viewModel.isLoading)
             }
 
-            LazyVGrid(columns: metricsColumns, spacing: 18) {
+            LazyVGrid(columns: metricsColumns, spacing: 20) {
                 MetricCard(title: "Live Servers", value: viewModel.servers.count, subtitle: viewModel.serversTrendText, accent: Color(red: 0.43, green: 0.49, blue: 1.0))
                 MetricCard(title: "Known Users", value: viewModel.knownUsersCount, subtitle: viewModel.usersTrendText, accent: Color(red: 0.0, green: 0.96, blue: 0.63))
                 MetricCard(title: "Active Links", value: viewModel.activeLinkCount, subtitle: viewModel.activeTrendText, accent: Color(red: 1.0, green: 0.6, blue: 0.35))
@@ -161,22 +161,22 @@ struct AdminDashboard: View {
     }
 
     private var controlsSection: some View {
-        VStack(alignment: .leading, spacing: 28) {
+        VStack(alignment: .leading, spacing: 32) {
             AdaptivePanel(title: "Connected Servers") {
                 if viewModel.servers.isEmpty && !viewModel.isLoading {
-                    VStack(spacing: 14) {
+                    VStack(spacing: 16) {
                         Image(systemName: "server.rack")
-                            .font(.system(size: 46))
-                            .foregroundColor(.white.opacity(0.15))
+                            .font(.system(size: 52))
+                            .foregroundColor(.white.opacity(0.2))
                         
                         Text("No servers connected")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(.white.opacity(0.5))
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 48)
+                    .padding(.vertical, 60)
                 } else {
-                    LazyVGrid(columns: serverColumns, spacing: 18) {
+                    LazyVGrid(columns: serverColumns, spacing: 20) {
                         ForEach(viewModel.servers, id: \.name) { server in
                             ServerCard(
                                 server: server,
@@ -189,19 +189,19 @@ struct AdminDashboard: View {
             }
 
             AdaptivePanel(title: "Bridge Activity Stream") {
-                VStack(spacing: 8) {
+                VStack(spacing: 12) {
                     if viewModel.activityServers.isEmpty {
-                        VStack(spacing: 14) {
+                        VStack(spacing: 16) {
                             Image(systemName: "chart.line.uptrend.xyaxis")
-                                .font(.system(size: 46))
-                                .foregroundColor(.white.opacity(0.15))
+                                .font(.system(size: 52))
+                                .foregroundColor(.white.opacity(0.2))
                             
                             Text("No recent activity")
-                                .font(.system(size: 15, weight: .medium))
-                                .foregroundColor(.white.opacity(0.5))
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white.opacity(0.6))
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.vertical, 48)
+                        .padding(.vertical, 60)
                     } else {
                         ForEach(viewModel.activityServers, id: \.id) { activity in
                             ActivityRow(server: activity)
@@ -211,7 +211,7 @@ struct AdminDashboard: View {
             }
             
             AdaptivePanel(title: "Service Health Probes") {
-                LazyVGrid(columns: endpointColumns, spacing: 18) {
+                LazyVGrid(columns: endpointColumns, spacing: 20) {
                     EndpointStatusCard(
                         name: "command.bbarni.hackclub.app",
                         expectation: "Expecting HTTP 405",
@@ -229,31 +229,31 @@ struct AdminDashboard: View {
     }
 
     private var metricsColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: 220), spacing: 16, alignment: .top)]
+        [GridItem(.adaptive(minimum: 220), spacing: 20, alignment: .top)]
     }
 
     private var serverColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: 280), spacing: 18, alignment: .top)]
+        [GridItem(.adaptive(minimum: 280), spacing: 20, alignment: .top)]
     }
 
     private var endpointColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: 260), spacing: 16, alignment: .top)]
+        [GridItem(.adaptive(minimum: 260), spacing: 20, alignment: .top)]
     }
 
     private var databaseColumns: [GridItem] {
-        [GridItem(.adaptive(minimum: 240), spacing: 18, alignment: .top)]
+        [GridItem(.adaptive(minimum: 240), spacing: 20, alignment: .top)]
     }
 
     @ViewBuilder
     private func header(title: String, subtitle: String) -> some View {
         HStack {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(title)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(.white)
                 Text(subtitle)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(.white.opacity(0.55))
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(.white.opacity(0.65))
             }
             Spacer()
         }
@@ -261,26 +261,26 @@ struct AdminDashboard: View {
 
     private var passwordCaptureSheet: some View {
         NavigationStack {
-            VStack(spacing: 20) {
+            VStack(spacing: 24) {
                 Text("Admin Dashboard Password")
-                    .font(.system(size: 20, weight: .semibold))
-                    .padding(.top, 24)
+                    .font(.system(size: 22, weight: .semibold))
+                    .padding(.top, 32)
 
                 Text("Enter the password used for the Shareify cloud dashboard.")
-                    .font(.system(size: 15))
+                    .font(.system(size: 16))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 28)
 
                 SecureField("Dashboard password", text: $dashboardPasswordDraft)
                     .textContentType(.password)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 16)
                     .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
                     .focused($passwordFieldFocused)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 28)
 
-                HStack(spacing: 16) {
+                HStack(spacing: 18) {
                     Button("Cancel") {
                         isShowingPasswordSheet = false
                         viewModel.clearStoredPassword()
@@ -298,7 +298,7 @@ struct AdminDashboard: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 28)
 
                 Spacer()
             }
@@ -336,20 +336,20 @@ private struct AdaptivePanel<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
+        VStack(alignment: .leading, spacing: 24) {
             if !title.isEmpty {
                 Text(title)
-                    .font(.system(size: 19, weight: .bold))
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.white)
                     .textCase(.uppercase)
                     .tracking(1.2)
-                    .padding(.bottom, 4)
+                    .padding(.bottom, 6)
             }
             
             content
         }
-        .padding(.horizontal, extraPadding ? 28 : 24)
-        .padding(.vertical, extraPadding ? 28 : 24)
+        .padding(.horizontal, extraPadding ? 32 : 28)
+        .padding(.vertical, extraPadding ? 32 : 28)
         .background(
             ZStack {
                 RoundedRectangle(cornerRadius: 28)
@@ -377,42 +377,42 @@ private struct MetricCard: View {
     let accent: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(spacing: 12) {
                 Circle()
                     .fill(accent.opacity(0.18))
-                    .frame(width: 42, height: 42)
+                    .frame(width: 46, height: 46)
                     .overlay(
                         Image(systemName: iconName(for: title))
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.system(size: 20, weight: .semibold))
                             .foregroundColor(accent)
                     )
                 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 5) {
                     Text(title)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.6))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.7))
                         .textCase(.uppercase)
                         .tracking(1.0)
                     
                     Text(subtitle)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.4))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.5))
                         .lineLimit(1)
                 }
                 
                 Spacer()
             }
 
-            HStack(alignment: .lastTextBaseline, spacing: 6) {
+            HStack(alignment: .lastTextBaseline, spacing: 8) {
                 Text("\(value)")
-                    .font(.system(size: 48, weight: .heavy, design: .rounded))
+                    .font(.system(size: 52, weight: .heavy, design: .rounded))
                     .foregroundColor(accent)
                     .shadow(color: accent.opacity(0.6), radius: 14, x: 0, y: 4)
             }
         }
-        .padding(22)
-        .frame(maxWidth: .infinity, minHeight: 155, alignment: .topLeading)
+        .padding(26)
+        .frame(maxWidth: .infinity, minHeight: 170, alignment: .topLeading)
         .background(
             ZStack {
                 RoundedRectangle(cornerRadius: 22)
@@ -457,50 +457,50 @@ private struct EndpointStatusCard: View {
     let state: EndpointState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 14) {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 16) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 14)
                         .fill(accentColor.opacity(0.14))
-                        .frame(width: 48, height: 48)
+                        .frame(width: 52, height: 52)
                     
                     Image(systemName: iconName)
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(.system(size: 22, weight: .semibold))
                         .foregroundColor(accentColor)
                 }
                 .shadow(color: accentColor.opacity(0.3), radius: 12, x: 0, y: 4)
 
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text(name)
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
                         .lineLimit(2)
                     
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         Circle()
                             .fill(accentColor)
-                            .frame(width: 7, height: 7)
+                            .frame(width: 8, height: 8)
                             .shadow(color: accentColor, radius: 4)
                         
                         Text(statusTitle)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.7))
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white.opacity(0.75))
                     }
                 }
             }
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 Text(detailText)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.white.opacity(0.8))
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white.opacity(0.85))
                     .fixedSize(horizontal: false, vertical: true)
                 
                 Text(expectation)
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundColor(.white.opacity(0.45))
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundColor(.white.opacity(0.55))
             }
         }
-        .padding(22)
+        .padding(26)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             ZStack {
@@ -583,38 +583,38 @@ private struct ServerCard: View {
     private let cardAccent = Color(red: 0.43, green: 0.49, blue: 1.0)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(spacing: 14) {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(spacing: 16) {
                 ZStack {
                     Circle()
                         .fill(cardAccent.opacity(0.16))
-                        .frame(width: 52, height: 52)
+                        .frame(width: 56, height: 56)
                     
                     Circle()
                         .stroke(cardAccent.opacity(0.35), lineWidth: 2)
-                        .frame(width: 52, height: 52)
+                        .frame(width: 56, height: 56)
                     
                     Image(systemName: "server.rack")
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: 24, weight: .semibold))
                         .foregroundColor(cardAccent)
                 }
                 .shadow(color: cardAccent.opacity(0.3), radius: 16, x: 0, y: 6)
                 
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text(server.name)
-                        .font(.system(size: 17, weight: .bold))
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.white)
                         .lineLimit(1)
                     
-                    HStack(spacing: 7) {
+                    HStack(spacing: 8) {
                         Circle()
                             .fill(Color(red: 0.0, green: 0.96, blue: 0.63))
-                            .frame(width: 8, height: 8)
+                            .frame(width: 9, height: 9)
                             .shadow(color: Color(red: 0.0, green: 0.96, blue: 0.63), radius: 6)
                         
                         Text(server.statusLabel)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.white.opacity(0.6))
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
                     }
                 }
 
@@ -623,7 +623,7 @@ private struct ServerCard: View {
                 Button {
                     disconnectAction()
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 7) {
                         if isDisconnecting {
                             ProgressView()
                                 .progressViewStyle(.circular)
@@ -631,11 +631,11 @@ private struct ServerCard: View {
                                 .scaleEffect(0.75)
                         }
                         Text(isDisconnecting ? "Disconnecting…" : "Disconnect")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 14, weight: .bold))
                     }
                     .foregroundColor(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 11)
                     .background(
                         LinearGradient(
                             colors: [Color(red: 1.0, green: 0.37, blue: 0.43), Color(red: 0.86, green: 0.24, blue: 0.35)],
@@ -650,13 +650,13 @@ private struct ServerCard: View {
                 .opacity(isDisconnecting ? 0.6 : 1.0)
             }
 
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 14) {
                 LabeledDetailView(label: "Connected", value: server.connectedDisplay)
                 LabeledDetailView(label: "Last Seen", value: server.lastSeenDisplay)
                 LabeledDetailView(label: "Auth Token", value: server.authTokenDisplay)
             }
         }
-        .padding(22)
+        .padding(26)
         .background(
             ZStack {
                 RoundedRectangle(cornerRadius: 22)
@@ -690,39 +690,39 @@ private struct ActivityRow: View {
     let server: AdminDashboardServer
 
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 18) {
             Circle()
                 .fill(Color(red: 1.0, green: 0.6, blue: 0.35).opacity(0.16))
-                .frame(width: 42, height: 42)
+                .frame(width: 46, height: 46)
                 .overlay(
                     Image(systemName: "bolt.fill")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.system(size: 19, weight: .semibold))
                         .foregroundColor(Color(red: 1.0, green: 0.6, blue: 0.35))
                 )
             
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 7) {
                 Text(server.name)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundColor(.white)
                 
-                HStack(spacing: 14) {
+                HStack(spacing: 16) {
                     Label(server.lastSeenRelative, systemImage: "clock")
                     Label(server.pendingCommandsDisplay, systemImage: "arrow.triangle.2.circlepath")
                 }
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.white.opacity(0.65))
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.white.opacity(0.7))
             }
             
             Spacer()
             
             Text(server.idPrefix)
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .foregroundColor(.white.opacity(0.5))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.white.opacity(0.08), in: Capsule())
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .foregroundColor(.white.opacity(0.6))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(Color.white.opacity(0.1), in: Capsule())
         }
-        .padding(20)
+        .padding(24)
         .background(
             ZStack {
                 RoundedRectangle(cornerRadius: 18)
@@ -742,14 +742,14 @@ private struct LabeledDetailView: View {
     let value: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
+        HStack(alignment: .top, spacing: 16) {
             Text(label)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.white.opacity(0.55))
-                .frame(width: 92, alignment: .leading)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.white.opacity(0.65))
+                .frame(width: 100, alignment: .leading)
             Text(value)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.white.opacity(0.9))
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.white.opacity(0.95))
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
@@ -780,20 +780,20 @@ private struct DashboardBannerView: View {
 
     var body: some View {
         VStack {
-            HStack {
+            HStack(spacing: 12) {
                 Image(systemName: banner.iconName)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(banner.foregroundColor)
                 Text(banner.message)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundColor(.white)
                 Spacer()
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
             .background(banner.backgroundColor, in: Capsule())
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, 20)
     }
 }
 
