@@ -99,12 +99,30 @@ struct AdminDashboard: View {
     }
 
     private var metricsSection: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 24) {
             HStack {
-                Text("Bridge Metrics")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.white)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Shareify Command Bridge")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(.white)
+                        .textCase(.uppercase)
+                        .tracking(1.2)
+                    
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(Color(red: 0.0, green: 0.96, blue: 0.63))
+                            .frame(width: 10, height: 10)
+                            .shadow(color: Color(red: 0.0, green: 0.96, blue: 0.63), radius: 8)
+                        
+                        Text(viewModel.lastUpdatedText)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white.opacity(0.65))
+                    }
+                    .padding(.top, 2)
+                }
+                
                 Spacer()
+                
                 Button {
                     viewModel.refresh(forceLogin: false)
                 } label: {
@@ -116,92 +134,106 @@ struct AdminDashboard: View {
                                 .scaleEffect(0.7)
                         }
                         Text(viewModel.isLoading ? "Refreshing…" : "Refresh Now")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.white)
                     }
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 16)
-                    .background(Color.white.opacity(0.12), in: Capsule())
+                    .padding(.vertical, 11)
+                    .padding(.horizontal, 18)
+                    .background(
+                        LinearGradient(
+                            colors: [Color(red: 1.0, green: 0.6, blue: 0.35), Color(red: 1.0, green: 0.37, blue: 0.43)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        in: Capsule()
+                    )
+                    .shadow(color: Color(red: 1.0, green: 0.37, blue: 0.43).opacity(0.4), radius: 18, x: 0, y: 8)
                 }
                 .disabled(viewModel.isLoading)
             }
 
-            LazyVGrid(columns: metricsColumns, spacing: 16) {
-                MetricCard(title: "Live Servers", value: viewModel.servers.count, subtitle: viewModel.serversTrendText, accent: Color(red: 0.45, green: 0.69, blue: 1.0))
-                MetricCard(title: "Known Users", value: viewModel.knownUsersCount, subtitle: viewModel.usersTrendText, accent: Color(red: 0.6, green: 0.87, blue: 0.47))
-                MetricCard(title: "Active Links", value: viewModel.activeLinkCount, subtitle: viewModel.activeTrendText, accent: Color(red: 1.0, green: 0.66, blue: 0.55))
-            }
-
-            Text("Service Health Probes")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.white.opacity(0.7))
-                .padding(.top, 6)
-
-            LazyVGrid(columns: endpointColumns, spacing: 16) {
-                EndpointStatusCard(
-                    name: "command.bbarni.hackclub.app",
-                    expectation: "Expecting HTTP 405",
-                    state: viewModel.commandServiceStatus
-                )
-
-                EndpointStatusCard(
-                    name: "bridge.bbarni.hackclub.app",
-                    expectation: "Expecting HTTP 200",
-                    state: viewModel.bridgeServiceStatus
-                )
+            LazyVGrid(columns: metricsColumns, spacing: 18) {
+                MetricCard(title: "Live Servers", value: viewModel.servers.count, subtitle: viewModel.serversTrendText, accent: Color(red: 0.43, green: 0.49, blue: 1.0))
+                MetricCard(title: "Known Users", value: viewModel.knownUsersCount, subtitle: viewModel.usersTrendText, accent: Color(red: 0.0, green: 0.96, blue: 0.63))
+                MetricCard(title: "Active Links", value: viewModel.activeLinkCount, subtitle: viewModel.activeTrendText, accent: Color(red: 1.0, green: 0.6, blue: 0.35))
             }
         }
     }
 
     private var controlsSection: some View {
-        VStack(spacing: 24) {
-            AdaptivePanel {
-                header(title: "Connected Servers", subtitle: "Status matrix updates every 30 seconds")
-                if viewModel.servers.isEmpty {
-                    EmptyDashboardState(message: "No active bridge connections right now.")
-                        .frame(minHeight: 160)
+        VStack(alignment: .leading, spacing: 28) {
+            AdaptivePanel(title: "Connected Servers") {
+                if viewModel.servers.isEmpty && !viewModel.isLoading {
+                    VStack(spacing: 14) {
+                        Image(systemName: "server.rack")
+                            .font(.system(size: 46))
+                            .foregroundColor(.white.opacity(0.15))
+                        
+                        Text("No servers connected")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 48)
                 } else {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 280), spacing: 18, alignment: .top)], spacing: 18) {
-                        ForEach(viewModel.servers) { server in
-                            ServerCard(server: server, isDisconnecting: viewModel.disconnecting.contains(server.id)) {
-                                viewModel.disconnect(server: server)
-                            }
+                    LazyVGrid(columns: serverColumns, spacing: 18) {
+                        ForEach(viewModel.servers, id: \.name) { server in
+                            ServerCard(
+                                server: server,
+                                isDisconnecting: viewModel.disconnecting.contains(server.id),
+                                disconnectAction: { viewModel.disconnect(server: server) }
+                            )
                         }
                     }
                 }
             }
 
-            AdaptivePanel {
-                header(title: "Bridge Activity Stream", subtitle: "Recent session touchpoints")
-                if viewModel.activityServers.isEmpty {
-                    EmptyDashboardState(message: "Activity stream populates once servers connect.")
-                        .frame(minHeight: 140)
-                } else {
-                    VStack(spacing: 12) {
-                        ForEach(viewModel.activityServers) { server in
-                            ActivityRow(server: server)
+            AdaptivePanel(title: "Bridge Activity Stream") {
+                VStack(spacing: 8) {
+                    if viewModel.activityServers.isEmpty {
+                        VStack(spacing: 14) {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .font(.system(size: 46))
+                                .foregroundColor(.white.opacity(0.15))
+                            
+                            Text("No recent activity")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(.white.opacity(0.5))
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 48)
+                    } else {
+                        ForEach(viewModel.activityServers, id: \.id) { activity in
+                            ActivityRow(server: activity)
                         }
                     }
                 }
             }
+            
+            AdaptivePanel(title: "Service Health Probes") {
+                LazyVGrid(columns: endpointColumns, spacing: 18) {
+                    EndpointStatusCard(
+                        name: "command.bbarni.hackclub.app",
+                        expectation: "Expecting HTTP 405",
+                        state: viewModel.commandServiceStatus
+                    )
 
-            AdaptivePanel(extraPadding: true) {
-                header(title: "Data Control Center", subtitle: "Secure management for relational and document stores")
-                LazyVGrid(columns: databaseColumns, spacing: 18) {
-                    DatabaseCard(icon: "🧬", title: "SQLite Core Console", description: "Browse structured credentials, execute live queries, and fine-tune access data with instant propagation across the bridge.") {
-                        openURLIfPossible(path: "/dashboard/database/sqlite")
-                    }
-                    DatabaseCard(icon: "🪄", title: "JSON Directory", description: "Manipulate bridge metadata with schema hints, visualize raw payloads, and validate structures before committing changes.") {
-                        openURLIfPossible(path: "/dashboard/database/json")
-                    }
+                    EndpointStatusCard(
+                        name: "bridge.bbarni.hackclub.app",
+                        expectation: "Expecting HTTP 200",
+                        state: viewModel.bridgeServiceStatus
+                    )
                 }
-                .padding(.top, 10)
             }
         }
     }
 
     private var metricsColumns: [GridItem] {
         [GridItem(.adaptive(minimum: 220), spacing: 16, alignment: .top)]
+    }
+
+    private var serverColumns: [GridItem] {
+        [GridItem(.adaptive(minimum: 280), spacing: 18, alignment: .top)]
     }
 
     private var endpointColumns: [GridItem] {
@@ -293,26 +325,48 @@ struct AdminDashboard: View {
 }
 
 private struct AdaptivePanel<Content: View>: View {
+    let title: String
     let extraPadding: Bool
     @ViewBuilder let content: Content
 
-    init(extraPadding: Bool = false, @ViewBuilder content: () -> Content) {
+    init(title: String = "", extraPadding: Bool = false, @ViewBuilder content: () -> Content) {
+        self.title = title
         self.extraPadding = extraPadding
         self.content = content()
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: extraPadding ? 20 : 16) {
+        VStack(alignment: .leading, spacing: 22) {
+            if !title.isEmpty {
+                Text(title)
+                    .font(.system(size: 19, weight: .bold))
+                    .foregroundColor(.white)
+                    .textCase(.uppercase)
+                    .tracking(1.2)
+                    .padding(.bottom, 4)
+            }
+            
             content
         }
-        .padding(.horizontal, extraPadding ? 26 : 22)
-        .padding(.vertical, extraPadding ? 26 : 22)
-        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 28))
-        .overlay(
-            RoundedRectangle(cornerRadius: 28)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+        .padding(.horizontal, extraPadding ? 28 : 24)
+        .padding(.vertical, extraPadding ? 28 : 24)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 28)
+                    .fill(Color.white.opacity(0.05))
+                
+                RoundedRectangle(cornerRadius: 28)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.14), Color.clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+            }
         )
-        .shadow(color: Color.black.opacity(0.22), radius: 18, x: 0, y: 12)
+        .shadow(color: Color.black.opacity(0.3), radius: 28, x: 0, y: 14)
     }
 }
 
@@ -323,40 +377,77 @@ private struct MetricCard: View {
     let accent: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title.uppercased())
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.white.opacity(0.65))
-                .tracking(1.1)
-
-            HStack(alignment: .lastTextBaseline, spacing: 8) {
-                Text("\(value)")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 10) {
                 Circle()
-                    .fill(accent.opacity(0.7))
-                    .frame(width: 10, height: 10)
+                    .fill(accent.opacity(0.18))
+                    .frame(width: 42, height: 42)
+                    .overlay(
+                        Image(systemName: iconName(for: title))
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(accent)
+                    )
+                
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.6))
+                        .textCase(.uppercase)
+                        .tracking(1.0)
+                    
+                    Text(subtitle)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.4))
+                        .lineLimit(1)
+                }
+                
+                Spacer()
             }
 
-            Text(subtitle)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(accent.opacity(0.8))
+            HStack(alignment: .lastTextBaseline, spacing: 6) {
+                Text("\(value)")
+                    .font(.system(size: 48, weight: .heavy, design: .rounded))
+                    .foregroundColor(accent)
+                    .shadow(color: accent.opacity(0.6), radius: 14, x: 0, y: 4)
+            }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 18)
+        .padding(22)
+        .frame(maxWidth: .infinity, minHeight: 155, alignment: .topLeading)
         .background(
-            LinearGradient(
-                colors: [accent.opacity(0.25), Color.white.opacity(0.08)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 22)
+            ZStack {
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(Color.white.opacity(0.06))
+
+                RoundedRectangle(cornerRadius: 22)
+                    .stroke(
+                        LinearGradient(
+                            colors: [accent.opacity(0.3), Color.clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(
+                        LinearGradient(
+                            colors: [accent.opacity(0.12), accent.opacity(0.0)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.18), radius: 14, x: 0, y: 8)
+        .shadow(color: accent.opacity(0.15), radius: 24, x: 0, y: 12)
+    }
+    
+    private func iconName(for title: String) -> String {
+        switch title {
+        case "Live Servers": return "server.rack"
+        case "Known Users": return "person.3.fill"
+        case "Active Links": return "link.circle.fill"
+        default: return "chart.bar.fill"
+        }
     }
 }
 
@@ -366,45 +457,77 @@ private struct EndpointStatusCard: View {
     let state: EndpointState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                Image(systemName: iconName)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(accentColor)
-                    .frame(width: 34, height: 34)
-                    .background(accentColor.opacity(0.18), in: RoundedRectangle(cornerRadius: 12))
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(accentColor.opacity(0.14))
+                        .frame(width: 48, height: 48)
+                    
+                    Image(systemName: iconName)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(accentColor)
+                }
+                .shadow(color: accentColor.opacity(0.3), radius: 12, x: 0, y: 4)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 5) {
                     Text(name)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.white)
                         .lineLimit(2)
-                    Text(statusTitle)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(accentColor)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(accentColor.opacity(0.18), in: Capsule())
+                    
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(accentColor)
+                            .frame(width: 7, height: 7)
+                            .shadow(color: accentColor, radius: 4)
+                        
+                        Text(statusTitle)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
                 }
             }
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(detailText)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.white.opacity(0.78))
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.white.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
+                
                 Text(expectation)
-                    .font(.system(size: 11, weight: .regular))
+                    .font(.system(size: 12, weight: .regular))
                     .foregroundColor(.white.opacity(0.45))
             }
         }
-        .padding(20)
+        .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 22))
-        .overlay(
-            RoundedRectangle(cornerRadius: 22)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(Color.white.opacity(0.05))
+                
+                RoundedRectangle(cornerRadius: 22)
+                    .stroke(
+                        LinearGradient(
+                            colors: [accentColor.opacity(0.2), Color.clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+                
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(
+                        LinearGradient(
+                            colors: [accentColor.opacity(0.08), accentColor.opacity(0.0)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
         )
+        .shadow(color: accentColor.opacity(0.1), radius: 16, x: 0, y: 8)
     }
 
     private var accentColor: Color {
@@ -456,20 +579,43 @@ private struct ServerCard: View {
     let server: AdminDashboardServer
     let isDisconnecting: Bool
     let disconnectAction: () -> Void
+    
+    private let cardAccent = Color(red: 0.43, green: 0.49, blue: 1.0)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .fill(cardAccent.opacity(0.16))
+                        .frame(width: 52, height: 52)
+                    
+                    Circle()
+                        .stroke(cardAccent.opacity(0.35), lineWidth: 2)
+                        .frame(width: 52, height: 52)
+                    
+                    Image(systemName: "server.rack")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundColor(cardAccent)
+                }
+                .shadow(color: cardAccent.opacity(0.3), radius: 16, x: 0, y: 6)
+                
+                VStack(alignment: .leading, spacing: 5) {
                     Text(server.name)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 17, weight: .bold))
                         .foregroundColor(.white)
-                    Text(server.statusLabel)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(Color.green.opacity(0.7))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .background(Color.green.opacity(0.12), in: Capsule())
+                        .lineLimit(1)
+                    
+                    HStack(spacing: 7) {
+                        Circle()
+                            .fill(Color(red: 0.0, green: 0.96, blue: 0.63))
+                            .frame(width: 8, height: 8)
+                            .shadow(color: Color(red: 0.0, green: 0.96, blue: 0.63), radius: 6)
+                        
+                        Text(server.statusLabel)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
                 }
 
                 Spacer()
@@ -477,29 +623,66 @@ private struct ServerCard: View {
                 Button {
                     disconnectAction()
                 } label: {
-                    Text(isDisconnecting ? "Disconnecting…" : "Disconnect")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Color(red: 1.0, green: 0.71, blue: 0.76))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.red.opacity(0.18), in: Capsule())
+                    HStack(spacing: 6) {
+                        if isDisconnecting {
+                            ProgressView()
+                                .progressViewStyle(.circular)
+                                .tint(.white)
+                                .scaleEffect(0.75)
+                        }
+                        Text(isDisconnecting ? "Disconnecting…" : "Disconnect")
+                            .font(.system(size: 13, weight: .bold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(
+                        LinearGradient(
+                            colors: [Color(red: 1.0, green: 0.37, blue: 0.43), Color(red: 0.86, green: 0.24, blue: 0.35)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        in: Capsule()
+                    )
+                    .shadow(color: Color(red: 1.0, green: 0.37, blue: 0.43).opacity(0.35), radius: 12, x: 0, y: 4)
                 }
                 .disabled(isDisconnecting)
                 .opacity(isDisconnecting ? 0.6 : 1.0)
             }
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 12) {
                 LabeledDetailView(label: "Connected", value: server.connectedDisplay)
                 LabeledDetailView(label: "Last Seen", value: server.lastSeenDisplay)
                 LabeledDetailView(label: "Auth Token", value: server.authTokenDisplay)
             }
         }
-        .padding(20)
-        .background(Color(red: 0.04, green: 0.1, blue: 0.24).opacity(0.65), in: RoundedRectangle(cornerRadius: 22))
-        .overlay(
-            RoundedRectangle(cornerRadius: 22)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        .padding(22)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(Color.white.opacity(0.06))
+
+                RoundedRectangle(cornerRadius: 22)
+                    .stroke(
+                        LinearGradient(
+                            colors: [cardAccent.opacity(0.25), Color.clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(
+                        LinearGradient(
+                            colors: [cardAccent.opacity(0.09), cardAccent.opacity(0.0)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
         )
+        .shadow(color: cardAccent.opacity(0.12), radius: 20, x: 0, y: 10)
     }
 }
 
@@ -507,88 +690,66 @@ private struct ActivityRow: View {
     let server: AdminDashboardServer
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
+        HStack(spacing: 16) {
+            Circle()
+                .fill(Color(red: 1.0, green: 0.6, blue: 0.35).opacity(0.16))
+                .frame(width: 42, height: 42)
+                .overlay(
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(Color(red: 1.0, green: 0.6, blue: 0.35))
+                )
+            
+            VStack(alignment: .leading, spacing: 6) {
                 Text(server.name)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.white)
-                Spacer()
-                Text(server.idPrefix)
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.55))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(Color.white.opacity(0.08), in: Capsule())
-            }
-
-            HStack(spacing: 12) {
-                Label(server.lastSeenRelative, systemImage: "clock")
-                Label(server.pendingCommandsDisplay, systemImage: "arrow.triangle.2.circlepath")
-            }
-            .font(.system(size: 13, weight: .medium))
-            .foregroundColor(.white.opacity(0.7))
-        }
-        .padding(18)
-        .background(Color.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 18))
-    }
-}
-
-private struct DatabaseCard: View {
-    let icon: String
-    let title: String
-    let description: String
-    let action: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(icon)
-                .font(.system(size: 26))
-            Text(title)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white)
-            Text(description)
-                .font(.system(size: 13))
+                
+                HStack(spacing: 14) {
+                    Label(server.lastSeenRelative, systemImage: "clock")
+                    Label(server.pendingCommandsDisplay, systemImage: "arrow.triangle.2.circlepath")
+                }
+                .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.white.opacity(0.65))
-            Spacer(minLength: 0)
-            Button(action: action) {
-                Text("Open")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(Color(red: 0.05, green: 0.07, blue: 0.18))
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 16)
-                    .background(
-                        LinearGradient(
-                            colors: [Color(red: 0.7, green: 0.83, blue: 1.0), Color(red: 0.33, green: 0.66, blue: 0.98)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        in: Capsule()
-                    )
             }
+            
+            Spacer()
+            
+            Text(server.idPrefix)
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundColor(.white.opacity(0.5))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.08), in: Capsule())
         }
         .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 22))
-        .overlay(
-            RoundedRectangle(cornerRadius: 22)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Color.white.opacity(0.04))
+                
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            }
         )
     }
 }
+
+
 
 private struct LabeledDetailView: View {
     let label: String
     let value: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 14) {
             Text(label)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.white.opacity(0.6))
-                .frame(width: 86, alignment: .leading)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.white.opacity(0.55))
+                .frame(width: 92, alignment: .leading)
             Text(value)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.white)
+                .foregroundColor(.white.opacity(0.9))
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
@@ -663,6 +824,7 @@ final class AdminDashboardViewModel: ObservableObject {
     private let session: URLSession
     private var lastServerCount: Int = 0
     private var lastServerDelta: Int = 0
+    private var lastUpdated: Date?
 
     init(session: URLSession = .shared) {
         self.session = session
@@ -710,8 +872,6 @@ final class AdminDashboardViewModel: ObservableObject {
             return "Monitoring"
         }
     }
-
-    private(set) var lastUpdated: Date?
 
     func refresh(forceLogin: Bool) {
         guard !isLoading else {

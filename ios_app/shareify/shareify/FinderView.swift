@@ -15,6 +15,17 @@ struct FinderItem: Identifiable, Codable {
     }
 }
 
+struct CachedFileContent: Codable {
+    let content: String
+    let type: String
+    let timestamp: Date
+}
+
+struct CachedFolder: Codable {
+    let items: [FinderItem]
+    let timestamp: Date
+}
+
 struct FinderView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var currentPath: [String] = []
@@ -25,9 +36,14 @@ struct FinderView: View {
     @State private var items: [FinderItem] = []
     @State private var isLoading = false
     @StateObject private var backgroundManager = BackgroundManager.shared
-    @State private var folderCache: [String: [FinderItem]] = [:] {
+    @State private var folderCache: [String: CachedFolder] = [:] {
         didSet {
             saveFolderCache()
+        }
+    }
+    @State private var fileContentCache: [String: CachedFileContent] = [:] {
+        didSet {
+            saveFileContentCache()
         }
     }
     @State private var previewedFile: FinderItem? = nil
@@ -62,9 +78,11 @@ struct FinderView: View {
             self.items = []
         }
         isLoading = true
+        let targetPath = pathString
         ServerManager.shared.executeServerCommand(command: "/finder", method: "GET", body: requestBody, waitTime: 3) { result in
             DispatchQueue.main.async {
-                self.isLoading = false
+                let currentPathString = self.currentPath.joined(separator: "/")
+                
                 switch result {
                 case .success(let response):
                     var fileNames: [String] = []
@@ -82,21 +100,36 @@ struct FinderView: View {
                             dateModified: "Recently"
                         )
                     }
-                    self.items = finderItems
-                    self.cacheItems(finderItems, for: pathString)
+                    self.cacheItems(finderItems, for: targetPath)
+                    
+                    if currentPathString == targetPath {
+                        self.items = finderItems
+                        self.isLoading = false
+                    }
                 case .failure(_):
-                    self.items = []
+                    if currentPathString == targetPath {
+                        self.items = []
+                        self.isLoading = false
+                    }
                 }
             }
         }
     }
     
     private func getCachedItems(for path: String) -> [FinderItem]? {
-        return folderCache[path]
+        guard let cached = folderCache[path] else { return nil }
+        
+        let monthAgo = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+        if cached.timestamp < monthAgo {
+            folderCache.removeValue(forKey: path)
+            return nil
+        }
+        
+        return cached.items
     }
 
     private func cacheItems(_ items: [FinderItem], for path: String) {
-        folderCache[path] = items
+        folderCache[path] = CachedFolder(items: items, timestamp: Date())
     }
 
     private func saveFolderCache() {
@@ -111,12 +144,60 @@ struct FinderView: View {
     private func loadFolderCache() {
         if let data = UserDefaults.standard.data(forKey: "FinderFolderCache") {
             do {
-                let cache = try JSONDecoder().decode([String: [FinderItem]].self, from: data)
+                let cache = try JSONDecoder().decode([String: CachedFolder].self, from: data)
                 folderCache = cache
+                cleanupExpiredFolderCache()
             } catch {
                 print("Failed to load folder cache:", error)
             }
         }
+    }
+    
+    private func cleanupExpiredFolderCache() {
+        let monthAgo = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+        folderCache = folderCache.filter { $0.value.timestamp >= monthAgo }
+    }
+    
+    private func saveFileContentCache() {
+        do {
+            let data = try JSONEncoder().encode(fileContentCache)
+            UserDefaults.standard.set(data, forKey: "FinderFileContentCache")
+        } catch {
+            print("Failed to save file content cache:", error)
+        }
+    }
+
+    private func loadFileContentCache() {
+        if let data = UserDefaults.standard.data(forKey: "FinderFileContentCache") {
+            do {
+                let cache = try JSONDecoder().decode([String: CachedFileContent].self, from: data)
+                fileContentCache = cache
+                cleanupExpiredFileCache()
+            } catch {
+                print("Failed to load file content cache:", error)
+            }
+        }
+    }
+    
+    private func getCachedFileContent(for path: String) -> CachedFileContent? {
+        guard let cached = fileContentCache[path] else { return nil }
+        
+        let monthAgo = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+        if cached.timestamp < monthAgo {
+            fileContentCache.removeValue(forKey: path)
+            return nil
+        }
+        
+        return cached
+    }
+
+    private func cacheFileContent(content: String, type: String, for path: String) {
+        fileContentCache[path] = CachedFileContent(content: content, type: type, timestamp: Date())
+    }
+    
+    private func cleanupExpiredFileCache() {
+        let monthAgo = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+        fileContentCache = fileContentCache.filter { $0.value.timestamp >= monthAgo }
     }
     
     private func refreshCurrentFolder() {
@@ -145,6 +226,11 @@ struct FinderView: View {
                             }
                         }
                     )
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .bottom).combined(with: .opacity),
+                        removal: .move(edge: .bottom).combined(with: .opacity)
+                    ))
+                    .zIndex(2)
                 }
                 
                 if showingMediaPlayer, let file = mediaFile, let content = mediaContent {
@@ -166,6 +252,7 @@ struct FinderView: View {
         .ignoresSafeArea(.all)
         .onAppear {
             loadFolderCache()
+            loadFileContentCache()
             fetchFinderItems()
         }
         .onChange(of: currentPath) {
@@ -257,6 +344,7 @@ struct FinderView: View {
             Button("Refresh") { refreshCurrentFolder() }
             Button("Clear Cache") { 
                 folderCache.removeAll()
+                fileContentCache.removeAll()
                 fetchFinderItems()
             }
         }
@@ -418,9 +506,11 @@ struct FinderView: View {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     currentPath.append(item.name)
                 }
+                let targetPath = newPathString
                 ServerManager.shared.executeServerCommand(command: "/finder", method: "GET", body: requestBody, waitTime: 3) { result in
                     DispatchQueue.main.async {
-                        self.isLoading = false
+                        let currentPathString = self.currentPath.joined(separator: "/")
+                        
                         switch result {
                         case .success(let response):
                             var fileNames: [String] = []
@@ -438,10 +528,17 @@ struct FinderView: View {
                                     dateModified: "Recently"
                                 )
                             }
-                            self.items = finderItems
-                            self.cacheItems(finderItems, for: newPathString)
+                            self.cacheItems(finderItems, for: targetPath)
+                            
+                            if currentPathString == targetPath {
+                                self.items = finderItems
+                                self.isLoading = false
+                            }
                         case .failure(_):
-                            self.items = []
+                            if currentPathString == targetPath {
+                                self.items = []
+                                self.isLoading = false
+                            }
                         }
                     }
                 }
@@ -457,62 +554,84 @@ struct FinderView: View {
                     }
                     
                     let filePath = (currentPath + [item.name]).joined(separator: "/")
-                    let command = "/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
-                    let requestBody: [String: Any] = [:]
                     
-                    ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
-                        DispatchQueue.main.async {
-                            switch result {
-                            case .success(let response):
-                                if let json = response as? [String: Any],
-                                   let status = json["status"] as? String, status == "File content retrieved",
-                                   let content = json["content"] as? String {
-                                    
-                                    mediaContent = content
-                                } else if let json = response as? [String: Any],
-                                          let error = json["error"] as? String {
-                                    print("Server error: \(error)")
+                    if let cached = getCachedFileContent(for: filePath) {
+                        mediaContent = cached.content
+                    } else {
+                        let command = "/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
+                        let requestBody: [String: Any] = [:]
+                        
+                        ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
+                            DispatchQueue.main.async {
+                                switch result {
+                                case .success(let response):
+                                    if let json = response as? [String: Any],
+                                       let status = json["status"] as? String, status == "File content retrieved",
+                                       let content = json["content"] as? String {
+                                        
+                                        let type = json["type"] as? String ?? "binary"
+                                        mediaContent = content
+                                        cacheFileContent(content: content, type: type, for: filePath)
+                                    } else if let json = response as? [String: Any],
+                                              let error = json["error"] as? String {
+                                        print("Server error: \(error)")
+                                    }
+                                case .failure(let error):
+                                    print("Failed to load media file: \(error)")
                                 }
-                            case .failure(let error):
-                                print("Failed to load media file: \(error)")
                             }
                         }
                     }
                 } else {
-                    isPreviewLoading = true
-                    previewedFile = item
-                    previewedFileContent = nil
-                    previewedFileType = nil
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        isPreviewLoading = true
+                        previewedFile = item
+                        previewedFileContent = nil
+                        previewedFileType = nil
+                    }
+                    
                     let filePath = (currentPath + [item.name]).joined(separator: "/")
                     
-                    let command = "/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
-                    let requestBody: [String: Any] = [:]
-                    
-                    ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
-                        DispatchQueue.main.async {
+                    if let cached = getCachedFileContent(for: filePath) {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            previewedFileContent = cached.content
+                            previewedFileType = cached.type
                             isPreviewLoading = false
-                            switch result {
-                            case .success(let response):
-                                if let json = response as? [String: Any],
-                                   let status = json["status"] as? String, status == "File content retrieved" {
-                                    previewedFileContent = json["content"] as? String
-                                    previewedFileType = json["type"] as? String
-                                    
-                                    withAnimation(.easeInOut(duration: 0.35)) {
+                        }
+                    } else {
+                        let command = "/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
+                        let requestBody: [String: Any] = [:]
+                        
+                        ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
+                            DispatchQueue.main.async {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                    isPreviewLoading = false
+                                    switch result {
+                                    case .success(let response):
+                                        if let json = response as? [String: Any],
+                                           let status = json["status"] as? String, status == "File content retrieved" {
+                                            let content = json["content"] as? String ?? ""
+                                            let type = json["type"] as? String ?? "text"
+                                            
+                                            previewedFileContent = content
+                                            previewedFileType = type
+                                            
+                                            cacheFileContent(content: content, type: type, for: filePath)
+                                        } else if let json = response as? [String: Any],
+                                                  let error = json["error"] as? String {
+                                            print("Server error: \(error)")
+                                            previewedFileContent = "Server error: \(error)"
+                                            previewedFileType = "text"
+                                        } else {
+                                            previewedFileContent = "Failed to load file - unexpected response format."
+                                            previewedFileType = "text"
+                                        }
+                                    case .failure(let error):
+                                        print("Failed to load file: \(error)")
+                                        previewedFileContent = "Failed to load file: \(error.localizedDescription)"
+                                        previewedFileType = "text"
                                     }
-                                } else if let json = response as? [String: Any],
-                                          let error = json["error"] as? String {
-                                    print("Server error: \(error)")
-                                    previewedFileContent = "Server error: \(error)"
-                                    previewedFileType = "text"
-                                } else {
-                                    previewedFileContent = "Failed to load file - unexpected response format."
-                                    previewedFileType = "text"
                                 }
-                            case .failure(let error):
-                                print("Failed to load file: \(error)")
-                                previewedFileContent = "Failed to load file: \(error.localizedDescription)"
-                                previewedFileType = "text"
                             }
                         }
                     }
@@ -558,9 +677,11 @@ struct FinderView: View {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     currentPath.append(item.name)
                 }
+                let targetPath = newPathString
                 ServerManager.shared.executeServerCommand(command: "/finder", method: "GET", body: requestBody, waitTime: 3) { result in
                     DispatchQueue.main.async {
-                        self.isLoading = false
+                        let currentPathString = self.currentPath.joined(separator: "/")
+                        
                         switch result {
                         case .success(let response):
                             var fileNames: [String] = []
@@ -578,10 +699,17 @@ struct FinderView: View {
                                     dateModified: "Recently"
                                 )
                             }
-                            self.items = finderItems
-                            self.cacheItems(finderItems, for: newPathString)
+                            self.cacheItems(finderItems, for: targetPath)
+                            
+                            if currentPathString == targetPath {
+                                self.items = finderItems
+                                self.isLoading = false
+                            }
                         case .failure(_):
-                            self.items = []
+                            if currentPathString == targetPath {
+                                self.items = []
+                                self.isLoading = false
+                            }
                         }
                     }
                 }
@@ -597,62 +725,84 @@ struct FinderView: View {
                     }
                     
                     let filePath = (currentPath + [item.name]).joined(separator: "/")
-                    let command = "/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
-                    let requestBody: [String: Any] = [:]
                     
-                    ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
-                        DispatchQueue.main.async {
-                            switch result {
-                            case .success(let response):
-                                if let json = response as? [String: Any],
-                                   let status = json["status"] as? String, status == "File content retrieved",
-                                   let content = json["content"] as? String {
-                                    
-                                    mediaContent = content
-                                } else if let json = response as? [String: Any],
-                                          let error = json["error"] as? String {
-                                    print("Server error: \(error)")
+                    if let cached = getCachedFileContent(for: filePath) {
+                        mediaContent = cached.content
+                    } else {
+                        let command = "/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
+                        let requestBody: [String: Any] = [:]
+                        
+                        ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
+                            DispatchQueue.main.async {
+                                switch result {
+                                case .success(let response):
+                                    if let json = response as? [String: Any],
+                                       let status = json["status"] as? String, status == "File content retrieved",
+                                       let content = json["content"] as? String {
+                                        
+                                        let type = json["type"] as? String ?? "binary"
+                                        mediaContent = content
+                                        cacheFileContent(content: content, type: type, for: filePath)
+                                    } else if let json = response as? [String: Any],
+                                              let error = json["error"] as? String {
+                                        print("Server error: \(error)")
+                                    }
+                                case .failure(let error):
+                                    print("Failed to load media file: \(error)")
                                 }
-                            case .failure(let error):
-                                print("Failed to load media file: \(error)")
                             }
                         }
                     }
                 } else {
-                    isPreviewLoading = true
-                    previewedFile = item
-                    previewedFileContent = nil
-                    previewedFileType = nil
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        isPreviewLoading = true
+                        previewedFile = item
+                        previewedFileContent = nil
+                        previewedFileType = nil
+                    }
+                    
                     let filePath = (currentPath + [item.name]).joined(separator: "/")
                     
-                    let command = "/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
-                    let requestBody: [String: Any] = [:]
-                    
-                    ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
-                        DispatchQueue.main.async {
+                    if let cached = getCachedFileContent(for: filePath) {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            previewedFileContent = cached.content
+                            previewedFileType = cached.type
                             isPreviewLoading = false
-                            switch result {
-                            case .success(let response):
-                                if let json = response as? [String: Any],
-                                   let status = json["status"] as? String, status == "File content retrieved" {
-                                    previewedFileContent = json["content"] as? String
-                                    previewedFileType = json["type"] as? String
-                                    
-                                    withAnimation(.easeInOut(duration: 0.35)) {
+                        }
+                    } else {
+                        let command = "/get_file?file_path=\(filePath.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filePath)"
+                        let requestBody: [String: Any] = [:]
+                        
+                        ServerManager.shared.executeServerCommand(command: command, method: "GET", body: requestBody, waitTime: 5) { result in
+                            DispatchQueue.main.async {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                    isPreviewLoading = false
+                                    switch result {
+                                    case .success(let response):
+                                        if let json = response as? [String: Any],
+                                           let status = json["status"] as? String, status == "File content retrieved" {
+                                            let content = json["content"] as? String ?? ""
+                                            let type = json["type"] as? String ?? "text"
+                                            
+                                            previewedFileContent = content
+                                            previewedFileType = type
+                                            
+                                            cacheFileContent(content: content, type: type, for: filePath)
+                                        } else if let json = response as? [String: Any],
+                                                  let error = json["error"] as? String {
+                                            print("Server error: \(error)")
+                                            previewedFileContent = "Server error: \(error)"
+                                            previewedFileType = "text"
+                                        } else {
+                                            previewedFileContent = "Failed to load file - unexpected response format."
+                                            previewedFileType = "text"
+                                        }
+                                    case .failure(let error):
+                                        print("Failed to load file: \(error)")
+                                        previewedFileContent = "Failed to load file: \(error.localizedDescription)"
+                                        previewedFileType = "text"
                                     }
-                                } else if let json = response as? [String: Any],
-                                          let error = json["error"] as? String {
-                                    print("Server error: \(error)")
-                                    previewedFileContent = "Server error: \(error)"
-                                    previewedFileType = "text"
-                                } else {
-                                    previewedFileContent = "Failed to load file - unexpected response format."
-                                    previewedFileType = "text"
                                 }
-                            case .failure(let error):
-                                print("Failed to load file: \(error)")
-                                previewedFileContent = "Failed to load file: \(error.localizedDescription)"
-                                previewedFileType = "text"
                             }
                         }
                     }
@@ -943,6 +1093,7 @@ struct FilePreviewView: View {
     let type: String
     let isLoading: Bool
     let onDismiss: () -> Void
+    @State private var showShareSheet = false
     
     var body: some View {
         GeometryReader { geometry in
@@ -950,9 +1101,13 @@ struct FilePreviewView: View {
                 Color.black.opacity(0.15)
                     .ignoresSafeArea()
                     .transition(.opacity)
+                    .onTapGesture {
+                        onDismiss()
+                    }
                 
                 VStack {
                     headerView
+                        .transition(.move(edge: .top).combined(with: .opacity))
                     
                     if isLoading {
                         VStack(spacing: 20) {
@@ -965,15 +1120,17 @@ struct FilePreviewView: View {
                                 .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .transition(.scale.combined(with: .opacity))
                     } else {
                         contentView
+                            .transition(.scale(scale: 0.95).combined(with: .opacity))
                     }
                     
                     Spacer()
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height)
                 .background(.ultraThinMaterial)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .cornerRadius(0)
             }
         }
     }
@@ -984,6 +1141,19 @@ struct FilePreviewView: View {
                 .font(.system(size: 20, weight: .bold))
                 .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
             Spacer()
+            Button(action: {
+                showShareSheet = true
+            }) {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 24))
+                    .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+            }
+            .padding(.trailing, 12)
+            .sheet(isPresented: $showShareSheet) {
+                if let fileURL = createTemporaryFile() {
+                    ShareSheet(activityItems: [fileURL])
+                }
+            }
             Button(action: onDismiss) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 32))
@@ -992,6 +1162,23 @@ struct FilePreviewView: View {
         }
         .padding(.horizontal, 28)
         .padding(.top, 70)
+    }
+    
+    private func createTemporaryFile() -> URL? {
+        if type == "text" {
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
+            if let data = content.data(using: .utf8) {
+                try? data.write(to: tempURL)
+                return tempURL
+            }
+        } else if type == "binary" {
+            if let fileData = Data(base64Encoded: content) {
+                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
+                try? fileData.write(to: tempURL)
+                return tempURL
+            }
+        }
+        return nil
     }
     
     @ViewBuilder
@@ -1280,6 +1467,17 @@ struct QuickLookPreview: UIViewControllerRepresentable {
             url as QLPreviewItem
         }
     }
+}
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        return controller
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 #Preview {

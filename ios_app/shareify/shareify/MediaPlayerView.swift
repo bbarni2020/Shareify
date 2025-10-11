@@ -89,7 +89,10 @@ struct CustomVideoPlayerView: View {
     
     private var topControlBar: some View {
         HStack {
-            Button(action: onDismiss) {
+            Button(action: {
+                stopAndCleanup()
+                onDismiss()
+            }) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 18, weight: .medium))
                     .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
@@ -213,6 +216,14 @@ struct CustomVideoPlayerView: View {
     private func setupPlayer() {
         guard let videoData = Data(base64Encoded: content) else { return }
         
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.allowBluetoothHFP, .allowBluetoothA2DP])
+            try AVAudioSession.sharedInstance().setActive(true)
+            UIApplication.shared.beginReceivingRemoteControlEvents()
+        } catch {
+            print("Failed to configure audio session for video: \(error)")
+        }
+        
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(file.name)
         do {
             try videoData.write(to: tempURL)
@@ -291,8 +302,9 @@ struct CustomVideoPlayerView: View {
         return String(format: "%d:%02d", minutes, seconds)
     }
     
-    private func cleanup() {
+    private func stopAndCleanup() {
         player?.pause()
+        player?.replaceCurrentItem(with: nil)
         controlsTimer?.invalidate()
         playbackManager.currentlyPlaying = nil
         
@@ -301,6 +313,13 @@ struct CustomVideoPlayerView: View {
         }
         
         cancellables.removeAll()
+        
+        if let tempURL = player?.currentItem?.asset as? AVURLAsset {
+            try? FileManager.default.removeItem(at: tempURL.url)
+        }
+    }
+    
+    private func cleanup() {
     }
 }
 
@@ -385,7 +404,10 @@ struct CustomAudioPlayerView: View {
     
     private var topNavigationBar: some View {
         HStack {
-            Button(action: onDismiss) {
+            Button(action: {
+                stopAndCleanup()
+                onDismiss()
+            }) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 18, weight: .medium))
                     .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
@@ -492,9 +514,10 @@ struct CustomAudioPlayerView: View {
         }
         
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.allowBluetoothHFP, .allowBluetoothA2DP])
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.allowBluetoothHFP, .allowBluetoothA2DP, .mixWithOthers])
             try AVAudioSession.sharedInstance().setActive(true)
-            print("Audio session configured successfully")
+            UIApplication.shared.beginReceivingRemoteControlEvents()
+            print("Audio session configured successfully for background playback")
         } catch {
             print("Failed to configure audio session: \(error)")
         }
@@ -605,12 +628,42 @@ struct CustomAudioPlayerView: View {
         return String(format: "%d:%02d", minutes, seconds)
     }
     
-    private func cleanup() {
-        if let token = timeObserver { player?.removeTimeObserver(token) }
+    private func stopAndCleanup() {
+        player?.pause()
+        player?.replaceCurrentItem(with: nil)
+        
+        if let token = timeObserver { 
+            player?.removeTimeObserver(token) 
+            timeObserver = nil
+        }
+        
         if let player = player, let currentItem = player.currentItem {
             NotificationCenter.default.removeObserver(self, name: .AVPlayerItemDidPlayToEndTime, object: currentItem)
         }
+        
         cancellables.removeAll()
+        playbackManager.currentlyPlaying = nil
+        
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        
+        let center = MPRemoteCommandCenter.shared()
+        center.playCommand.removeTarget(nil)
+        center.pauseCommand.removeTarget(nil)
+        center.togglePlayPauseCommand.removeTarget(nil)
+        
+        if let tempURL = player?.currentItem?.asset as? AVURLAsset {
+            try? FileManager.default.removeItem(at: tempURL.url)
+        }
+        
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            UIApplication.shared.endReceivingRemoteControlEvents()
+        } catch {
+            print("Failed to deactivate audio session: \(error)")
+        }
+    }
+    
+    private func cleanup() {
     }
 
     private func updateNowPlayingInfo() {
@@ -754,7 +807,9 @@ struct LoadingMediaView: View {
     
     private var topNavigationBar: some View {
         HStack {
-            Button(action: onDismiss) {
+            Button(action: {
+                onDismiss()
+            }) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 18, weight: .medium))
                     .foregroundColor(Color(red: 0x11/255, green: 0x18/255, blue: 0x27/255))
