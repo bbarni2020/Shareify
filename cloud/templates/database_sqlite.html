@@ -389,28 +389,14 @@
     <div class="orb two"></div>
     <div class="container">
         <div class="header">
-            <h1>SQLite Core Console</h1>
+            <h1>User management</h1>
             <div class="nav-buttons">
                 <a href="/dashboard" class="btn">← Command Bridge</a>
-                <a href="/dashboard/database/json" class="btn btn-secondary">JSON Directory</a>
+                <a href="/dashboard/database/json" class="btn btn-secondary">Client management</a>
             </div>
         </div>
 
         <div id="alertContainer"></div>
-
-        <div class="panel">
-            <div class="panel-header">
-                <h3 class="panel-title">🧬 SQL Query Executor</h3>
-            </div>
-            <textarea id="queryInput" class="query-input" placeholder="Execute structured queries against core relational stores...
-
-Examples:
-SELECT * FROM users;
-INSERT INTO users (username, email) VALUES ('bridge_op', 'op@shareify.local');
-UPDATE users SET role = 'admin' WHERE id = 1;
-DELETE FROM users WHERE inactive = 1;"></textarea>
-            <button onclick="executeQuery()" class="btn">Execute Query</button>
-        </div>
 
         <div class="panel">
             <div class="panel-header">
@@ -431,6 +417,21 @@ DELETE FROM users WHERE inactive = 1;"></textarea>
                     <p>Query results will populate here after execution</p>
                 </div>
             </div>
+        </div>
+
+
+        <div class="panel">
+            <div class="panel-header">
+                <h3 class="panel-title">🧬 SQL Query Executor</h3>
+            </div>
+            <textarea id="queryInput" class="query-input" placeholder="Execute structured queries against core relational stores...
+
+Examples:
+SELECT * FROM users;
+INSERT INTO users (username, email) VALUES ('bridge_op', 'op@shareify.local');
+UPDATE users SET role = 'admin' WHERE id = 1;
+DELETE FROM users WHERE inactive = 1;"></textarea>
+            <button onclick="executeQuery()" class="btn">Execute Query</button>
         </div>
     </div>
 
@@ -712,11 +713,8 @@ DELETE FROM users WHERE inactive = 1;"></textarea>
                 
                 if (result.success) {
                     showAlert('Record updated successfully');
-                    cancelEdit(rowIndex);
-                    const displays = row.querySelectorAll('.cell-display');
-                    inputs.forEach((input, index) => {
-                        displays[index].textContent = input.value;
-                    });
+                    editingRow = null;
+                    loadTableData(tableName);
                 } else {
                     showAlert('Update failed: ' + result.error, 'error');
                 }

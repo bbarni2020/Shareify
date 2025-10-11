@@ -383,14 +383,30 @@
     <div class="orb two"></div>
     <div class="container">
         <div class="header">
-            <h1>JSON Directory Editor</h1>
+            <h1>Clients management</h1>
             <div class="nav-buttons">
                 <a href="/dashboard" class="btn">← Command Bridge</a>
-                <a href="/dashboard/database/sqlite" class="btn btn-secondary">SQLite Console</a>
+                <a href="/dashboard/database/sqlite" class="btn btn-secondary">User management</a>
             </div>
         </div>
 
         <div id="alertContainer"></div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <h3 class="panel-title">🧬 Client Management Interface</h3>
+                <div class="nav-buttons">
+                    <button onclick="loadUsers()" class="btn btn-secondary">Sync Directory</button>
+                    <button onclick="openAddUserModal()" class="btn btn-success">➕ Create Entity</button>
+                </div>
+            </div>
+            <div id="usersContainer">
+                <div class="empty-state">
+                    <h3>Directory cache empty</h3>
+                    <p>Initialize synchronization to load entity registry</p>
+                </div>
+            </div>
+        </div>
 
         <div class="panel">
             <div class="panel-header">
@@ -403,22 +419,6 @@
             </div>
             <textarea id="rawDataTextarea" class="raw-textarea" placeholder="Bridge metadata structures will populate here..."></textarea>
             <div id="jsonValidation" style="color: var(--danger); font-weight: 500;"></div>
-        </div>
-
-        <div class="panel">
-            <div class="panel-header">
-                <h3 class="panel-title">🧬 Identity Management Interface</h3>
-                <div class="nav-buttons">
-                    <button onclick="loadUsers()" class="btn btn-secondary">Sync Directory</button>
-                    <button onclick="openAddUserModal()" class="btn btn-success">➕ Create Entity</button>
-                </div>
-            </div>
-            <div id="usersContainer">
-                <div class="empty-state">
-                    <h3>Directory cache empty</h3>
-                    <p>Initialize synchronization to load entity registry</p>
-                </div>
-            </div>
         </div>
     </div>
     <div id="userModal" class="modal">
