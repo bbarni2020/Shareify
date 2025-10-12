@@ -31,32 +31,9 @@ class ShareifyExecutableBuilder:
                 self.log('✗ Failed to install PyInstaller', 'ERROR')
                 return False
 
-    def ensure_staticx(self):
-        if sys.platform != 'linux':
-            return False
-        
-        try:
-            result = subprocess.run(['staticx', '--version'], 
-                                  capture_output=True, text=True)
-            if result.returncode == 0:
-                self.log('✓ StaticX is available')
-                return True
-        except FileNotFoundError:
-            pass
-        
-        self.log('Installing StaticX for portable Linux builds...')
-        try:
-            subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'staticx'])
-            self.log('✓ StaticX installed')
-            return True
-        except subprocess.CalledProcessError:
-            self.log('⚠ StaticX installation failed - executable won\'t be portable', 'WARNING')
-            return False
-
     def create_main_script(self):
         main_script = '''import sys
 import os
-import multiprocessing
 
 if getattr(sys, 'frozen', False):
     application_path = sys._MEIPASS
@@ -66,8 +43,6 @@ else:
 sys.path.insert(0, application_path)
 
 if __name__ == "__main__":
-    multiprocessing.freeze_support()
-    
     try:
         import launcher
         launcher.main()
@@ -96,6 +71,12 @@ block_cipher = None
 
 datas = []
 
+executable_dir = r"{self.script_dir}"
+python_files = []
+for py_file in Path(executable_dir).glob("*.py"):
+    if py_file.name not in ['build_executable.py', 'shareify_entry.py']:
+        python_files.append(str(py_file))
+
 web_dir = r"{self.script_dir / 'web'}"
 if os.path.exists(web_dir):
     datas.append((web_dir, 'web'))
@@ -113,7 +94,7 @@ if not os.path.exists(icon_candidate):
     icon_candidate = None
 
 a = Analysis(
-    [r'{entry_script}'],
+    [r'{entry_script}'] + python_files,
     pathex=[r'{self.script_dir}'],
     binaries=[],
     datas=datas,
@@ -148,59 +129,35 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-import sys
-if sys.platform == 'linux':
-    exe = EXE(
-        pyz,
-        a.scripts,
-        a.binaries,
-        a.zipfiles,
-        a.datas,
-        [],
-        name='shareify',
-        debug=False,
-        bootloader_ignore_signals=False,
-        strip=False,
-        upx=True,
-        upx_exclude=[],
-        runtime_tmpdir=None,
-        console=True,
-        disable_windowed_traceback=False,
-        argv_emulation=False,
-        target_arch=None,
-        codesign_identity=None,
-        entitlements_file=None,
-    )
-else:
-    exe = EXE(
-        pyz,
-        a.scripts,
-        [],
-        exclude_binaries=True,
-        name='shareify',
-        debug=False,
-        bootloader_ignore_signals=False,
-        strip=False,
-        upx=True,
-        console=True,
-        disable_windowed_traceback=False,
-        argv_emulation=False,
-        target_arch=None,
-        codesign_identity=None,
-        entitlements_file=None,
-        icon=icon_candidate,
-    )
+exe = EXE(
+    pyz,
+    a.scripts,
+    [],
+    exclude_binaries=True,
+    name='shareify',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    console=True,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    icon=icon_candidate,
+)
 
-    coll = COLLECT(
-        exe,
-        a.binaries,
-        a.zipfiles,
-        a.datas,
-        strip=False,
-        upx=True,
-        upx_exclude=[],
-        name='shareify',
-    )
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='shareify',
+)
 '''
         spec_path = self.script_dir / 'shareify.spec'
         with open(spec_path, 'w') as f:
@@ -231,43 +188,6 @@ else:
             return False
         
         return True
-    
-    def apply_staticx(self):
-        if sys.platform != 'linux':
-            self.log('StaticX only applies to Linux builds - skipping')
-            return True
-        
-        exe_path = self.dist_dir / 'shareify'
-        
-        if not exe_path.exists():
-            self.log('✗ Executable not found - can\'t apply StaticX', 'ERROR')
-            return False
-        
-        has_staticx = self.ensure_staticx()
-        if not has_staticx:
-            self.log('Continuing without StaticX - executable may not work on all distros', 'WARNING')
-            return True
-        
-        self.log('Making Linux executable portable with StaticX...')
-        static_exe_path = self.dist_dir / 'shareify-static'
-        
-        try:
-            cmd = ['staticx', str(exe_path), str(static_exe_path)]
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            
-            if result.returncode == 0:
-                exe_path.unlink()
-                static_exe_path.rename(exe_path)
-                self.log('✓ StaticX applied - executable now works on any Linux distro!')
-                return True
-            else:
-                self.log(f'⚠ StaticX failed: {result.stderr}', 'WARNING')
-                self.log('Continuing with regular executable', 'WARNING')
-                return True
-        except Exception as e:
-            self.log(f'⚠ StaticX error: {e}', 'WARNING')
-            self.log('Continuing with regular executable', 'WARNING')
-            return True
 
     def cleanup_temp_files(self):
         temp_files = ['shareify_entry.py', 'shareify.spec']
@@ -292,33 +212,22 @@ else:
         if not self.build_executable(spec_path):
             return False
         
-        if not self.apply_staticx():
-            self.log('⚠ StaticX step had issues but continuing...', 'WARNING')
         
         self.cleanup_temp_files()
         
         self.log('=' * 50)
         self.log('✓ Executable build completed!')
         
-        if sys.platform == 'linux':
-            exe_path = self.dist_dir / 'shareify'
-            if exe_path.exists():
-                self.log(f'✓ Executable: {exe_path}')
-                self.log('✓ Linux executable is portable (StaticX applied)')
-                self.log('✓ Works on any distro - no glibc issues!')
-        elif os.name == 'nt':
-            shareify_dist = self.dist_dir / 'shareify'
+        shareify_dist = self.dist_dir / 'shareify'
+        if os.name == 'nt':
             exe_path = shareify_dist / 'shareify.exe'
-            if exe_path.exists():
-                self.log(f'✓ Executable: {exe_path}')
-            self.log(f'✓ Distribution folder: {shareify_dist}')
         else:
-            shareify_dist = self.dist_dir / 'shareify'
             exe_path = shareify_dist / 'shareify'
-            if exe_path.exists():
-                self.log(f'✓ Executable: {exe_path}')
-            self.log(f'✓ Distribution folder: {shareify_dist}')
         
+        if exe_path.exists():
+            self.log(f'✓ Executable: {exe_path}')
+        
+        self.log(f'✓ Distribution folder: {shareify_dist}')
         self.log('✓ Ready to zip and deploy!')
         
         return True
