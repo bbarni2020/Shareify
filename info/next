@@ -1,0 +1,12 @@
+[Unit]
+Description=Shareify Service
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/shareify/shareify
+Restart=always
+User=root
+WorkingDirectory=/usr/local/bin/shareify
+
+[Install]
+WantedBy=multi-user.target
