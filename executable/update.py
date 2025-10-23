@@ -57,7 +57,6 @@ def load_settings(file_path):
                 print('Error: Invalid JSON format in settings file.')
     else:
         print(f"Settings file '{file_path}' not found.")
-        exit(1)
         sys.exit(1)
 settings_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings', 'settings.json')
 settings = load_settings(settings_file)
@@ -73,7 +72,6 @@ def get_admin_api_key():
         return row[0]
     else:
         print('No admin API_KEY found in users.db.')
-        exit(1)
         sys.exit(1)
 
 def update():
@@ -92,8 +90,6 @@ def updater():
         new_executable_url = 'https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/current/shareifyMac'
     else:
         print('Unsupported operating system')
-        exit(1)
-    if requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version').text != settings['version']:
         sys.exit(1)
     current_version = requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version').text
     if current_version != settings['version']:
