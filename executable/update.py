@@ -58,6 +58,7 @@ def load_settings(file_path):
     else:
         print(f"Settings file '{file_path}' not found.")
         exit(1)
+        sys.exit(1)
 settings_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'settings', 'settings.json')
 settings = load_settings(settings_file)
 
@@ -73,6 +74,7 @@ def get_admin_api_key():
     else:
         print('No admin API_KEY found in users.db.')
         exit(1)
+        sys.exit(1)
 
 def update():
     return
@@ -92,11 +94,15 @@ def updater():
         print('Unsupported operating system')
         exit(1)
     if requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version').text != settings['version']:
+        sys.exit(1)
+    current_version = requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version').text
+    if current_version != settings['version']:
         try:
             api_key = get_admin_api_key()
             requests.post('http://localhost:' + str(settings['port']) + '/update_start_exit_program', headers={'X-API-KEY': api_key})
         except:
             print('Error: Unable to send update_start_exit_program request. Make sure the server is running.')
+        except Exception as e:
             pass
         try:
             executable_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), local_name)
@@ -120,9 +126,5 @@ def updater():
     executable_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), local_name)
     if os.path.exists(executable_path):
         update_thread = threading.Thread(target=lambda: os.system(f'"{executable_path}"'))
-    else:
-        update_thread = threading.Thread(target=run_main)
-    update_thread.start()
-    exit(0)
-if __name__ == '__main__':
-    update()
+        update_thread.start()
+    sys.exit(0)
