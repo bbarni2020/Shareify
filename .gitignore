@@ -15,3 +15,5 @@ package-lock.json
 /executable/build
 /executable/dist
 *.pyc
+*.pem
+host/settings/keys/session_keys.json

@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 import requests
 from colorama import init, Fore, Back, Style
+from crypto_manager import CryptoManager
 
 
 
@@ -64,6 +65,9 @@ class ShareifyLocalClient:
         self.enabled = self.cloud_config.get('enabled', True)
         self.authenticated = False
         
+        self.crypto = CryptoManager()
+        self.session_established = False
+        
         self.sio = socketio.Client(
             reconnection=True,
             reconnection_attempts=5,
@@ -81,6 +85,22 @@ class ShareifyLocalClient:
         
         self.setup_handlers()
         
+    def establish_encrypted_session(self):
+        try:
+            public_key_pem = self.crypto.get_public_key_pem()
+            
+            self.sio.emit('client_public_key', {
+                'server_id': self.server_id,
+                'public_key': public_key_pem,
+                'user_id': self.user_id
+            })
+            
+            print_status("Sent public key to bridge for E2E encryption setup", "info")
+            return True
+        except Exception as e:
+            print_status(f"Failed to establish encrypted session: {e}", "error")
+            return False
+    
     def setup_handlers(self):
         @self.sio.event
         def connect():
@@ -114,6 +134,7 @@ class ShareifyLocalClient:
             save_cloud_config(config_data)
             print(f"Authentication data saved to cloud.json")
             
+            self.establish_encrypted_session()
             self.register_server()
             
         @self.sio.on('authentication_failed')
@@ -184,23 +205,57 @@ class ShareifyLocalClient:
         @self.sio.on('execute_command')
         def on_execute_command(data):
             command_id = data['command_id']
-            command = data['command']
-            method = data.get('method', 'GET')
-            body = data.get('body', {})
-            timestamp = data.get('timestamp')
-            shareify_jwt = data.get('shareify_jwt')
-            print(f"Received command {command_id}: {command} (method: {method})")
+            client_id = data.get('client_id')
+            encrypted = data.get('encrypted', False)
+            
+            if encrypted and client_id:
+                try:
+                    encrypted_payload = data.get('encrypted_payload')
+                    if not encrypted_payload:
+                        print_status(f"Missing encrypted payload for command {command_id}", "error")
+                        return
+                    
+                    decrypted_data = self.crypto.decrypt_request(encrypted_payload, client_id)
+                    if decrypted_data is None:
+                        print_status(f"Failed to decrypt command {command_id}", "error")
+                        return
+                    
+                    command = decrypted_data.get('command')
+                    method = decrypted_data.get('method', 'GET')
+                    body = decrypted_data.get('body', {})
+                    shareify_jwt = decrypted_data.get('shareify_jwt')
+                    
+                    print(f"Received encrypted command {command_id}: {command} (method: {method})")
+                except Exception as e:
+                    print_status(f"Decryption error for command {command_id}: {e}", "error")
+                    return
+            else:
+                command = data['command']
+                method = data.get('method', 'GET')
+                body = data.get('body', {})
+                shareify_jwt = data.get('shareify_jwt')
+                print(f"Received command {command_id}: {command} (method: {method})")
 
             try:
-                self.execute_api_request(command_id, command, method, body, shareify_jwt)
+                self.execute_api_request(command_id, command, method, body, shareify_jwt, client_id, encrypted)
             except Exception as e:
                 print(f"Failed to handle command: {e}")
                 if self.sio.connected:
                     try:
-                        self.sio.emit('command_response', {
-                            'command_id': command_id,
-                            'response': {'error': str(e)}
-                        })
+                        error_response = {'error': str(e)}
+                        if encrypted and client_id:
+                            error_response = self.crypto.encrypt_response(error_response, client_id)
+                            if error_response:
+                                self.sio.emit('command_response', {
+                                    'command_id': command_id,
+                                    'encrypted': True,
+                                    'encrypted_response': error_response
+                                })
+                        else:
+                            self.sio.emit('command_response', {
+                                'command_id': command_id,
+                                'response': error_response
+                            })
                     except Exception as emit_error:
                         print(f"Failed to emit command error: {emit_error}")
             
@@ -210,6 +265,31 @@ class ShareifyLocalClient:
             self.last_successful_ping = time.time()
             self.reconnect_attempts = 0
             print(f"Ping response: {data.get('timestamp', 'no timestamp')}")
+        
+        @self.sio.on('encrypted_session_key')
+        def on_encrypted_session_key(data):
+            try:
+                encrypted_key_b64 = data.get('encrypted_session_key')
+                client_id = data.get('client_id')
+                
+                if not encrypted_key_b64 or not client_id:
+                    print_status("Invalid encrypted session key data", "error")
+                    return
+                
+                session_key = self.crypto.decrypt_session_key(encrypted_key_b64)
+                self.crypto.set_session_key(client_id, session_key)
+                self.session_established = True
+                
+                print_status(f"E2E encryption established with client {client_id[:8]}", "success")
+                
+                self.sio.emit('session_ack', {
+                    'server_id': self.server_id,
+                    'client_id': client_id,
+                    'status': 'ready'
+                })
+            except Exception as e:
+                print_status(f"Failed to establish encrypted session: {e}", "error")
+                self.session_established = False
     
     def authenticate_user(self):
         if self.user_id and self.auth_token:
@@ -389,6 +469,7 @@ class ShareifyLocalClient:
     
     def start_heartbeat(self):
         def heartbeat():
+            cleanup_counter = 0
             while self.connected and self.enabled:
                 try:
                     if self.authenticated:
@@ -397,6 +478,13 @@ class ShareifyLocalClient:
                             'user_id': self.user_id,
                             'timestamp': time.time()
                         })
+                        
+                        cleanup_counter += 1
+                        if cleanup_counter >= 120:
+                            expired = self.crypto.cleanup_old_sessions()
+                            if expired > 0:
+                                print_status(f"Cleaned up {expired} expired encryption sessions", "info")
+                            cleanup_counter = 0
 
                         if time.time() - self.last_successful_ping > (self.heartbeat_interval * 6):
                             print_status("No pong received for extended period, connection might be dead", "warning")
@@ -478,7 +566,7 @@ class ShareifyLocalClient:
             print("\nShutting down...")
             self.disconnect()
 
-    def execute_api_request(self, command_id, url, method='GET', body=None, shareify_jwt=None):
+    def execute_api_request(self, command_id, url, method='GET', body=None, shareify_jwt=None, client_id=None, encrypted=False):
         try:
             base_url = "http://127.0.0.1:6969/api"
             
@@ -525,61 +613,56 @@ class ShareifyLocalClient:
             
             is_file_endpoint = url.endswith('/get_file') or 'get_file' in url
             if is_file_endpoint and isinstance(response_data, dict) and 'content' in response_data:
-                self.handle_large_file_response(command_id, response_data)
+                self.handle_large_file_response(command_id, response_data, client_id, encrypted)
             else:
-                self.send_standard_response(command_id, response_data)
+                self.send_standard_response(command_id, response_data, client_id, encrypted)
             
         except requests.exceptions.Timeout:
             print(f"API request timeout for command {command_id}")
-            if self.sio.connected:
-                try:
-                    self.sio.emit('command_response', {
-                        'command_id': command_id,
-                        'response': {'error': 'API request timeout'}
-                    })
-                except Exception as emit_error:
-                    print(f"Failed to emit timeout error: {emit_error}")
+            self.send_error_response(command_id, 'API request timeout', client_id, encrypted)
             
         except requests.exceptions.ConnectionError:
             print(f"API connection error for command {command_id}")
-            if self.sio.connected:
-                try:
-                    self.sio.emit('command_response', {
-                        'command_id': command_id,
-                        'response': {'error': 'Failed to connect to local API server'}
-                    })
-                except Exception as emit_error:
-                    print(f"Failed to emit connection error: {emit_error}")
+            self.send_error_response(command_id, 'Failed to connect to local API server', client_id, encrypted)
             
         except Exception as e:
             print(f"General error for command {command_id}: {e}")
-            if self.sio.connected:
-                try:
-                    self.sio.emit('command_response', {
-                        'command_id': command_id,
-                        'response': {'error': str(e)}
-                    })
-                except Exception as emit_error:
-                    print(f"Failed to emit general error: {emit_error}")
+            self.send_error_response(command_id, str(e), client_id, encrypted)
 
-    def send_standard_response(self, command_id, response_data):
+    def send_standard_response(self, command_id, response_data, client_id=None, encrypted=False):
         if self.sio.connected:
             try:
-                self.sio.emit('command_response', {
-                    'command_id': command_id,
-                    'response': response_data
-                })
-                print(f"Successfully emitted response for command {command_id}")
+                if encrypted and client_id:
+                    encrypted_response = self.crypto.encrypt_response(response_data, client_id)
+                    if encrypted_response:
+                        self.sio.emit('command_response', {
+                            'command_id': command_id,
+                            'encrypted': True,
+                            'encrypted_response': encrypted_response
+                        })
+                        print(f"Successfully emitted encrypted response for command {command_id}")
+                    else:
+                        print_status(f"Failed to encrypt response for {command_id}, sending unencrypted", "warning")
+                        self.sio.emit('command_response', {
+                            'command_id': command_id,
+                            'response': response_data
+                        })
+                else:
+                    self.sio.emit('command_response', {
+                        'command_id': command_id,
+                        'response': response_data
+                    })
+                    print(f"Successfully emitted response for command {command_id}")
                 time.sleep(0.1)
             except Exception as emit_error:
                 print(f"Failed to emit response: {emit_error}")
         else:
             print("Socket not connected, cannot emit response")
 
-    def handle_large_file_response(self, command_id, response_data):
+    def handle_large_file_response(self, command_id, response_data, client_id=None, encrypted=False):
         
         if 'content' not in response_data:
-            self.send_standard_response(command_id, response_data)
+            self.send_standard_response(command_id, response_data, client_id, encrypted)
             return
 
         content = response_data['content']
@@ -595,12 +678,12 @@ class ShareifyLocalClient:
 
         if content_size > file_storage_threshold:
             print(f"File content size ({content_size} bytes) exceeds threshold ({file_storage_threshold} bytes), using file storage...")
-            self.send_file_via_storage(command_id, response_data)
+            self.send_file_via_storage(command_id, response_data, client_id, encrypted)
         else:
             print(f"File content size ({content_size} bytes) within limit, sending normally")
-            self.send_standard_response(command_id, response_data)
+            self.send_standard_response(command_id, response_data, client_id, encrypted)
 
-    def send_file_via_storage(self, command_id, response_data):
+    def send_file_via_storage(self, command_id, response_data, client_id=None, encrypted=False):
         try:
             content = response_data['content']
             content_type = response_data.get('type', 'text')
@@ -658,19 +741,19 @@ class ShareifyLocalClient:
                                 'file_size': content_size
                             }
                             
-                            self.send_standard_response(command_id, file_response)
+                            self.send_standard_response(command_id, file_response, client_id, encrypted)
                             return
                         else:
                             error_msg = storage_result.get('error', 'Unknown error')
                             print(f"Failed to store file: {error_msg}")
-                            self.send_error_response(command_id, f"Failed to store file: {error_msg}")
+                            self.send_error_response(command_id, f"Failed to store file: {error_msg}", client_id, encrypted)
                             return
                     else:
                         last_error = f"HTTP {store_response.status_code}: {store_response.text}"
                         print(f"File storage request failed with status {store_response.status_code}")
 
                         if 400 <= store_response.status_code < 500:
-                            self.send_error_response(command_id, f"File storage failed: {last_error}")
+                            self.send_error_response(command_id, f"File storage failed: {last_error}", client_id, encrypted)
                             return
 
                         if attempt < max_retries - 1:
@@ -698,13 +781,13 @@ class ShareifyLocalClient:
             
             print(f"All {max_retries} storage attempts failed")
             
-            self.send_fallback_response(command_id, response_data, last_error)
+            self.send_fallback_response(command_id, response_data, last_error, client_id, encrypted)
                 
         except Exception as e:
             print(f"Error in file storage process: {e}")
-            self.send_error_response(command_id, f"File storage error: {str(e)}")
+            self.send_error_response(command_id, f"File storage error: {str(e)}", client_id, encrypted)
 
-    def send_fallback_response(self, command_id, response_data, storage_error):
+    def send_fallback_response(self, command_id, response_data, storage_error, client_id=None, encrypted=False):
         try:
             content = response_data['content']
             content_type = response_data.get('type', 'text')
@@ -731,7 +814,7 @@ class ShareifyLocalClient:
                     }
                     
                     print(f"Sending truncated content fallback for {filename}")
-                    self.send_standard_response(command_id, fallback_response)
+                    self.send_standard_response(command_id, fallback_response, client_id, encrypted)
                     return
 
             error_response = {
@@ -744,23 +827,41 @@ class ShareifyLocalClient:
             }
             
             print(f"Sending error fallback for {filename}")
-            self.send_standard_response(command_id, error_response)
+            self.send_standard_response(command_id, error_response, client_id, encrypted)
             
         except Exception as e:
             print(f"Error in fallback response: {e}")
-            self.send_error_response(command_id, f"File storage and fallback failed: {str(e)}")
+            self.send_error_response(command_id, f"File storage and fallback failed: {str(e)}", client_id, encrypted)
 
-    def send_error_response(self, command_id, error_message):
+    def send_error_response(self, command_id, error_message, client_id=None, encrypted=False):
+        error_data = {
+            'error': error_message,
+            'status': 'error'
+        }
+        
         if self.sio.connected:
             try:
-                self.sio.emit('command_response', {
-                    'command_id': command_id,
-                    'response': {
-                        'error': error_message,
-                        'status': 'error'
-                    }
-                })
-                print(f"Sent error response for command {command_id}: {error_message}")
+                if encrypted and client_id:
+                    encrypted_response = self.crypto.encrypt_response(error_data, client_id)
+                    if encrypted_response:
+                        self.sio.emit('command_response', {
+                            'command_id': command_id,
+                            'encrypted': True,
+                            'encrypted_response': encrypted_response
+                        })
+                        print(f"Sent encrypted error response for command {command_id}")
+                    else:
+                        self.sio.emit('command_response', {
+                            'command_id': command_id,
+                            'response': error_data
+                        })
+                        print(f"Sent unencrypted error response for command {command_id}: {error_message}")
+                else:
+                    self.sio.emit('command_response', {
+                        'command_id': command_id,
+                        'response': error_data
+                    })
+                    print(f"Sent error response for command {command_id}: {error_message}")
             except Exception as emit_error:
                 print(f"Failed to emit error response: {emit_error}")
         else:

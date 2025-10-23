@@ -13,6 +13,12 @@ import threading
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 import threading
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.backends import default_backend
+import base64
+import secrets
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.config['SECRET_KEY'] = ''
@@ -25,6 +31,9 @@ connected_servers = {}
 pending_commands = {}
 authenticated_users = {}
 rate_limits = defaultdict(list)
+encryption_sessions = {}
+client_public_keys = {}
+server_public_keys = {}
 users_db_file = 'users_database.json'
 users_db_file_path = os.path.join(os.path.dirname(__file__), users_db_file)
 user_sqlite_db_path = os.path.join(os.path.dirname(__file__), 'user.db')
@@ -314,6 +323,104 @@ def get_json_user_id_from_auth_token(auth_token):
             return user_id
     return None
 
+def encrypt_with_public_key(public_key_pem, data):
+    try:
+        public_key = serialization.load_pem_public_key(
+            public_key_pem.encode('utf-8'),
+            backend=default_backend()
+        )
+        
+        encrypted = public_key.encrypt(
+            data,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        return base64.b64encode(encrypted).decode('utf-8')
+    except Exception as e:
+        print(f"Encryption error: {e}")
+        return None
+
+def create_session_key(client_id, server_id=None):
+    session_key = AESGCM.generate_key(bit_length=256)
+    session_key_b64 = base64.b64encode(session_key).decode('utf-8')
+    
+    encryption_sessions[client_id] = {
+        'session_key': session_key_b64,
+        'server_id': server_id,
+        'created_at': time.time()
+    }
+    
+    if server_id:
+        encryption_sessions[f"{server_id}_client_{client_id}"] = {
+            'session_key': session_key_b64,
+            'client_id': client_id,
+            'created_at': time.time()
+        }
+    
+    return session_key
+
+def get_session_key(client_id):
+    if client_id in encryption_sessions:
+        session_key_b64 = encryption_sessions[client_id]['session_key']
+        return base64.b64decode(session_key_b64)
+    return None
+
+def encrypt_data(data, client_id):
+    session_key = get_session_key(client_id)
+    if not session_key:
+        return None
+    
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    elif not isinstance(data, bytes):
+        data = json.dumps(data).encode('utf-8')
+    
+    nonce = secrets.token_bytes(12)
+    aesgcm = AESGCM(session_key)
+    ciphertext = aesgcm.encrypt(nonce, data, None)
+    
+    return {
+        'nonce': base64.b64encode(nonce).decode('utf-8'),
+        'ciphertext': base64.b64encode(ciphertext).decode('utf-8')
+    }
+
+def decrypt_data(encrypted_package, client_id):
+    session_key = get_session_key(client_id)
+    if not session_key:
+        return None
+    
+    try:
+        nonce = base64.b64decode(encrypted_package['nonce'])
+        ciphertext = base64.b64decode(encrypted_package['ciphertext'])
+        
+        aesgcm = AESGCM(session_key)
+        plaintext = aesgcm.decrypt(nonce, ciphertext, None)
+        
+        try:
+            return json.loads(plaintext.decode('utf-8'))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return plaintext
+    except Exception as e:
+        print(f"Decryption error: {e}")
+        return None
+
+def cleanup_old_encryption_sessions(max_age_seconds=86400):
+    current_time = time.time()
+    expired_sessions = []
+    
+    for session_id, session_data in encryption_sessions.items():
+        created_at = session_data.get('created_at', 0)
+        if current_time - created_at > max_age_seconds:
+            expired_sessions.append(session_id)
+    
+    for session_id in expired_sessions:
+        del encryption_sessions[session_id]
+    
+    return len(expired_sessions)
+
 def store_file(content, content_type, filename=None, server_id=None, user_id=None):
     import base64
     
@@ -410,6 +517,45 @@ def index():
 def handle_connect():
     print(f'Client connected: {request.sid}')
     emit('status', {'msg': 'Connected to cloud bridge'})
+
+@socketio.on('client_public_key')
+def handle_client_public_key(data):
+    client_id = data.get('client_id') or data.get('server_id')
+    public_key_pem = data.get('public_key')
+    user_id = data.get('user_id')
+    
+    if not client_id or not public_key_pem:
+        print("Invalid public key data received")
+        return
+    
+    client_public_keys[client_id] = {
+        'public_key': public_key_pem,
+        'user_id': user_id,
+        'received_at': time.time()
+    }
+    
+    print(f"Stored public key for client: {client_id[:8]}")
+    
+    session_key = create_session_key(client_id)
+    encrypted_session_key = encrypt_with_public_key(public_key_pem, session_key)
+    
+    if encrypted_session_key:
+        emit('encrypted_session_key', {
+            'encrypted_session_key': encrypted_session_key,
+            'client_id': client_id
+        })
+        print(f"Sent encrypted session key to client: {client_id[:8]}")
+    else:
+        print(f"Failed to encrypt session key for client: {client_id[:8]}")
+
+@socketio.on('session_ack')
+def handle_session_ack(data):
+    server_id = data.get('server_id')
+    client_id = data.get('client_id')
+    status = data.get('status')
+    
+    if status == 'ready':
+        print(f"Encryption session established: server={server_id[:8]}, client={client_id[:8]}")
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -628,9 +774,29 @@ def handle_ping(data):
 @socketio.on('command_response')
 def handle_command_response(data):
     command_id = data.get('command_id')
-    print(f'Received command_response for command_id: {command_id}')
+    encrypted = data.get('encrypted', False)
+    
+    print(f'Received command_response for command_id: {command_id}, encrypted={encrypted}')
+    
     if command_id in pending_commands:
-        response_data = data.get('response')
+        command_info = pending_commands[command_id]
+        client_id = command_info.get('client_id')
+        
+        if encrypted and client_id:
+            encrypted_response = data.get('encrypted_response')
+            if encrypted_response:
+                response_data = decrypt_data(encrypted_response, client_id)
+                if response_data is None:
+                    print(f'Failed to decrypt response for command_id: {command_id}')
+                    pending_commands[command_id]['response'] = {'error': 'Decryption failed'}
+                    pending_commands[command_id]['completed'] = True
+                    return
+                print(f'Decrypted response for command_id: {command_id}')
+            else:
+                response_data = data.get('response')
+        else:
+            response_data = data.get('response')
+        
         if isinstance(response_data, dict) and response_data.get('chunked'):
             print(f'Detected chunked response for command_id: {command_id}')
             pending_commands[command_id]['chunked'] = True
@@ -680,7 +846,7 @@ def handle_command_response_chunk(data):
             command_data['response'] = {'error': 'Incomplete chunked file transfer'}
             command_data['completed'] = True
 
-def send_command_to_server(server_id, command, command_id=None, method='GET', body=None, shareify_jwt=None):
+def send_command_to_server(server_id, command, command_id=None, method='GET', body=None, shareify_jwt=None, client_id=None, use_encryption=False):
     if server_id not in connected_servers:
         return {'error': 'Server not connected'}, 404
     
@@ -697,19 +863,44 @@ def send_command_to_server(server_id, command, command_id=None, method='GET', bo
         'body': body,
         'timestamp': datetime.now().isoformat(),
         'completed': False,
-        'response': None
+        'response': None,
+        'client_id': client_id,
+        'encrypted': use_encryption
     }
 
     emit_data = {
         'command_id': command_id,
-        'command': command,
-        'method': method,
-        'body': body,
         'timestamp': datetime.now().isoformat()
     }
     
-    if shareify_jwt:
-        emit_data['shareify_jwt'] = shareify_jwt
+    if use_encryption and client_id and get_session_key(client_id):
+        command_payload = {
+            'command': command,
+            'method': method,
+            'body': body
+        }
+        if shareify_jwt:
+            command_payload['shareify_jwt'] = shareify_jwt
+        
+        encrypted_payload = encrypt_data(command_payload, client_id)
+        if encrypted_payload:
+            emit_data['encrypted'] = True
+            emit_data['encrypted_payload'] = encrypted_payload
+            emit_data['client_id'] = client_id
+            print(f"Sending encrypted command to server {server_id[:8]}")
+        else:
+            print(f"Encryption failed, sending unencrypted command")
+            emit_data['command'] = command
+            emit_data['method'] = method
+            emit_data['body'] = body
+            if shareify_jwt:
+                emit_data['shareify_jwt'] = shareify_jwt
+    else:
+        emit_data['command'] = command
+        emit_data['method'] = method
+        emit_data['body'] = body
+        if shareify_jwt:
+            emit_data['shareify_jwt'] = shareify_jwt
 
     socketio.emit('execute_command', emit_data, room=f'server_{server_id}')
     
@@ -787,11 +978,33 @@ def execute_command_on_all_servers():
     if not check_rate_limit(auth_token, max_requests=20, window_minutes=1):
         return jsonify({'error': 'Rate limit exceeded. Too many requests.'}), 429
     
+    client_id = None
+    use_encryption = False
+    encrypted_payload = None
+    
     if request.method == 'POST' and request.is_json:
         json_data = request.get_json()
-        command = json_data.get('command')
-        method = json_data.get('method', 'GET')
-        body = json_data.get('body', {})
+        
+        use_encryption = json_data.get('encrypted', False)
+        client_id = json_data.get('client_id')
+        
+        if use_encryption and client_id:
+            encrypted_payload = json_data.get('encrypted_payload')
+            if encrypted_payload:
+                decrypted = decrypt_data(encrypted_payload, client_id)
+                if decrypted:
+                    command = decrypted.get('command')
+                    method = decrypted.get('method', 'GET')
+                    body = decrypted.get('body', {})
+                    print(f"Decrypted command from client {client_id[:8]}: {command}")
+                else:
+                    return jsonify({'error': 'Failed to decrypt request'}), 400
+            else:
+                return jsonify({'error': 'Missing encrypted payload'}), 400
+        else:
+            command = json_data.get('command')
+            method = json_data.get('method', 'GET')
+            body = json_data.get('body', {})
     else:
         command = request.args.get('command')
         method = request.args.get('method', 'GET')
@@ -823,7 +1036,13 @@ def execute_command_on_all_servers():
     command_ids = []
     
     for server_id in user_servers:
-        result = send_command_to_server(server_id, command, method=method, body=body, shareify_jwt=shareify_jwt)
+        result = send_command_to_server(
+            server_id, command, 
+            method=method, body=body, 
+            shareify_jwt=shareify_jwt,
+            client_id=client_id,
+            use_encryption=use_encryption
+        )
         
         if isinstance(result, tuple):
             error_dict, status_code = result
@@ -891,15 +1110,41 @@ def get_command_responses():
                     server_user_id == user_id or 
                     server_user_id == json_user_id):
                     
-                    responses[command_id] = {
-                        'server_id': server_id,
-                        'command': command_data['command'],
-                        'method': command_data['method'],
-                        'timestamp': command_data['timestamp'],
-                        'completed': command_data['completed'],
-                        'response': command_data['response'],
-                        'status': 'completed' if command_data['completed'] else 'pending'
-                    }
+                    client_id = command_data.get('client_id')
+                    was_encrypted = command_data.get('encrypted', False)
+                    response_content = command_data['response']
+                    
+                    if was_encrypted and client_id and get_session_key(client_id):
+                        encrypted_response = encrypt_data(response_content, client_id)
+                        if encrypted_response:
+                            responses[command_id] = {
+                                'server_id': server_id,
+                                'encrypted': True,
+                                'encrypted_response': encrypted_response,
+                                'timestamp': command_data['timestamp'],
+                                'completed': command_data['completed'],
+                                'status': 'completed' if command_data['completed'] else 'pending'
+                            }
+                        else:
+                            responses[command_id] = {
+                                'server_id': server_id,
+                                'command': command_data['command'],
+                                'method': command_data['method'],
+                                'timestamp': command_data['timestamp'],
+                                'completed': command_data['completed'],
+                                'response': response_content,
+                                'status': 'completed' if command_data['completed'] else 'pending'
+                            }
+                    else:
+                        responses[command_id] = {
+                            'server_id': server_id,
+                            'command': command_data['command'],
+                            'method': command_data['method'],
+                            'timestamp': command_data['timestamp'],
+                            'completed': command_data['completed'],
+                            'response': response_content,
+                            'status': 'completed' if command_data['completed'] else 'pending'
+                        }
                     
                     if command_data.get('chunked'):
                         responses[command_id]['chunked'] = True
@@ -932,6 +1177,52 @@ def get_command_responses():
 @app.route('/cloud', methods=['GET', 'POST'])
 def cloud():
     return "hello"
+
+@app.route('/cloud/establish_session', methods=['POST'])
+def establish_encryption_session():
+    jwt_token = request.headers.get('Authorization')
+    if jwt_token and jwt_token.startswith('Bearer '):
+        jwt_token = jwt_token[7:]
+    
+    if not jwt_token:
+        return jsonify({'error': 'JWT token required'}), 401
+    
+    user_id = get_user_id_from_jwt(jwt_token)
+    if not user_id:
+        return jsonify({'error': 'Invalid or expired JWT token'}), 401
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'JSON data required'}), 400
+    
+    client_id = data.get('client_id')
+    public_key_pem = data.get('public_key')
+    
+    if not client_id or not public_key_pem:
+        return jsonify({'error': 'client_id and public_key required'}), 400
+    
+    client_public_keys[client_id] = {
+        'public_key': public_key_pem,
+        'user_id': user_id,
+        'received_at': time.time()
+    }
+    
+    session_key = create_session_key(client_id)
+    encrypted_session_key = encrypt_with_public_key(public_key_pem, session_key)
+    
+    if not encrypted_session_key:
+        return jsonify({'error': 'Failed to encrypt session key'}), 500
+    
+    print(f"Established encryption session for client: {client_id[:8]}, user: {user_id}")
+    
+    cleanup_old_encryption_sessions()
+    
+    return jsonify({
+        'success': True,
+        'encrypted_session_key': encrypted_session_key,
+        'client_id': client_id,
+        'expires_in': 86400
+    })
     
 @app.route('/signup', methods=['POST'])
 def signup():

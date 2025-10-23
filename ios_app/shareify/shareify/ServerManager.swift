@@ -9,10 +9,89 @@ import Foundation
 
 class ServerManager: ObservableObject {
     static let shared = ServerManager()
+    private var cryptoManager: CryptoManager?
+    private var sessionEstablished = false
     
-    private init() {}
+    private init() {
+        let clientId = UserDefaults.standard.string(forKey: "client_id") ?? UUID().uuidString
+        UserDefaults.standard.set(clientId, forKey: "client_id")
+        self.cryptoManager = CryptoManager(clientId: clientId)
+    }
+    
+    func establishEncryptedSession(completion: @escaping (Bool) -> Void) {
+        guard let publicKeyPEM = cryptoManager?.getPublicKeyPEM(),
+              let jwtToken = UserDefaults.standard.string(forKey: "jwt_token") else {
+            print("[Encryption] Missing public key or JWT token")
+            completion(false)
+            return
+        }
+        
+        guard let url = URL(string: "https://bridge.bbarni.hackclub.app/cloud/establish_session") else {
+            completion(false)
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
+        
+        let clientId = UserDefaults.standard.string(forKey: "client_id") ?? ""
+        let requestBody: [String: Any] = [
+            "client_id": clientId,
+            "public_key": publicKeyPEM
+        ]
+        
+        request.httpBody = try? JSONSerialization.data(withJSONObject: requestBody)
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self else {
+                completion(false)
+                return
+            }
+            
+            if let error = error {
+                print("[Encryption] Session establishment error: \(error)")
+                completion(false)
+                return
+            }
+            
+            guard let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let encryptedKey = json["encrypted_session_key"] as? String else {
+                print("[Encryption] Invalid response from server")
+                completion(false)
+                return
+            }
+            
+            if self.cryptoManager?.decryptSessionKey(encryptedKeyBase64: encryptedKey) == true {
+                self.sessionEstablished = true
+                print("[Encryption] E2E encryption established successfully")
+                completion(true)
+            } else {
+                print("[Encryption] Failed to decrypt session key")
+                completion(false)
+            }
+        }.resume()
+    }
     
     func executeServerCommand(command: String, method: String = "GET", body: [String: Any] = [:], waitTime: Int = 2, completion: @escaping (Result<Any, Error>) -> Void) {
+        executeServerCommand(command: command, method: method, body: body, waitTime: waitTime, useEncryption: true, completion: completion)
+    }
+    
+    func executeServerCommand(command: String, method: String = "GET", body: [String: Any] = [:], waitTime: Int = 2, useEncryption: Bool = true, completion: @escaping (Result<Any, Error>) -> Void) {
+        
+        if useEncryption && !sessionEstablished {
+            establishEncryptedSession { [weak self] success in
+                if success {
+                    self?.executeServerCommand(command: command, method: method, body: body, waitTime: waitTime, useEncryption: useEncryption, completion: completion)
+                } else {
+                    print("[Encryption] Failed to establish session, falling back to unencrypted")
+                    self?.executeServerCommand(command: command, method: method, body: body, waitTime: waitTime, useEncryption: false, completion: completion)
+                }
+            }
+            return
+        }
         
         guard let jwtToken = UserDefaults.standard.string(forKey: "jwt_token"), !jwtToken.isEmpty else {
             completion(.failure(ServerError.noJWTToken))
@@ -42,6 +121,19 @@ class ServerManager: ObservableObject {
         if !body.isEmpty {
             requestBody["body"] = body
         }
+        
+        let clientId = UserDefaults.standard.string(forKey: "client_id") ?? ""
+        
+        if useEncryption, let encryptedPayload = cryptoManager?.encryptRequest(requestBody) {
+            requestBody = [
+                "encrypted": true,
+                "client_id": clientId,
+                "encrypted_payload": encryptedPayload
+            ]
+            print("[Encryption] Sending encrypted command")
+        } else if useEncryption {
+            print("[Encryption] Failed to encrypt, sending unencrypted")
+        }
 
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
@@ -50,8 +142,10 @@ class ServerManager: ObservableObject {
             return
         }
         
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             DispatchQueue.main.async {
+                guard let self = self else { return }
+                
                 if let error = error {
                     completion(.failure(error))
                     return
@@ -68,14 +162,14 @@ class ServerManager: ObservableObject {
                 }
 
                 if let raw = String(data: data, encoding: .utf8) {
-                    print("[ServerManager] command=\(command) status=\(httpResponse.statusCode) -> \(raw)")
+                    print("[ServerManager] command=\(command) status=\(httpResponse.statusCode)")
                 }
                 
                 if httpResponse.statusCode == 401 {
                     if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                        let errorMessage = json["error"] as? String,
                        errorMessage == "Invalid or expired JWT token" {
-                        self.refreshJWTTokenAndRetry(originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, completion: completion)
+                        self.refreshJWTTokenAndRetry(originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, useEncryption: useEncryption, completion: completion)
                         return
                     }
                 }
@@ -84,14 +178,22 @@ class ServerManager: ObservableObject {
                     let json = try JSONSerialization.jsonObject(with: data)
                     
                     if let jsonDict = json as? [String: Any] {
+                        if useEncryption, let encrypted = jsonDict["encrypted"] as? Bool, encrypted,
+                           let encryptedResponse = jsonDict["encrypted_response"] as? [String: String],
+                           let decryptedJson = self.cryptoManager?.decryptResponse(encryptedPackage: encryptedResponse) {
+                            print("[Encryption] Received and decrypted response")
+                            completion(.success(decryptedJson))
+                            return
+                        }
+                        
                         if let errorMessage = jsonDict["error"] as? String {
-                            self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, completion: completion)
+                            self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, useEncryption: useEncryption, completion: completion)
                             return
                         }
                         
                         if let success = jsonDict["success"] as? Bool, !success {
                             let errorMessage = jsonDict["error"] as? String ?? "Unknown server error"
-                            self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, completion: completion)
+                            self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, useEncryption: useEncryption, completion: completion)
                             return
                         }
                         
@@ -99,13 +201,13 @@ class ServerManager: ObservableObject {
                             completion(.success(jsonDict))
                         } else {
                             let errorMessage = jsonDict["error"] as? String ?? "Unknown server error"
-                            self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, completion: completion)
+                            self.handleServerError(errorMessage: errorMessage, originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, useEncryption: useEncryption, completion: completion)
                         }
                     } else if json is [Any] {
                         if httpResponse.statusCode == 200 {
                             completion(.success(json))
                         } else {
-                            self.handleServerError(errorMessage: "HTTP \(httpResponse.statusCode)", originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, completion: completion)
+                            self.handleServerError(errorMessage: "HTTP \(httpResponse.statusCode)", originalCommand: command, originalMethod: method, originalBody: body, originalWaitTime: waitTime, useEncryption: useEncryption, completion: completion)
                         }
                     } else {
                         completion(.failure(ServerError.invalidJSONResponse))
@@ -117,7 +219,7 @@ class ServerManager: ObservableObject {
         }.resume()
     }
     
-    private func handleServerError(errorMessage: String, originalCommand: String, originalMethod: String, originalBody: [String: Any], originalWaitTime: Int = 2, completion: @escaping (Result<Any, Error>) -> Void) {
+    private func handleServerError(errorMessage: String, originalCommand: String, originalMethod: String, originalBody: [String: Any], originalWaitTime: Int = 2, useEncryption: Bool = true, completion: @escaping (Result<Any, Error>) -> Void) {
         let isAuthError = errorMessage.lowercased().contains("unauthorized") || 
                          errorMessage.lowercased().contains("token") || 
                          errorMessage.lowercased().contains("auth") || 
@@ -132,7 +234,7 @@ class ServerManager: ObservableObject {
                 loginToServer(username: username, password: password) { result in
                     switch result {
                     case .success(_):
-                        self.executeServerCommand(command: originalCommand, method: originalMethod, body: originalBody, waitTime: originalWaitTime, completion: completion)
+                        self.executeServerCommand(command: originalCommand, method: originalMethod, body: originalBody, waitTime: originalWaitTime, useEncryption: useEncryption, completion: completion)
                     case .failure(let error):
                         if let serverError = error as? ServerError,
                            case .serverError(let message) = serverError,
@@ -236,7 +338,7 @@ class ServerManager: ObservableObject {
         }.resume()
     }
     
-    private func refreshJWTTokenAndRetry(originalCommand: String, originalMethod: String, originalBody: [String: Any], originalWaitTime: Int = 2, completion: @escaping (Result<Any, Error>) -> Void) {
+    private func refreshJWTTokenAndRetry(originalCommand: String, originalMethod: String, originalBody: [String: Any], originalWaitTime: Int = 2, useEncryption: Bool = true, completion: @escaping (Result<Any, Error>) -> Void) {
         guard let email = UserDefaults.standard.string(forKey: "user_email"),
               let password = UserDefaults.standard.string(forKey: "user_password"),
               !email.isEmpty, !password.isEmpty else {
@@ -277,13 +379,15 @@ class ServerManager: ObservableObject {
                 }
 
                 if let raw = String(data: data, encoding: .utf8) {
-                    print("[ServerManager] bridge login refresh -> \(raw)")
+                    print("[ServerManager] bridge login refresh -> success")
                 }
                 
                 UserDefaults.standard.set(newJwtToken, forKey: "jwt_token")
                 UserDefaults.standard.synchronize()
                 
-                self.executeServerCommand(command: originalCommand, method: originalMethod, body: originalBody, waitTime: originalWaitTime, completion: completion)
+                self.sessionEstablished = false
+                
+                self.executeServerCommand(command: originalCommand, method: originalMethod, body: originalBody, waitTime: originalWaitTime, useEncryption: useEncryption, completion: completion)
             }
         }.resume()
     }
@@ -296,6 +400,7 @@ enum ServerError: LocalizedError {
     case noData
     case invalidJSONResponse
     case serverError(String)
+    case encryptionSetupFailed
     
     var errorDescription: String? {
         switch self {
@@ -311,6 +416,8 @@ enum ServerError: LocalizedError {
             return "Invalid JSON response"
         case .serverError(let message):
             return message
+        case .encryptionSetupFailed:
+            return "Failed to establish encrypted connection"
         }
     }
 }

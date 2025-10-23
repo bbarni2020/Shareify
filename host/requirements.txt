@@ -21,3 +21,4 @@ PyJWT==2.8.0
 gunicorn==23.0.0
 python-socketio==5.11.4
 websocket-client==1.8.0
+cryptography==44.0.0
