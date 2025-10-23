@@ -150,6 +150,21 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 import time
 import threading
 import secrets
+try:
+    import bcrypt
+except Exception:
+    bcrypt = None
+
+
+def hash_or_raw(pw):
+    if not pw:
+        return pw
+    try:
+        if bcrypt and not (pw.startswith('$2b$') or pw.startswith('$2y$')):
+            return bcrypt.hashpw(pw.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    except Exception:
+        pass
+    return pw
 
 app = Flask(__name__, template_folder='web', static_folder='web', static_url_path='/web')
 
@@ -209,7 +224,7 @@ def initialize_users_db():
     ''')
     default_user = {
         "username": "admin",
-        "password": password,
+        "password": hash_or_raw(password),
         "name": "Administrator",
         "ip": "",
         "role": "admin",
@@ -241,7 +256,8 @@ def create_jsons():
             settings.raise_for_status()
             settings_json = settings.json()
             settings_json['path'] = path
-            settings_json['com_password'] = sudo_password
+            # store communication sudo password hashed when possible
+            settings_json['com_password'] = hash_or_raw(sudo_password)
             with open(settings_path, 'w') as f:
                 json.dump(settings_json, f, indent=4)
         except Exception as e:

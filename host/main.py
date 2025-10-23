@@ -74,7 +74,43 @@ class CustomAuthorizer(DummyAuthorizer):
             ])
         return user_list
 
-authorizer = CustomAuthorizer()
+try:
+    import bcrypt
+except Exception:
+    bcrypt = None
+
+
+class HashedAuthorizer(CustomAuthorizer):
+    def add_user(self, username, password, homedir, perm=None):
+        pwd_hash = password
+        try:
+            if bcrypt:
+                if not password.startswith('$2b$') and not password.startswith('$2y$'):
+                    pwd_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            else:
+                pwd_hash = password
+        except Exception:
+            pwd_hash = password
+
+        super().add_user(username, password, homedir, perm)
+        if username in self.user_table:
+            self.user_table[username]['pwd_hash'] = pwd_hash
+            self.user_table[username]['pwd'] = ''
+
+    def validate_authentication(self, username, password, handler):
+        user = self.user_table.get(username)
+        if not user:
+            return False
+        stored_hash = user.get('pwd_hash') or user.get('pwd')
+        if bcrypt and stored_hash:
+            try:
+                return bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8'))
+            except Exception:
+                return False
+        return stored_hash == password
+
+
+authorizer = HashedAuthorizer()
 logs_db_path = os.path.join(os.path.dirname(__file__), 'db/logs.db')
 users_db_path = os.path.join(os.path.dirname(__file__), 'db/users.db')
 
@@ -138,10 +174,18 @@ def get_users_db_connection():
 def save_ftp_user_to_db(username, password, homedir, permissions):
     conn = get_users_db_connection()
     cursor = conn.cursor()
+    pwd_to_store = password
+    try:
+        if bcrypt:
+            if not password.startswith('$2b$') and not password.startswith('$2y$'):
+                pwd_to_store = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    except Exception:
+        pwd_to_store = password
+
     cursor.execute('''
         INSERT OR REPLACE INTO ftp_users (username, password, homedir, permissions)
         VALUES (?, ?, ?, ?)
-    ''', (username, password, homedir, permissions))
+    ''', (username, pwd_to_store, homedir, permissions))
     conn.commit()
     conn.close()
 
@@ -1001,13 +1045,21 @@ def create_user():
     paths_write = data.get('paths_write', '[""]')
     if username and password and name and role:
         try:
+            pwd_to_store = password
+            try:
+                if bcrypt:
+                    if not password.startswith('$2b$') and not password.startswith('$2y$'):
+                        pwd_to_store = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            except Exception:
+                pwd_to_store = password
+
             api_key = generate_unique_api_key()
             conn = get_users_db_connection()
             cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO users (username, password, name, ip, role, ftp_users, paths, settings, API_KEY, paths_write)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (username, password, name, ip, role, ftp_user, paths, settings_val, api_key, paths_write))
+            ''', (username, pwd_to_store, name, ip, role, ftp_user, paths, settings_val, api_key, paths_write))
             conn.commit()
             conn.close()
             log("User created: " + username, request.remote_addr)
@@ -1077,11 +1129,19 @@ def edit_user():
             conn = get_users_db_connection()
             cursor = conn.cursor()
             if password:
+                pwd_to_store = password
+                try:
+                    if bcrypt:
+                        if not password.startswith('$2b$') and not password.startswith('$2y$'):
+                            pwd_to_store = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                except Exception:
+                    pwd_to_store = password
+
                 cursor.execute('''
                                UPDATE users
                                SET username = ?, password = ?, name = ?, paths = ?, paths_write = ?
                                WHERE id = ?
-                               ''', (username, password, name, paths, paths_write, id))
+                               ''', (username, pwd_to_store, name, paths, paths_write, id))
             else:
                 cursor.execute('''
                                UPDATE users
@@ -1106,23 +1166,31 @@ def login():
         try:
             conn = get_users_db_connection()
             cursor = conn.cursor()
-            cursor.execute('''
-                           SELECT * FROM users WHERE username = ? AND password = ?
-                           ''', (username, password))
+            cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
             user = cursor.fetchone()
             conn.close()
             if user:
-                log("User logged in: " + username, request.remote_addr)
-                payload = {
-                    'user_id': user[0],
-                    'username': user[1],
-                    'exp': datetime.datetime.now(datetime.UTC) + datetime.timedelta(hours=24)
-                }
-                token = jwt.encode(payload, app.config['JWT_SECRET_KEY'], algorithm='HS256')
-                return jsonify({"token": token}), 200
-            else:
-                log("Invalid login attempt: " + username, request.remote_addr)
-                return jsonify({"error": "Invalid username or password"}), 401
+                stored = user[2]
+                verified = False
+                try:
+                    if bcrypt and stored:
+                        verified = bcrypt.checkpw(password.encode('utf-8'), stored.encode('utf-8'))
+                    else:
+                        verified = (password == stored)
+                except Exception:
+                    verified = (password == stored)
+
+                if verified:
+                    log("User logged in: " + username, request.remote_addr)
+                    payload = {
+                        'user_id': user[0],
+                        'username': user[1],
+                        'exp': datetime.datetime.now(datetime.UTC) + datetime.timedelta(hours=24)
+                    }
+                    token = jwt.encode(payload, app.config['JWT_SECRET_KEY'], algorithm='HS256')
+                    return jsonify({"token": token}), 200
+            log("Invalid login attempt: " + username, request.remote_addr)
+            return jsonify({"error": "Invalid username or password"}), 401
         except Exception as e:
             return jsonify({"error": "Internal server error"}), 500
     else:
@@ -1134,7 +1202,6 @@ def get_user():
     if data:
         user = {
             "username": data[1],
-            "password": data[2],
             "name": data[3],
             "role": data[5],
             "ftp_users": data[6],
@@ -1159,7 +1226,6 @@ def get_all_users():
             user_list.append({
                 "id": user[0],
                 "username": user[1],
-                "password": user[2],
                 "name": user[3],
                 "ip": user[4],
                 "role": user[5],
@@ -1193,8 +1259,16 @@ def self_edit_user():
             updates.append("username = ?")
             params.append(username)
         if password:
+            pwd_to_store = password
+            try:
+                if bcrypt:
+                    if not password.startswith('$2b$') and not password.startswith('$2y$'):
+                        pwd_to_store = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            except Exception:
+                pwd_to_store = password
+
             updates.append("password = ?")
-            params.append(password)
+            params.append(pwd_to_store)
         if name:
             updates.append("name = ?")
             params.append(name)
