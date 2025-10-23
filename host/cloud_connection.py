@@ -488,24 +488,6 @@ class ShareifyLocalClient:
                 full_url = base_url + '/' + url
             
             print(f"Making {method} request to: {full_url}")
-            
-            allowed_endpoints = [
-                '/resources', 'resources',
-                '/is_up', 'is_up',
-                '/user/get_self', 'user/get_self',
-                '/user/login', 'user/login',
-                '/get_logs', '/finder', '/get_file'
-            ]
-            if not any(url == ep or url.startswith(ep) for ep in allowed_endpoints):
-                if self.sio.connected:
-                    try:
-                        self.sio.emit('command_response', {
-                            'command_id': command_id,
-                            'response': {'error': 'Not allowed (security reasons) to access this endpoint.'}
-                        })
-                    except Exception as emit_error:
-                        print(f"Failed to emit security error: {emit_error}")
-                return
 
             headers = {'Content-Type': 'application/json'}
             
