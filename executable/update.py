@@ -6,6 +6,7 @@ import threading
 from time import sleep
 import psutil
 import sys
+import platform
 
 def is_admin():
     try:
@@ -73,13 +74,23 @@ def get_admin_api_key():
         print('No admin API_KEY found in users.db.')
         exit(1)
 
-def run_main():
-    os.system(f'''python3 "{os.path.join(os.path.dirname(os.path.abspath(__file__)), 'main.py')}"''')
-
 def update():
     return
 
 def updater():
+    system = platform.system()
+    if system == 'Windows':
+        local_name = 'shareify.exe'
+        new_executable_url = 'https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/current/shareify.exe'
+    elif system == 'Linux':
+        local_name = 'shareify'
+        new_executable_url = 'https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/current/shareifyLinux'
+    elif system == 'Darwin':
+        local_name = 'shareify'
+        new_executable_url = 'https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/current/shareifyMac'
+    else:
+        print('Unsupported operating system')
+        exit(1)
     if requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version').text != settings['version']:
         try:
             api_key = get_admin_api_key()
@@ -88,78 +99,30 @@ def updater():
             print('Error: Unable to send update_start_exit_program request. Make sure the server is running.')
             pass
         try:
-            new_executable_url = 'https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/current/shareify.exe'
-            executable_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shareify.exe')
+            executable_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), local_name)
             print('Downloading new executable...')
             response = requests.get(new_executable_url)
             response.raise_for_status()
             with open(executable_path, 'wb') as file:
                 file.write(response.content)
             print('Updated executable downloaded successfully.')
-            with open(settings_file, 'w') as file:
-                settings['version'] = requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version').text
-                json.dump(settings, file, indent=4)
-                print('Updated settings.json')
         except Exception as e:
             print(f'Error updating executable: {e}')
-            new_update = requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/current/main.py').text
-            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'main.py'), 'w') as file:
-                file.write(new_update)
-                file.close()
-            web_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'web')
-            index_html = requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/current/web/index.html').text
-            with open(os.path.join(web_dir, 'index.html'), 'w') as file:
-                file.write(index_html)
-                file.close()
-            install_html = requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/current/web/install.html').text
-            with open(os.path.join(web_dir, 'install.html'), 'w') as file:
-                file.write(install_html)
-                file.close()
-            endpoints_json = requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/current/web/endpoints.json').text
-            with open(os.path.join(web_dir, 'endpoints.json'), 'w') as file:
-                file.write(endpoints_json)
-                file.close()
-            install_py = requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/current/web/install.py').text
-            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'install.py'), 'w') as file:
-                file.write(install_py)
-                file.close()
-            index_css = requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/current/web/index.css').text
-            with open(os.path.join(web_dir, 'index.css'), 'w') as file:
-                file.write(index_css)
-                file.close()
-            login_html = requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/current/web/login.html').text
-            with open(os.path.join(web_dir, 'login.html'), 'w') as file:
-                file.write(login_html)
-                file.close()
-            database_py = requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/current/database.py').text
-            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'database.py'), 'w') as file:
-                file.write(database_py)
-                file.close()
-            cloud_conn = requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/current/cloud_connection.py').text
-            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cloud_connection.py'), 'w') as file:
-                file.write(cloud_conn)
-                file.close()
-            with open(settings_file, 'w') as file:
-                settings['version'] = requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version').text
-                json.dump(settings, file, indent=4)
-                print('Updated settings.json')
-                file.close()
+        with open(settings_file, 'w') as file:
+            settings['version'] = requests.get('https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/info/version').text
+            json.dump(settings, file, indent=4)
+            print('Updated settings.json')
         print('Updated to the latest version.')
         print('Waiting for 5 seconds before restarting...')
         sleep(5)
         print('Restarting the program...')
-        if os.name == 'nt':
-            executable_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shareify.exe')
-        else:
-            executable_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shareify')
-        if os.path.exists(executable_path):
-            t = threading.Thread(target=lambda: os.system(f'"{executable_path}"'))
-        else:
-            t = threading.Thread(target=run_main)
-        t.start()
-        exit(0)
+        os.system('clear' if os.name != 'nt' else 'cls')
+    executable_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), local_name)
+    if os.path.exists(executable_path):
+        update_thread = threading.Thread(target=lambda: os.system(f'"{executable_path}"'))
     else:
-        print('You are already using the latest version.')
-        exit(0)
+        update_thread = threading.Thread(target=run_main)
+    update_thread.start()
+    exit(0)
 if __name__ == '__main__':
     update()
