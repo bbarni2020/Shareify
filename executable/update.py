@@ -98,8 +98,7 @@ def updater():
             requests.post('http://localhost:' + str(settings['port']) + '/update_start_exit_program', headers={'X-API-KEY': api_key})
         except:
             print('Error: Unable to send update_start_exit_program request. Make sure the server is running.')
-        except Exception as e:
-            pass
+
         try:
             executable_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), local_name)
             print('Downloading new executable...')
@@ -119,7 +118,7 @@ def updater():
         sleep(5)
         print('Restarting the program...')
         os.system('clear' if os.name != 'nt' else 'cls')
-    executable_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), local_name)
+    executable_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist', 'update', local_name)
     if os.path.exists(executable_path):
         update_thread = threading.Thread(target=lambda: os.system(f'"{executable_path}"'))
         update_thread.start()
