@@ -161,7 +161,7 @@ class ServerManager: ObservableObject {
                     return
                 }
 
-                if let raw = String(data: data, encoding: .utf8) {
+                if String(data: data, encoding: .utf8) != nil {
                     print("[ServerManager] command=\(command) status=\(httpResponse.statusCode)")
                 }
                 
@@ -378,7 +378,7 @@ class ServerManager: ObservableObject {
                     return
                 }
 
-                if let raw = String(data: data, encoding: .utf8) {
+                if String(data: data, encoding: .utf8) != nil {
                     print("[ServerManager] bridge login refresh -> success")
                 }
                 
