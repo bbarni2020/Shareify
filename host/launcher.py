@@ -1,130 +1,169 @@
-import subprocess
-import sys
 import os
-import platform
 import json
-import requests
 import threading
+import sys
+import errno
+import multiprocessing
 from pathlib import Path
+from colorama import Fore
+try:
+    import update
+except Exception:
+    update = None
 
-def get_venv_python():
-    script_dir = Path(__file__).parent.absolute()
-    venv_path = script_dir / "shareify_venv"
-    
-    if venv_path.exists():
-        if platform.system().lower() == "windows":
-            python_exe = venv_path / "Scripts" / "python.exe"
-        else:
-            python_exe = venv_path / "bin" / "python"
-        
-        if python_exe.exists():
-            return str(python_exe)
-    
-    return sys.executable
-
-def get_sudo_password():
+def is_admin():
     try:
-        settings_path = os.path.join(os.path.dirname(__file__), 'settings', 'settings.json')
-        if os.path.exists(settings_path):
-            with open(settings_path, 'r') as f:
-                settings = json.load(f)
-                return settings.get('com_password', '')
-    except Exception as e:
-        print(f"Error reading sudo password: {e}")
-    return None
+        if os.name == 'nt':
+            import ctypes
+            return ctypes.windll.shell32.IsUserAnAdmin()
+        else:
+            return os.geteuid() == 0
+    except Exception:
+        return False
+
+def relaunch_as_admin():
+    if os.name == 'nt':
+        import ctypes
+        params = ' '.join([f'"{arg}"' for arg in sys.argv])
+        ctypes.windll.shell32.ShellExecuteW(None, 'runas', sys.executable, params, None, 1)
+        sys.exit(0)
+    else:
+        os.execvp('sudo', ['sudo', sys.executable] + sys.argv)
 
 def is_cloud_on():
     try:
         cloud_path = os.path.join(os.path.dirname(__file__), 'settings', 'cloud.json')
         if os.path.exists(cloud_path):
             with open(cloud_path, 'r') as f:
-                settings = json.load(f)
-                if settings.get('enabled', ''):
+                cfg = json.load(f)
+                val = cfg.get('enabled', False)
+                if isinstance(val, str):
+                    return val.lower() == 'true'
+                return bool(val)
+    except Exception:
+        pass
+    return False
+
+def _get_settings_port(default_port=8000):
+    try:
+        settings_path = os.path.join(os.path.dirname(__file__), 'settings', 'settings.json')
+        if os.path.exists(settings_path):
+            with open(settings_path, 'r') as f:
+                data = json.load(f)
+                return int(data.get('port', default_port))
+    except Exception:
+        pass
+    return default_port
+
+def _lockfile_path():
+    port = _get_settings_port()
+    tmp_dir = os.path.abspath(os.getenv('TMPDIR') or os.getenv('TMP') or '/tmp')
+    return os.path.join(tmp_dir, f'shareify-admin-{port}.pid')
+
+def _already_running():
+    pid_file = _lockfile_path()
+    try:
+        if os.path.exists(pid_file):
+            with open(pid_file, 'r') as f:
+                pid = int(f.read().strip() or '0')
+            if pid > 0:
+                try:
+                    os.kill(pid, 0)
                     return True
-                else:
-                    return False
+                except OSError as e:
+                    if e.errno == errno.ESRCH:
+                        pass
+                    else:
+                        return True
+    except Exception:
+        pass
+    try:
+        with open(pid_file, 'w') as f:
+            f.write(str(os.getpid()))
+    except Exception:
+        pass
+    return False
+
+def start_cloud_connection():
+    try:
+        import cloud_connection
+        cloud_connection.main()
     except Exception as e:
-        print(f"Error reading cloud settings: {e}")
-    return None
+        print(f'Error starting cloud connection: {e}', flush=True)
+
+def start_wsgi_server():
+    try:
+        import wsgi
+        if hasattr(wsgi, 'application'):
+            from wsgiref.simple_server import make_server
+            settings = wsgi.load_settings()
+            if settings:
+                host = settings.get('host', '0.0.0.0')
+                port = settings.get('port', 8000)
+            else:
+                host = '0.0.0.0'
+                port = 8000
+            try:
+                if update and hasattr(update, 'kill_process_on_port'):
+                    update.kill_process_on_port(port)
+            except Exception:
+                pass
+            try:
+                server = make_server(host, port, wsgi.application)
+            except OSError as e:
+                if 'Address already in use' in str(e) or getattr(e, 'errno', None) == 48:
+                    try:
+                        if update and hasattr(update, 'kill_process_on_port'):
+                            update.kill_process_on_port(port)
+                    except Exception:
+                        pass
+                    server = make_server(host, port, wsgi.application)
+                else:
+                    raise
+            print(f'Server running on http://{host}:{port}', flush=True)
+            server.serve_forever()
+    except Exception as e:
+        print(f'Error starting WSGI server: {e}', flush=True)
 
 def main():
+    if os.name == 'nt':
+        os.system('title Shareify Server 1.2.0')
+    else:
+        print('\033]0;Shareify Server 1.2.0\007', end='')
+    
+    if not is_admin():
+        relaunch_as_admin()
+        return
+    
+    print("\n __ _                     __       \n/ _\\ |__   __ _ _ __ ___ / _|_   _ \n\\ \\| '_ \\ / _` | '__/ _ \\ |_| | | |\n_\\ \\ | | | (_| | | |  __/  _| |_| |\n\\__/_| |_|\\__,_|_|  \\___|_|  \\__, |\n                             |___/ \n", flush=True)
+    print("[Shareify] Starting Shareify..."+ Fore.RESET, flush=True)
+    
+    if _already_running():
+        print("[Shareify] Another instance is already running" + Fore.GREEN, flush=True)
+        sys.exit(0)
+    threads = []
+    
+    wsgi_thread = threading.Thread(target=start_wsgi_server, daemon=True)
+    wsgi_thread.start()
+    threads.append(wsgi_thread)
+    print("[Shareify] WSGI server started" + Fore.GREEN, flush=True)    
+    
+    if is_cloud_on():
+        cloud_thread = threading.Thread(target=start_cloud_connection, daemon=True)
+        cloud_thread.start()
+        threads.append(cloud_thread)
+        print("[Shareify] Cloud connection started" + Fore.GREEN, flush=True)
+
+    print("[Shareify] Shareify startup complete" + Fore.GREEN, flush=True)
+    print(Fore.RESET, flush=True)
+
     try:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        main_py_path = os.path.join(script_dir, 'wsgi.py')
-        python_exe = get_venv_python()
-
-        if not os.path.exists(main_py_path):
-            print(f"Error: wsgi.py not found at {main_py_path}")
-            return
-        
-        print(f"Starting Shareify with Python: {python_exe}")
-
-        if is_cloud_on():
-            print("Cloud mode is enabled. Starting cloud bridge connection...")
-            cloud_conection_path = os.path.join(script_dir, 'cloud_connection.py')
-            if os.path.exists(cloud_conection_path):
-                def cloud_connection_monitor():
-                    import time
-                    while is_cloud_on():
-                        print("Starting cloud connection process...")
-                        try:
-                            cloud_process = subprocess.Popen(
-                                [python_exe, cloud_conection_path], 
-                                cwd=script_dir,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                text=True
-                            )
-                            cloud_process.wait()
-                            print("Cloud connection process exited.")
-                        except Exception as e:
-                            print(f"Error starting cloud connection: {e}")
-                        time.sleep(5)
-                thread = threading.Thread(target=cloud_connection_monitor)
-                thread.daemon = True
-                thread.start()
-
-        current_os = platform.system().lower()
-        
-        if current_os == "windows":
-            process = subprocess.Popen([
-                'powershell', 
-                'Start-Process', 
-                python_exe, 
-                f'-ArgumentList "{main_py_path}"',
-                '-Verb', 'RunAs',
-                '-WindowStyle', 'Hidden'
-            ], cwd=script_dir)
-        else:
-            sudo_password = get_sudo_password()
-            if sudo_password:
-                cmd = f'echo "{sudo_password}" | sudo -S {python_exe} "{main_py_path}"'
-                process = subprocess.Popen(cmd, shell=True, cwd=script_dir)
-            else:
-                print("No sudo password found. Running without administrator privileges...")
-                process = subprocess.Popen([python_exe, main_py_path], cwd=script_dir)
-        
-        process.wait()
-        
+        for thread in threads:
+            thread.join()
     except KeyboardInterrupt:
-        print("\nShutting down Shareify...")
-        if 'process' in locals():
-            process.terminate()
-    except Exception as e:
-        print(f"Error starting Shareify: {e}")
+        print('Shutting down...', flush=True)
 
-if __name__ == "__main__":
-    print("Updating Shareify update system")
-    print(r"""
- __ _                     __       
-/ _\ |__   __ _ _ __ ___ / _|_   _ 
-\ \| '_ \ / _` | '__/ _ \ |_| | | |
-_\ \ | | | (_| | | |  __/  _| |_| |
-\__/_| |_|\__,_|_|  \___|_|  \__, |
-                             |___/ 
-""")
-    update_py = requests.get("https://raw.githubusercontent.com/bbarni2020/Shareify/refs/heads/main/current/update.py").text
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "update.py"), 'w') as file:
-        file.write(update_py)
-        file.close()
+if __name__ == '__main__':
+    multiprocessing.freeze_support()
+    
     main()
