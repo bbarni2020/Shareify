@@ -5,6 +5,7 @@ import platform
 import socket
 import startup
 from pathlib import Path
+import threading
 
 def create_virtual_environment():
     script_dir = Path(__file__).parent.absolute()
@@ -155,6 +156,13 @@ try:
 except Exception:
     bcrypt = None
 
+try:
+    from bleak import BleakServer, BleakCharacteristic
+    import asyncio
+    BLUETOOTH_AVAILABLE = True
+except Exception:
+    BLUETOOTH_AVAILABLE = False
+
 
 def hash_or_raw(pw):
     if not pw:
@@ -172,6 +180,7 @@ path = ""
 password = ""
 sudo_password = ""
 api_key = secrets.token_hex(32)
+bluetooth_clients = []
 db_dir = os.path.join(os.path.dirname(__file__), 'db')
 if not os.path.exists(db_dir):
     os.makedirs(db_dir)
@@ -430,6 +439,133 @@ def get_local_ip():
     except Exception:
         return "127.0.0.1"
 
+def start_bluetooth_server():
+    if not BLUETOOTH_AVAILABLE:
+        print("Bluetooth not available - skipping Bluetooth server")
+        return
+    
+    try:
+        import asyncio
+        from bleak import BleakServer
+        from bleak.uuids import normalize_uuid_16
+        
+        SERVICE_UUID = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
+        CHAR_UUID = "94f39d2a-7d6d-437d-973b-fba39e49d4ee"
+        
+        received_data = bytearray()
+        
+        def read_callback(characteristic, **kwargs):
+            return b"Shareify-Installer"
+        
+        def write_callback(characteristic, value, **kwargs):
+            global path, password, sudo_password
+            nonlocal received_data
+            
+            received_data.extend(value)
+            
+            if b'\n' in received_data:
+                messages = received_data.split(b'\n')
+                received_data = bytearray(messages[-1])
+                
+                for msg in messages[:-1]:
+                    if not msg:
+                        continue
+                    
+                    try:
+                        message = msg.decode('utf-8').strip()
+                        parts = message.split(':', 1)
+                        
+                        if len(parts) != 2:
+                            continue
+                        
+                        command, value = parts
+                        
+                        if command == 'GET_DRIVES':
+                            if platform.system().lower() == 'windows':
+                                drives = _list_windows_drives()
+                                response = json.dumps({'drives': drives})
+                                print(f"BLE: Drives requested - {response}")
+                            else:
+                                print("BLE: Drives requested (Unix/Mac)")
+                        
+                        elif command == 'SET_PATH':
+                            path = value
+                            print(f"BLE: Path set to {path}")
+                        
+                        elif command == 'SET_PASSWORD':
+                            password = value
+                            initialize_logs_db()
+                            initialize_users_db()
+                            print("BLE: Password configured")
+                        
+                        elif command == 'SET_SUDO_PASSWORD':
+                            sudo_password = value
+                            create_jsons()
+                            print("BLE: Sudo password configured")
+                        
+                        elif command == 'COMPLETE':
+                            script_dir = Path(__file__).parent.absolute()
+                            launcher_path = script_dir / 'launcher.py'
+                            venv_path = script_dir / 'shareify_venv'
+                            
+                            if launcher_path.exists():
+                                if venv_path.exists():
+                                    python_exe = get_venv_python(venv_path)
+                                else:
+                                    python_exe = sys.executable
+                                
+                                subprocess.Popen([str(python_exe), str(launcher_path)])
+                                print("BLE: Installation complete, launching Shareify")
+                                
+                                def shutdown_installer():
+                                    time.sleep(2)
+                                    os._exit(0)
+                                
+                                threading.Thread(target=shutdown_installer, daemon=True).start()
+                        
+                        elif command == 'GET_STATUS':
+                            status = {
+                                'path_set': bool(path),
+                                'password_set': bool(password),
+                                'sudo_password_set': bool(sudo_password)
+                            }
+                            print(f"BLE: Status requested - {json.dumps(status)}")
+                            
+                    except Exception as e:
+                        print(f"BLE: Error processing command - {e}")
+        
+        async def run_ble_server():
+            print("Starting BLE server...")
+            print(f"Service UUID: {SERVICE_UUID}")
+            print("Discoverable as 'Shareify-Installer'")
+            
+            try:
+                from bleak import BleakGATTCharacteristic
+                
+                characteristic = BleakGATTCharacteristic(
+                    CHAR_UUID,
+                    ["read", "write"],
+                    None
+                )
+                
+                server = BleakServer("Shareify-Installer", [SERVICE_UUID])
+                
+                await server.start()
+                print("BLE server running")
+                
+                while True:
+                    await asyncio.sleep(1)
+                    
+            except Exception as e:
+                print(f"BLE server error: {e}")
+        
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(run_ble_server())
+        
+    except Exception as e:
+        print(f"Bluetooth startup error: {e}")
+
 if __name__ == '__main__':
     from wsgiref.simple_server import make_server
     
@@ -438,7 +574,16 @@ if __name__ == '__main__':
     local_ip = get_local_ip()
     
     application = create_app()
+    
+    if BLUETOOTH_AVAILABLE:
+        bluetooth_thread = threading.Thread(target=start_bluetooth_server, daemon=True)
+        bluetooth_thread.start()
+    
     server = make_server(host, port, application)
     print(f"Starting installation server at: http://{host}:{port}")
     print(f"Access the page from network at:  http://{local_ip}:{port}")
+    
+    if BLUETOOTH_AVAILABLE:
+        print("Bluetooth server is running - discoverable as 'Shareify-Installer'")
+    
     server.serve_forever()
