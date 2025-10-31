@@ -66,57 +66,83 @@ struct Settings: View {
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
-                HStack(alignment: .center, spacing: 10) {
-                    Button(action: {
-                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                        impactFeedback.impactOccurred()
-                        dismiss()
-                    }) {
-                        Rectangle()
-                            .foregroundColor(.clear)
-                            .frame(width: 50, height: 50)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
-                            .colorScheme(.light)
-                            .overlay(
-                                Image(systemName: "chevron.left")
-                                    .font(.system(size: 18, weight: .medium))
-                                    .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
-                            )
-                    }
-                    
-                    Rectangle()
-                        .foregroundColor(.clear)
-                        .frame(width: 238 * (50 / 62), height: 50)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
-                        .colorScheme(.light)
-                        .overlay(
-                            Text("Settings")
-                                .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
-                                .font(.system(size: 16, weight: .medium))
-                        )
-                    
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 5)
+                headerView
                 
                 Spacer(minLength: 35)
                 
+                mainContentCard
+            }
+        }
+        .background(backgroundImage)
+        .onAppear {
+            loadUserData()
+        }
+        .overlay(passwordResetOverlays)
+        .fullScreenCover(isPresented: $navigateToLogin) {
+            Login()
+        }
+        .fullScreenCover(isPresented: $navigateToServerLogin) {
+            ServerLogin()
+        }
+        .animation(.easeInOut(duration: 0.3), value: showingCloudPasswordReset)
+        .animation(.easeInOut(duration: 0.3), value: showingLocalPasswordReset)
+        .sheet(isPresented: $showingWebView) {
+            webViewSheet
+        }
+    }
+    
+    private var headerView: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Button(action: {
+                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                impactFeedback.impactOccurred()
+                dismiss()
+            }) {
                 Rectangle()
                     .foregroundColor(.clear)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(.ultraThinMaterial, in: UnevenRoundedRectangle(
-                        topLeadingRadius: 40,
-                        bottomLeadingRadius: 0,
-                        bottomTrailingRadius: 0,
-                        topTrailingRadius: 40
-                    ))
+                    .frame(width: 50, height: 50)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
                     .colorScheme(.light)
-                    .shadow(color: .white.opacity(0.25), radius: 2.5, x: 0, y: 4)
-                    .ignoresSafeArea(.all, edges: [.bottom, .leading, .trailing])
                     .overlay(
-                        ScrollView {
-                            VStack(spacing: 30) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
+                    )
+            }
+            
+            Rectangle()
+                .foregroundColor(.clear)
+                .frame(width: 238 * (50 / 62), height: 50)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 25))
+                .colorScheme(.light)
+                .overlay(
+                    Text("Settings")
+                        .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255))
+                        .font(.system(size: 16, weight: .medium))
+                )
+            
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 5)
+    }
+    
+    private var mainContentCard: some View {
+        Rectangle()
+            .foregroundColor(.clear)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(.ultraThinMaterial, in: UnevenRoundedRectangle(
+                topLeadingRadius: 40,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: 40
+            ))
+            .colorScheme(.light)
+            .shadow(color: .white.opacity(0.25), radius: 2.5, x: 0, y: 4)
+            .ignoresSafeArea(.all, edges: [.bottom, .leading, .trailing])
+            .overlay(
+                ScrollView {
+                    VStack(spacing: 30) {
                                 VStack(alignment: .leading, spacing: 20) {
                                     HStack {
                                         Text("Cloud Account")
@@ -281,6 +307,47 @@ struct Settings: View {
                                         }
                                         
                                         VStack(spacing: 10) {
+                                            NavigationLink {
+                                                BluetoothSetupView()
+                                                    .navigationBarBackButtonHidden(true)
+                                            } label: {
+                                                HStack(spacing: 14) {
+                                                    Image(systemName: "antenna.radiowaves.left.and.right")
+                                                        .font(.system(size: 18, weight: .semibold))
+                                                        .foregroundColor(Color(red: 0x3B/255, green: 0x82/255, blue: 0xF6/255))
+                                                        .frame(width: 40, height: 40)
+                                                        .background(Color.white.opacity(0.25))
+                                                        .clipShape(Circle())
+                                                    
+                                                    VStack(alignment: .leading, spacing: 4) {
+                                                        Text("Setup Server via Bluetooth")
+                                                            .font(.system(size: 15, weight: .semibold))
+                                                            .foregroundColor(Color(red: 0x1E/255, green: 0x29/255, blue: 0x3B/255))
+                                                        Text("Configure a new Shareify server")
+                                                            .font(.system(size: 12, weight: .medium))
+                                                            .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.65))
+                                                    }
+                                                    
+                                                    Spacer()
+                                                    
+                                                    Image(systemName: "chevron.right")
+                                                        .font(.system(size: 16, weight: .semibold))
+                                                        .foregroundColor(Color(red: 0x3C/255, green: 0x43/255, blue: 0x47/255).opacity(0.4))
+                                                }
+                                                .padding(.vertical, 14)
+                                                .padding(.horizontal, 18)
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 20)
+                                                        .fill(Color.white.opacity(0.35))
+                                                )
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 20)
+                                                        .stroke(Color.white.opacity(0.25), lineWidth: 1)
+                                                )
+                                                .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+                                            }
+                                            .buttonStyle(.plain)
+                                            
                                             Button(action: {
                                                 showingLocalPasswordReset = true
                                             }) {
@@ -444,72 +511,62 @@ struct Settings: View {
                             .padding(.vertical, 20)
                         }
                     )
+    }
+    
+    private var backgroundImage: some View {
+        GeometryReader { geometry in
+            Image(backgroundManager.backgroundImageName)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: geometry.size.height * (1533/862), height: geometry.size.height)
+                .offset(x: -geometry.size.height * (1533/862) * 0.274)
+                .clipped()
+        }
+        .ignoresSafeArea(.all)
+    }
+    
+    private var passwordResetOverlays: some View {
+        Group {
+            if showingCloudPasswordReset {
+                PasswordResetWrapper(isCloudAccount: true) {
+                    showingCloudPasswordReset = false
+                }
+                .transition(.move(edge: .trailing))
+                .zIndex(1)
+            }
+            if showingLocalPasswordReset {
+                PasswordResetWrapper(isCloudAccount: false) {
+                    showingLocalPasswordReset = false
+                }
+                .transition(.move(edge: .trailing))
+                .zIndex(1)
             }
         }
-        .background(
-            GeometryReader { geometry in
-                Image(backgroundManager.backgroundImageName)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: geometry.size.height * (1533/862), height: geometry.size.height)
-                    .offset(x: -geometry.size.height * (1533/862) * 0.274)
-                    .clipped()
-            }
-            .ignoresSafeArea(.all)
-        )
-        .onAppear {
-            loadUserData()
-        }
-        .overlay(
+    }
+    
+    private var webViewSheet: some View {
+        NavigationView {
             Group {
-                if showingCloudPasswordReset {
-                    PasswordResetWrapper(isCloudAccount: true) {
-                        showingCloudPasswordReset = false
-                    }
-                    .transition(.move(edge: .trailing))
-                    .zIndex(1)
-                }
-                if showingLocalPasswordReset {
-                    PasswordResetWrapper(isCloudAccount: false) {
-                        showingLocalPasswordReset = false
-                    }
-                    .transition(.move(edge: .trailing))
-                    .zIndex(1)
+                if let url = webViewURL {
+                    WebView(url: url, isPresented: $showingWebView)
+                } else {
+                    Text("Loading...")
+                        .foregroundColor(.gray)
                 }
             }
-        )
-        .fullScreenCover(isPresented: $navigateToLogin) {
-            Login()
-        }
-        .fullScreenCover(isPresented: $navigateToServerLogin) {
-            ServerLogin()
-        }
-        .animation(.easeInOut(duration: 0.3), value: showingCloudPasswordReset)
-        .animation(.easeInOut(duration: 0.3), value: showingLocalPasswordReset)
-        .sheet(isPresented: $showingWebView) {
-            NavigationView {
-                Group {
-                    if let url = webViewURL {
-                        WebView(url: url, isPresented: $showingWebView)
-                    } else {
-                        Text("Loading...")
-                            .foregroundColor(.gray)
+            .navigationTitle("Guides")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Done") {
+                        showingWebView = false
                     }
-                }
-                .navigationTitle("Guides")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbarColorScheme(.dark, for: .navigationBar)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Done") {
-                            showingWebView = false
-                        }
-                        .foregroundColor(.white)
-                    }
+                    .foregroundColor(.white)
                 }
             }
-            .colorScheme(.dark)
         }
+        .colorScheme(.dark)
     }
     
     private func loadUserData() {
@@ -691,7 +748,6 @@ struct Settings: View {
         }.resume()
     }
 }
-
 
 struct PasswordResetWrapper: View {
     let isCloudAccount: Bool

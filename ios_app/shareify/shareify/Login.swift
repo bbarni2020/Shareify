@@ -16,6 +16,7 @@ struct Login: View {
     @State private var errorMessage = ""
     @State private var navigateToHome = false
     @State private var navigateToServerLogin = false
+    @State private var navigateToBluetoothSetup = false
     @State private var showAppLoad = true
     @State private var loginCardOpacity: Double = 0
     @State private var loginCardOffset: CGFloat = 50
@@ -31,6 +32,8 @@ struct Login: View {
             Home()
         } else if navigateToServerLogin {
             ServerLogin()
+        } else if navigateToBluetoothSetup {
+            BluetoothSetupView()
         } else {
             loginView
                 .onAppear {
@@ -132,6 +135,46 @@ struct Login: View {
                                     .opacity((username.isEmpty || password.isEmpty) ? 0.6 : 1.0)
                                     .animation(.easeInOut(duration: 0.3), value: username.isEmpty || password.isEmpty)
                                     .padding(.top, min(containerGeometry.size.height * 0.02, 10))
+                                    
+                                    HStack(spacing: 12) {
+                                        Rectangle()
+                                            .fill(Color(red: 0xE5/255, green: 0xE7/255, blue: 0xEB/255))
+                                            .frame(height: 1)
+                                        Text("or")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(Color(red: 0x37/255, green: 0x4B/255, blue: 0x63/255))
+                                        Rectangle()
+                                            .fill(Color(red: 0xE5/255, green: 0xE7/255, blue: 0xEB/255))
+                                            .frame(height: 1)
+                                    }
+                                    .padding(.vertical, min(containerGeometry.size.height * 0.02, 12))
+                                    
+                                    Button(action: {
+                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                            navigateToBluetoothSetup = true
+                                        }
+                                    }) {
+                                        HStack(spacing: 12) {
+                                            Image(systemName: "antenna.radiowaves.left.and.right")
+                                                .font(.system(size: 18, weight: .medium))
+                                                .foregroundColor(Color(red: 0x3B/255, green: 0x82/255, blue: 0xF6/255))
+                                            Text("Setup Server via Bluetooth")
+                                                .font(.system(size: min(containerGeometry.size.width * 0.04, 16), weight: .semibold))
+                                                .foregroundColor(Color(red: 0x3B/255, green: 0x82/255, blue: 0xF6/255))
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 50)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 15)
+                                                .fill(Color(red: 0x3B/255, green: 0x82/255, blue: 0xF6/255).opacity(0.1))
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 15)
+                                                .stroke(Color(red: 0x3B/255, green: 0x82/255, blue: 0xF6/255), lineWidth: 2)
+                                        )
+                                    }
+                                    .disabled(isLoading)
+                                    .opacity(isLoading ? 0.6 : 1.0)
                                 }
                                 .padding(.horizontal, min(containerGeometry.size.width * 0.08, 30))
                             }

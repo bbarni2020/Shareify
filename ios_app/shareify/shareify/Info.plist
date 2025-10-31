@@ -5,6 +5,11 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
+		<string>bluetooth-central</string>
 	</array>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Shareify needs Bluetooth to discover and configure nearby servers</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Shareify uses Bluetooth to connect to your server during setup</string>
 </dict>
 </plist>
