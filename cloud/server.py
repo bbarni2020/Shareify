@@ -19,10 +19,18 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.backends import default_backend
 import base64
 import secrets
+import re
+from urllib.parse import urlparse
+import ipaddress
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
-app.config['SECRET_KEY'] = ''
-app.config['JWT_SECRET_KEY'] = ''
+allowed_origins_env = os.environ.get('ALLOWED_ORIGINS', '')
+if allowed_origins_env:
+    CORS_ALLOWED = [o.strip() for o in allowed_origins_env.split(',') if o.strip()]
+else:
+    CORS_ALLOWED = ['http://localhost', 'http://127.0.0.1', 'https://bridge.bbarni.hackclub.app', 'https://command.bbarni.hackclub.app']
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', '')
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', '')
 app.config['JWT_EXPIRATION_HOURS'] = 24
 DASHBOARD_PASSWORD = "pass"
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
@@ -507,14 +515,56 @@ def cleanup_expired_files():
 
 users_db = load_users_database()
 
+def _origin_allowed(origin):
+    if not origin:
+        return False
+    try:
+        p = urlparse(origin)
+        host = p.hostname or ''
+        if origin in CORS_ALLOWED:
+            return True
+        try:
+            ip = ipaddress.ip_address(host)
+            if ip.is_private:
+                return True
+        except ValueError:
+            pass
+        if host.endswith('.local'):
+            return True
+        if re.match(r'^10\.(?:\d{1,3}\.){2}\d{1,3}$', host):
+            return True
+        if re.match(r'^192\.168\.(?:\d{1,3})\.(?:\d{1,3})$', host):
+            return True
+        if re.match(r'^172\.(?:1[6-9]|2\d|3[0-1])\.(?:\d{1,3})\.(?:\d{1,3})$', host):
+            return True
+    except Exception:
+        return False
+    return False
+
 @app.route('/')
 def index():
     return f'''
     <h1>Shareify Cloud Bridge</h1>
     '''
 
+@app.after_request
+def add_security_headers(response):
+    origin = request.headers.get('Origin')
+    if _origin_allowed(origin):
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Vary'] = 'Origin'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Allow-Headers'] = 'Authorization, Content-Type, X-Shareify-JWT'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    if os.environ.get('ENABLE_HSTS', 'true').lower() == 'true':
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
+
 @socketio.on('connect')
 def handle_connect():
+    origin = request.headers.get('Origin')
+    if not _origin_allowed(origin):
+        return False
     print(f'Client connected: {request.sid}')
     emit('status', {'msg': 'Connected to cloud bridge'})
 

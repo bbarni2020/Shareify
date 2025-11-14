@@ -4,7 +4,6 @@ import json
 import sqlite3
 import threading
 from time import sleep
-import psutil
 import sys
 
 def is_admin():
@@ -34,36 +33,7 @@ if not is_admin():
     relaunch_as_admin()
 
 def kill_process_on_port(port):
-    def process_killer():
-        if not is_admin():
-            print("Thread: update.py is not running as administrator/root. Relaunching as admin/root...")
-            relaunch_as_admin()
-        try:
-            print(f"Searching for processes using port {port}...")
-            for conn in psutil.net_connections():
-                if conn.laddr.port == port and conn.pid:
-                    try:
-                        process = psutil.Process(conn.pid)
-                        process.terminate()
-                        print(f"Terminated process {conn.pid} using port {port}")
-                        try:
-                            process.wait(timeout=3)
-                        except psutil.TimeoutExpired:
-                            process.kill()
-                            print(f"Force killed process {conn.pid} using port {port}")
-                    except psutil.NoSuchProcess:
-                        print(f"Process {conn.pid} no longer exists")
-                    except Exception as e:
-                        print(f"Error killing process {conn.pid}: {e}")
-            print(f"Finished killing processes on port {port}")
-            return
-        except Exception as e:
-            print(f"Error finding processes on port {port}: {e}")
-    
-    killer_thread = threading.Thread(target=process_killer)
-    killer_thread.daemon = True
-    killer_thread.start()
-    sleep(0.5)
+    return
 
 def load_settings(file_path):
     if os.path.exists(file_path):

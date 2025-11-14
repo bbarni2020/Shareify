@@ -25,16 +25,33 @@ from main import create_app
 application = create_app()
 
 if __name__ == "__main__":
-    from wsgiref.simple_server import make_server
-    
-    if settings:
-        host = settings.get('host', '0.0.0.0')
-        port = settings.get('port', 8000)
-    else:
-        host = '0.0.0.0'
-        port = 8000
-    
-    update.kill_process_on_port(port)
-    server = make_server(host, port, application)
-    print(f"Server running on http://{host}:{port}")
-    server.serve_forever()
+    try:
+        from gunicorn.app.base import BaseApplication
+    except Exception:
+        raise SystemExit("gunicorn is required: pip install gunicorn")
+
+    class StandaloneApplication(BaseApplication):
+        def __init__(self, app, options=None):
+            self.application = app
+            self.options = options or {}
+            super().__init__()
+        def load_config(self):
+            cfg = {k: v for k, v in self.options.items() if k in self.cfg.settings and v is not None}
+            for k, v in cfg.items():
+                self.cfg.set(k.lower(), v)
+        def load(self):
+            return self.application
+
+    host = (settings or {}).get('host', '127.0.0.1')
+    port = int((settings or {}).get('port', 6969))
+    options = {
+        'bind': f'{host}:{port}',
+        'workers': int(os.environ.get('GUNICORN_WORKERS', '4')),
+        'worker_class': os.environ.get('GUNICORN_WORKER_CLASS', 'gthread'),
+        'threads': int(os.environ.get('GUNICORN_THREADS', '4')),
+        'timeout': int(os.environ.get('GUNICORN_TIMEOUT', '60')),
+        'accesslog': '-',
+        'errorlog': '-',
+        'loglevel': os.environ.get('GUNICORN_LOGLEVEL', 'info')
+    }
+    StandaloneApplication(application, options).run()

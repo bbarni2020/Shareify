@@ -150,22 +150,9 @@ def start_wsgi_server():
                 host = '0.0.0.0'
                 port = 8000
             try:
-                if update and hasattr(update, 'kill_process_on_port'):
-                    update.kill_process_on_port(port)
-            except Exception:
-                pass
-            try:
                 server = make_server(host, port, wsgi.application)
             except OSError as e:
-                if 'Address already in use' in str(e) or getattr(e, 'errno', None) == 48:
-                    try:
-                        if update and hasattr(update, 'kill_process_on_port'):
-                            update.kill_process_on_port(port)
-                    except Exception:
-                        pass
-                    server = make_server(host, port, wsgi.application)
-                else:
-                    raise
+                raise
             print(f'Server running on http://{host}:{port}', flush=True)
             server.serve_forever()
     except Exception as e:
@@ -187,15 +174,7 @@ class ServerManager:
     def stop_wsgi(self):
         if self.wsgi_running:
             try:
-                settings_path = os.path.join(os.path.dirname(__file__), 'settings', 'settings.json')
-                if os.path.exists(settings_path):
-                    with open(settings_path, 'r') as f:
-                        data = json.load(f)
-                        port = int(data.get('port', 8000))
-                else:
-                    port = 8000
-                if update and hasattr(update, 'kill_process_on_port'):
-                    update.kill_process_on_port(port)
+                pass
             except Exception:
                 pass
             self.wsgi_running = False

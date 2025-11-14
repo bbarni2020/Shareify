@@ -28,6 +28,7 @@ import jwt
 import requests
 import base64
 import hashlib
+import re
 try:
     from argon2 import PasswordHasher
 except Exception:
@@ -355,7 +356,6 @@ def stop_completely():
         def shutdown_server():
             sleep(1)
             print_status("Server shutdown complete", "success")
-            update.kill_process_on_port(settings['port'])
             os._exit(0)
         return True
     except Exception as e:
@@ -435,7 +435,20 @@ def is_cloud_on():
 
 # Flask app
 app = Flask(__name__)
-CORS(app)
+allowed_origins_env = os.environ.get('ALLOWED_ORIGINS', '')
+if allowed_origins_env:
+    origins = [o.strip() for o in allowed_origins_env.split(',') if o.strip()]
+else:
+    lan_patterns = [
+        re.compile(r'^https?://10\.(?:\d{1,3}\.){2}\d{1,3}(?::\d+)?$'),
+        re.compile(r'^https?://192\.168\.(?:\d{1,3})\.(?:\d{1,3})(?::\d+)?$'),
+        re.compile(r'^https?://172\.(?:1[6-9]|2\d|3[0-1])\.(?:\d{1,3})\.(?:\d{1,3})(?::\d+)?$'),
+        re.compile(r'^https?://localhost(?::\d+)?$'),
+        re.compile(r'^https?://127\.0\.0\.1(?::\d+)?$'),
+        re.compile(r'^https?://.*\.local(?::\d+)?$')
+    ]
+    origins = ['https://bridge.bbarni.hackclub.app'] + lan_patterns
+CORS(app, resources={r"/*": {"origins": origins, "supports_credentials": True}})
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or secrets.token_hex(32)
 
 limiter = Limiter(
@@ -1641,7 +1654,6 @@ def create_app():
 if __name__ == "__main__":
     if settings:
         try:
-            update.kill_process_on_port(settings['port'])
             app.run(host=settings['host'], port=settings['port'], debug=False)
         except Exception as e:
             print_status(f"Error starting server: {e}", "error")
