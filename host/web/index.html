@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=(), accelerometer=(), gyroscope=(), payment=(), usb=(), xr-spatial-tracking=(), browsing-topics=()">
     <title>Shareify</title>
     <link rel="stylesheet" href="web/index.css">
     <link rel="shortcut icon" href="web/assets/icon.ico" type="image/x-icon">
@@ -1039,7 +1041,7 @@
         <div class="window_title">Finder</div>
         <div class="finder-toolbar">
             <div class="finder-path-container">
-                <input type="text" class="finder-path-input" id="finder-path" value="/home" placeholder="Enter path..." disabled="true">
+                <input type="text" class="finder-path-input" id="finder-path" name="finder-path" value="/home" placeholder="Enter path..." autocomplete="off" disabled="true">
             </div>
             <div class="finder-actions">
                 <div class="finder-selection-count" id="finder-selection-count">0 items selected</div>
@@ -1166,7 +1168,7 @@
                     </div>
                     <div class="command-line-input-row">
                         <span class="command-line-prompt">$</span>
-                        <input class="command-line-input" id="cli-input" type="text" autocomplete="off" placeholder="Type a command..." />
+                        <input class="command-line-input" id="cli-input" name="cli-input" type="text" autocomplete="off" placeholder="Type a command..." />
                     </div>
                 </div>
                 </div>
@@ -1212,15 +1214,15 @@
                     <p style="font-size: 17px;">Here you can edit your personal settings.</p>
                     <div class="horizontal-align">
                         <label for="name">Preferred name:</label>
-                        <input type="text" name="name" id="name" class="textbox">
+                        <input type="text" name="name" id="name" class="textbox" autocomplete="name">
                     </div>
                     <div class="horizontal-align">
                         <label for="username">Username:</label>
-                        <input type="text" name="username" id="username" class="textbox">
+                        <input type="text" name="username" id="username" class="textbox" autocomplete="username">
                     </div>
                     <div class="horizontal-align">
                         <label for="password_web">Password:</label>
-                        <input type="text" name="password_web" id="password_web" class="textbox">
+                        <input type="password" name="password_web" id="password_web" class="textbox" autocomplete="current-password">
                     </div>
                     <div class="horizontal-align" style="margin-top: 10px;">
                         <div style="width: 100%;"></div>
@@ -1229,7 +1231,7 @@
                     </div>
                     <div class="horizontal-align" style="margin-top: 10px;">
                         <label for="icon-select">Icon (in background):</label>
-                        <select id="icon-select">
+                        <select id="icon-select" name="icon-select" autocomplete="off">
                             <option>Visible</option>
                             <option>Hidden</option>
                         </select>
@@ -1267,19 +1269,19 @@
                     <p style="font-size: 17px;">Here you can edit the server's general settings.</p>
                     <div class="horizontal-align">
                         <label for="path">Default path:</label>
-                        <input type="text" name="path" id="path" class="textbox">
+                        <input type="text" name="path" id="path" class="textbox" autocomplete="off">
                     </div>
                     <div class="horizontal-align">
                         <label for="host">Host ip:</label>
-                        <input type="text" name="host" id="host" class="textbox">
+                        <input type="text" name="host" id="host" class="textbox" autocomplete="off">
                     </div>
                     <div class="horizontal-align">
                         <label for="port">Host port:</label>
-                        <input type="number" name="port" id="port" class="textbox">
+                        <input type="number" name="port" id="port" class="textbox" autocomplete="off">
                     </div>
                     <div class="horizontal-align">
                         <label for="ftp-server">FTP server:</label>
-                        <select id="ftp-server">
+                        <select id="ftp-server" name="ftp-server" autocomplete="off">
                             <option>On</option>
                             <option>Off</option>
                         </select>
@@ -1290,7 +1292,7 @@
                         <div class="accept_btn" id="server_accept"><img src="web/assets/pipe.png" alt="pipe" class="centered-img"></div>
                     </div>
                     <div class="horizontal-align" style="margin-top: 25px;">
-                        <label id="current_version">Current version: loading...</label>
+                        <div id="current_version">Current version: loading...</div>
                     </div>
                     <div id="version" style="margin-top: 5px;">
                         <div class="horizontal-align" id="update-sec">
@@ -1312,15 +1314,15 @@
                     <p style="font-size: 17px;">Here you can edit the server's general settings.</p>
                     <div class="horizontal-align">
                         <label for="ftp-ip">FTP server ip:</label>
-                        <input type="text" name="ftp-ip" id="ftp-ip" class="textbox">
+                        <input type="text" name="ftp-ip" id="ftp-ip" class="textbox" autocomplete="off">
                     </div>
                     <div class="horizontal-align">
                         <label for="ftp-port">FTP server port:</label>
-                        <input type="number" name="ftp-port" id="ftp-port" class="textbox">
+                        <input type="number" name="ftp-port" id="ftp-port" class="textbox" autocomplete="off">
                     </div>
                     <div class="horizontal-align">
                         <label for="ftp-timeout">FTP timeout:</label>
-                        <input type="number" name="ftp-timeout" id="ftp-timeout" class="textbox">
+                        <input type="number" name="ftp-timeout" id="ftp-timeout" class="textbox" autocomplete="off">
                     </div>
                     <div class="horizontal-align" style="margin-top: 10px;">
                         <div style="width: 100%;"></div>
@@ -1338,25 +1340,25 @@
                     <p style="font-size: 17px;">Manage your cloud connectivity and data synchronization.</p>
                     <div class="horizontal-align">
                         <label for="cloud-enable">Cloud sync:</label>
-                        <select id="cloud-enable">
+                        <select id="cloud-enable" name="cloud-enable" autocomplete="off">
                             <option>Enabled</option>
                             <option>Disabled</option>
                         </select>
                     </div>
                     <div class="horizontal-align" style="margin-top: 15px;">
-                        <label style="font-size: 16px; font-weight: 600;">Register Cloud Account</label>
+                        <div style="font-size: 16px; font-weight: 600;">Register Cloud Account</div>
                     </div>
                     <div class="horizontal-align">
                         <label for="cloud-email">Email:</label>
-                        <input type="email" name="cloud-email" id="cloud-email" class="textbox">
+                        <input type="email" name="cloud-email" id="cloud-email" class="textbox" autocomplete="email">
                     </div>
                     <div class="horizontal-align">
                         <label for="cloud-username">Username:</label>
-                        <input type="text" name="cloud-username" id="cloud-username" class="textbox">
+                        <input type="text" name="cloud-username" id="cloud-username" class="textbox" autocomplete="username">
                     </div>
                     <div class="horizontal-align">
-                        <label for="cloud-password-name">Password:</label>
-                        <input type="text" name="cloud-password-name" id="cloud-password" class="textbox">
+                        <label for="cloud-password">Password:</label>
+                        <input type="password" name="cloud-password" id="cloud-password" class="textbox" autocomplete="new-password">
                     </div>
                     <div class="horizontal-align" style="margin-top: 15px;">
                         <div style="width: 100%;"></div>
@@ -1364,10 +1366,10 @@
                         <div class="accept_btn" id="cloud_accept"><img src="web/assets/pipe.png" alt="pipe" class="centered-img"></div>
                     </div>
                     <div class="horizontal-align" style="margin-top: 15px; border-top: 1px solid #333; padding-top: 15px;">
-                        <label style="font-size: 16px; font-weight: 600; color: #e74c3c;">Danger Zone</label>
+                        <div style="font-size: 16px; font-weight: 600; color: #e74c3c;">Danger Zone</div>
                     </div>
                     <div class="horizontal-align" style="margin-top: 10px;">
-                        <label style="font-size: 14px;">Re-authenticate cloud connection</label>
+                        <div style="font-size: 14px;">Re-authenticate cloud connection</div>
                         <div style="width: 20px;"></div>
                         <div class="accept_btn" id="cloud_reauth" style="background-color: #f39c12;"><img src="web/assets/pipe.png" alt="pipe" class="centered-img"></div>
                     </div>
@@ -1390,7 +1392,7 @@
                     <h3>Drop files here or click to browse</h3>
                     <p>Select files to upload to the current directory</p>
                 </div>
-                <input type="file" class="upload-file-input" id="upload-file-input" multiple>
+                <input type="file" class="upload-file-input" id="upload-file-input" name="upload-file-input" autocomplete="off" multiple>
             </div>
             <div class="upload-actions">
                 <div class="upload-progress" id="upload-progress" style="display: none;">
@@ -1449,28 +1451,28 @@
             <div class="user-form-section">
                 <div class="horizontal-align">
                     <label for="user-username">Username:</label>
-                    <input type="text" name="user-username" id="user-username" class="textbox" placeholder="Enter username">
+                    <input type="text" name="user-username" id="user-username" class="textbox" placeholder="Enter username" autocomplete="username">
                 </div>
                 <div class="horizontal-align">
                     <label for="user-password">Password:</label>
-                    <input type="password" name="user-password" id="user-password" class="textbox" placeholder="Enter password">
+                    <input type="password" name="user-password" id="user-password" class="textbox" placeholder="Enter password" autocomplete="new-password">
                 </div>
                 <div class="horizontal-align">
                     <label for="user-name">Full name:</label>
-                    <input type="text" name="user-name" id="user-name" class="textbox" placeholder="Enter full name">
+                    <input type="text" name="user-name" id="user-name" class="textbox" placeholder="Enter full name" autocomplete="name">
                 </div>
                 <div class="user-endpoints-section">
-                    <label class="endpoints-label">Permissions:</label>
+                    <div class="endpoints-label">Permissions:</div>
                     <div class="endpoints-grid" id="user-endpoints-grid">
                     </div>
                 </div>
                 <div class="horizontal-align">
                     <label for="user-paths">Accessible paths:</label>
-                    <input type="text" name="user-paths" id="user-paths" class="textbox" placeholder="JSON format (optional)">
+                    <input type="text" name="user-paths" id="user-paths" class="textbox" placeholder="JSON format (optional)" autocomplete="off">
                 </div>
                 <div class="horizontal-align">
                     <label for="user-paths-write">Writable paths:</label>
-                    <input type="text" name="user-paths-write" id="user-paths-write" class="textbox" placeholder="JSON format (optional)">
+                    <input type="text" name="user-paths-write" id="user-paths-write" class="textbox" placeholder="JSON format (optional)" autocomplete="off">
                 </div>
                 
                 <div class="horizontal-align" style="margin-top: 20px;">
@@ -1494,28 +1496,28 @@
             <div class="user-form-section">
                 <div class="horizontal-align">
                     <label for="edit-user-username">Username:</label>
-                    <input type="text" name="edit-user-username" id="edit-user-username" class="textbox" placeholder="Enter username">
+                    <input type="text" name="edit-user-username" id="edit-user-username" class="textbox" placeholder="Enter username" autocomplete="username">
                 </div>
                 <div class="horizontal-align">
                     <label for="edit-user-password">New Password:</label>
-                    <input type="password" name="edit-user-password" id="edit-user-password" class="textbox" placeholder="Enter new password (leave empty to keep current)">
+                    <input type="password" name="edit-user-password" id="edit-user-password" class="textbox" placeholder="Enter new password (leave empty to keep current)" autocomplete="new-password">
                 </div>
                 <div class="horizontal-align">
                     <label for="edit-user-name">Full name:</label>
-                    <input type="text" name="edit-user-name" id="edit-user-name" class="textbox" placeholder="Enter full name">
+                    <input type="text" name="edit-user-name" id="edit-user-name" class="textbox" placeholder="Enter full name" autocomplete="name">
                 </div>
                 <div class="user-endpoints-section">
-                    <label class="endpoints-label">Permissions:</label>
+                    <div class="endpoints-label">Permissions:</div>
                     <div class="endpoints-grid" id="edit-user-endpoints-grid">
                     </div>
                 </div>
                 <div class="horizontal-align">
                     <label for="edit-user-paths">Accessible paths:</label>
-                    <input type="text" name="edit-user-paths" id="edit-user-paths" class="textbox" placeholder="JSON format (optional)">
+                    <input type="text" name="edit-user-paths" id="edit-user-paths" class="textbox" placeholder="JSON format (optional)" autocomplete="off">
                 </div>
                 <div class="horizontal-align">
                     <label for="edit-user-paths-write">Writable paths:</label>
-                    <input type="text" name="edit-user-paths-write" id="edit-user-paths-write" class="textbox" placeholder="JSON format (optional)">
+                    <input type="text" name="edit-user-paths-write" id="edit-user-paths-write" class="textbox" placeholder="JSON format (optional)" autocomplete="off">
                 </div>  
                 <div class="user-form-divider"></div>
                 <div class="user-form-subtitle" data-text="Connected FTP Users">Connected FTP Users</div>
@@ -1558,29 +1560,29 @@
             <div class="ftp-form-section">
                 <div class="ftp-form-group">
                     <label for="ftp-edit-username">FTP Username</label>
-                    <input type="text" id="ftp-edit-username" class="ftp-input" placeholder="Enter FTP username" readonly>
+                    <input type="text" id="ftp-edit-username" name="ftp-edit-username" class="ftp-input" placeholder="Enter FTP username" autocomplete="username" readonly>
                 </div>
                 <div class="ftp-form-group">
                     <label for="ftp-edit-password">FTP Password</label>
-                    <input type="password" id="ftp-edit-password" class="ftp-input" placeholder="Enter new password (leave empty to keep current)">
+                    <input type="password" id="ftp-edit-password" name="ftp-edit-password" class="ftp-input" placeholder="Enter new password (leave empty to keep current)" autocomplete="new-password">
                 </div>
                 <div class="ftp-form-group">
                     <label for="ftp-edit-path">Home Directory</label>
-                    <input type="text" id="ftp-edit-path" class="ftp-input" placeholder="FTP home directory path">
+                    <input type="text" id="ftp-edit-path" name="ftp-edit-path" class="ftp-input" placeholder="FTP home directory path" autocomplete="off">
                 </div>
                 <div class="ftp-form-group">
-                    <label>Permissions</label>
+                    <div>Permissions</div>
                     <div class="ftp-permissions-group">
                         <div class="ftp-permission-item">
-                            <input type="checkbox" id="ftp-edit-read" class="ftp-permission-checkbox" checked>
+                            <input type="checkbox" id="ftp-edit-read" name="ftp-edit-read" class="ftp-permission-checkbox" checked>
                             <label for="ftp-edit-read">Read</label>
                         </div>
                         <div class="ftp-permission-item">
-                            <input type="checkbox" id="ftp-edit-write" class="ftp-permission-checkbox">
+                            <input type="checkbox" id="ftp-edit-write" name="ftp-edit-write" class="ftp-permission-checkbox">
                             <label for="ftp-edit-write">Write</label>
                         </div>
                         <div class="ftp-permission-item">
-                            <input type="checkbox" id="ftp-edit-delete" class="ftp-permission-checkbox">
+                            <input type="checkbox" id="ftp-edit-delete" name="ftp-edit-delete" class="ftp-permission-checkbox">
                             <label for="ftp-edit-delete">Delete</label>
                         </div>
                     </div>
@@ -1606,29 +1608,29 @@
             <div class="ftp-form-section">
                 <div class="ftp-form-group">
                     <label for="ftp-create-username">FTP Username</label>
-                    <input type="text" id="ftp-create-username" class="ftp-input" placeholder="Enter FTP username">
+                    <input type="text" id="ftp-create-username" name="ftp-create-username" class="ftp-input" placeholder="Enter FTP username" autocomplete="username">
                 </div>
                 <div class="ftp-form-group">
                     <label for="ftp-create-password">FTP Password</label>
-                    <input type="password" id="ftp-create-password" class="ftp-input" placeholder="Enter FTP password">
+                    <input type="password" id="ftp-create-password" name="ftp-create-password" class="ftp-input" placeholder="Enter FTP password" autocomplete="new-password">
                 </div>
                 <div class="ftp-form-group">
                     <label for="ftp-create-path">Home Directory</label>
-                    <input type="text" id="ftp-create-path" class="ftp-input" placeholder="FTP home directory path (optional)">
+                    <input type="text" id="ftp-create-path" name="ftp-create-path" class="ftp-input" placeholder="FTP home directory path (optional)" autocomplete="off">
                 </div>
                 <div class="ftp-form-group">
-                    <label>Permissions</label>
+                    <div>Permissions</div>
                     <div class="ftp-permissions-group">
                         <div class="ftp-permission-item">
-                            <input type="checkbox" id="ftp-create-read" class="ftp-permission-checkbox" checked>
+                            <input type="checkbox" id="ftp-create-read" name="ftp-create-read" class="ftp-permission-checkbox" checked>
                             <label for="ftp-create-read">Read</label>
                         </div>
                         <div class="ftp-permission-item">
-                            <input type="checkbox" id="ftp-create-write" class="ftp-permission-checkbox">
+                            <input type="checkbox" id="ftp-create-write" name="ftp-create-write" class="ftp-permission-checkbox">
                             <label for="ftp-create-write">Write</label>
                         </div>
                         <div class="ftp-permission-item">
-                            <input type="checkbox" id="ftp-create-delete" class="ftp-permission-checkbox">
+                            <input type="checkbox" id="ftp-create-delete" name="ftp-create-delete" class="ftp-permission-checkbox">
                             <label for="ftp-create-delete">Delete</label>
                         </div>
                     </div>

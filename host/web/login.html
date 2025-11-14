@@ -3,127 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=(), accelerometer=(), gyroscope=(), payment=(), usb=(), xr-spatial-tracking=(), browsing-topics=()">
     <title>Shareify Auth</title>
     <link rel="stylesheet" href="web/index.css">
+    <link rel="stylesheet" href="web/login.css">
     <link rel="shortcut icon" href="web/assets/icon.ico" type="image/x-icon">
-    <style>
-        .login-label, .login-title {
-            top: 15px;
-            color: #fff !important;
-        }
-        .login-btn {
-            width: 270px;
-            height: 48px;
-            border-radius: 16px;
-            background: linear-gradient(93deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.08) 100%);
-            box-shadow: 0 6px 24px 0 rgba(60,67,71,0.13);
-            color: #fff;
-            font-family: 'Kantumruy', sans-serif;
-            font-size: 18px;
-            font-weight: 700;
-            border: none;
-            outline: none;
-            cursor: pointer;
-            transition: 
-                background 0.22s cubic-bezier(.4,0,.2,1),
-                box-shadow 0.22s cubic-bezier(.4,0,.2,1),
-                color 0.22s cubic-bezier(.4,0,.2,1),
-                transform 0.18s cubic-bezier(.4,0,.2,1);
-            margin-top: 0;
-            letter-spacing: 1px;
-            backdrop-filter: blur(8px);
-        }
-        .login-btn:hover, .login-btn:focus {
-            transform: translateY(-6px);
-            background: linear-gradient(93deg, rgba(193,255,185,0.65) 0%, rgba(144,228,120,0.35) 100%);
-            color: #23232a;
-            box-shadow: 0 16px 32px 0 rgba(101,220,80,0.13);
-        }
-        .login-btn:active {
-            transform: translateY(-2px);
-        }
-        .login-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            background: linear-gradient(93deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
-            color: rgba(255, 255, 255, 0.6);
-            transform: none !important;
-            box-shadow: 0 4px 16px 0 rgba(60,67,71,0.08);
-        }
-        .login-btn:disabled:hover {
-            transform: none !important;
-            background: linear-gradient(93deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
-            color: rgba(255, 255, 255, 0.6);
-            box-shadow: 0 4px 16px 0 rgba(60,67,71,0.08);
-        }
-        .login-error {
-            display: none;
-            color: #e74c3c;
-            font-size: 16px;
-            font-family: 'Kantumruy', sans-serif;
-            font-weight: 600;
-            margin-top: 14px;
-            text-align: center;
-            width: 100%;
-        }
-        .login-error.visible {
-            display: block;
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
-        .textbox.shake {
-            animation: inputShake 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            border-color: #e74c3c !important;
-            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3), 0 4px 16px rgba(231, 76, 60, 0.2) !important;
-        }
-        @keyframes inputShake {
-            0%, 100% { transform: translateX(0); }
-            15%, 45%, 75% { transform: translateX(-8px); }
-            30%, 60%, 90% { transform: translateX(8px); }
-        }
-        .login-fade-out {
-            opacity: 0 !important;
-            transition: opacity 0.5s cubic-bezier(.4,0,.2,1);
-            pointer-events: none;
-        }
-        .login-fade-in {
-            opacity: 0;
-            transform: translate(-50%, -50%) scale(0.98);
-            transition: opacity 0.7s cubic-bezier(.4,0,.2,1), transform 0.7s cubic-bezier(.4,0,.2,1);
-        }
-        .login-fade-in.show {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-        }
-        .horizontal-align label.login-label {
-            min-width: 90px;
-            margin-right: 6px;
-            margin-left: 0;
-        }
-        .login-fields {
-            width: 85%;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .horizontal-align {
-            margin: 0 !important;
-        }
-        #bg-fade-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 0;
-            pointer-events: none;
-            opacity: 0;
-            background-size: cover;
-            background-position: center center;
-            background-repeat: no-repeat;
-            transition: opacity 0.4s cubic-bezier(0.4,0,0.2,1);
-        }
-    </style>
 </head>
 <body style="opacity:0; transition: opacity 0.5s;">
     <div id="bg-fade-overlay"></div>
@@ -132,11 +17,11 @@
         <div class="login-fields">
             <div class="horizontal-align">
                 <label for="username" class="login-label">Username:</label>
-                <input type="text" name="username" id="username" class="textbox" required>
+                <input type="text" name="username" id="username" class="textbox" autocomplete="username" required>
             </div>
             <div class="horizontal-align">
                 <label for="password" class="login-label">Password:</label>
-                <input type="password" name="password" id="password" class="textbox" required>
+                <input type="password" name="password" id="password" class="textbox" autocomplete="current-password" required>
             </div>
         </div>
         <div style="width: 85%; display: flex; justify-content: center; margin-top: 18px;">
@@ -144,141 +29,6 @@
         </div>
         <div class="login-error" id="loginError" style="margin: 10px;">Invalid username or password.</div>
     </div>
-    <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            checkExistingAuth();
-            
-            document.body.style.opacity = '1';
-            setTimeout(() => {
-                document.getElementById('loginWindow').classList.add('show');
-            }, 60);
-
-            updateLoginButtonState();
-            document.getElementById('username').addEventListener('input', updateLoginButtonState);
-            document.getElementById('password').addEventListener('input', updateLoginButtonState);
-        });
-
-        function updateLoginButtonState() {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-            const loginBtn = document.getElementById('loginBtn');
-            
-            if (username && password) {
-                loginBtn.disabled = false;
-            } else {
-                loginBtn.disabled = true;
-            }
-        }        async function checkExistingAuth() {
-            const token = localStorage.getItem('jwt_token');
-            const expiry = localStorage.getItem('jwt_expiry');
-
-            if (token && expiry && Date.now() < parseInt(expiry)) {
-                try {
-                    const baseURL = window.location.origin;
-                    const res = await fetch(`${baseURL}/api/user/get_self`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    
-                    if (res.ok) {
-                        window.location.href = '/';
-                        return;
-                    }
-                } catch (err) {
-                }
-            }
-            
-            if (token) {
-                localStorage.removeItem('jwt_token');
-                localStorage.removeItem('jwt_expiry');
-            }
-        }
-
-        const baseURL = window.location.origin;
-        document.getElementById('loginBtn').addEventListener('click', async function () {
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('loginError');
-            const passwordInput = document.getElementById('password');
-            errorDiv.classList.remove('visible');
-            passwordInput.classList.remove('shake');
-            if (!username || !password) {
-                errorDiv.textContent = "Please enter username and password.";
-                errorDiv.classList.add('visible');
-                passwordInput.value = '';
-                passwordInput.classList.add('shake');
-                setTimeout(() => passwordInput.classList.remove('shake'), 600);
-                return;
-            }
-            try {
-                const res = await fetch(`${baseURL}/api/user/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-                if (!res.ok) throw new Error();
-                const data = await res.json();
-                if (data.token) {
-                    const token = data.token;
-                    localStorage.setItem('jwt_token', token);
-                    const expiry = Date.now() + 24 * 60 * 60 * 1000;
-                    localStorage.setItem('jwt_expiry', expiry);
-
-                    try {
-                        const res = await fetch(`${baseURL}/api/user/get_self`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        if (!res.ok) throw new Error('Failed to load background');
-                        const user = await res.json();
-                        let settings = {};
-                        try {
-                            settings = JSON.parse(user.settings || '{}');
-                        } catch (e) {}
-
-                        if (settings.background) {
-                            const bgPath = settings.background.replace('web/', '');
-                            const newBg = `url('web/${bgPath}')`;
-                            const html = document.documentElement;
-                            const bgFadeOverlay = document.getElementById('bg-fade-overlay');
-                            bgFadeOverlay.style.backgroundImage = newBg;
-                            bgFadeOverlay.style.opacity = '0';
-                            bgFadeOverlay.style.transition = 'none';
-                            void bgFadeOverlay.offsetWidth;
-                            bgFadeOverlay.style.transition = 'opacity 0.4s cubic-bezier(0.4,0,0.2,1)';
-                            bgFadeOverlay.style.opacity = '1';
-                            setTimeout(() => {
-                                html.style.backgroundImage = newBg;
-                                bgFadeOverlay.style.opacity = '0';
-                            }, 400);
-                        }
-                    } catch (err) {}
-
-                    const win = document.getElementById('loginWindow');
-                    win.classList.add('login-fade-out');
-                    setTimeout(() => {
-                        window.location.href = '/';
-                    }, 500);
-                } else {
-                    throw new Error();
-                }
-            } catch {
-                errorDiv.textContent = "Invalid username or password.";
-                errorDiv.classList.add('visible');
-                passwordInput.value = '';
-                passwordInput.classList.add('shake');
-                setTimeout(() => passwordInput.classList.remove('shake'), 600);
-            }
-        });
-
-        document.getElementById('password').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('loginBtn').click();
-            }
-        });
-        document.getElementById('username').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('loginBtn').click();
-            }
-        });
-    </script>
+    <script src="web/login.js"></script>
 </body>
 </html>

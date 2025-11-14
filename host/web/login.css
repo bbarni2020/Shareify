@@ -1,0 +1,116 @@
+        .login-label, .login-title {
+            top: 15px;
+            color: #fff !important;
+        }
+        .login-btn {
+            width: 270px;
+            height: 48px;
+            border-radius: 16px;
+            background: linear-gradient(93deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.08) 100%);
+            box-shadow: 0 6px 24px 0 rgba(60,67,71,0.13);
+            color: #fff;
+            font-family: 'Kantumruy', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            transition: 
+                background 0.22s cubic-bezier(.4,0,.2,1),
+                box-shadow 0.22s cubic-bezier(.4,0,.2,1),
+                color 0.22s cubic-bezier(.4,0,.2,1),
+                transform 0.18s cubic-bezier(.4,0,.2,1);
+            margin-top: 0;
+            letter-spacing: 1px;
+            backdrop-filter: blur(8px);
+        }
+        .login-btn:hover, .login-btn:focus {
+            transform: translateY(-6px);
+            background: linear-gradient(93deg, rgba(193,255,185,0.65) 0%, rgba(144,228,120,0.35) 100%);
+            color: #23232a;
+            box-shadow: 0 16px 32px 0 rgba(101,220,80,0.13);
+        }
+        .login-btn:active {
+            transform: translateY(-2px);
+        }
+        .login-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: linear-gradient(93deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+            color: rgba(255, 255, 255, 0.6);
+            transform: none !important;
+            box-shadow: 0 4px 16px 0 rgba(60,67,71,0.08);
+        }
+        .login-btn:disabled:hover {
+            transform: none !important;
+            background: linear-gradient(93deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%);
+            color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 16px 0 rgba(60,67,71,0.08);
+        }
+        .login-error {
+            display: none;
+            color: #e74c3c;
+            font-size: 16px;
+            font-family: 'Kantumruy', sans-serif;
+            font-weight: 600;
+            margin-top: 14px;
+            text-align: center;
+            width: 100%;
+        }
+        .login-error.visible {
+            display: block;
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        .textbox.shake {
+            animation: inputShake 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            border-color: #e74c3c !important;
+            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3), 0 4px 16px rgba(231, 76, 60, 0.2) !important;
+        }
+        @keyframes inputShake {
+            0%, 100% { transform: translateX(0); }
+            15%, 45%, 75% { transform: translateX(-8px); }
+            30%, 60%, 90% { transform: translateX(8px); }
+        }
+        .login-fade-out {
+            opacity: 0 !important;
+            transition: opacity 0.5s cubic-bezier(.4,0,.2,1);
+            pointer-events: none;
+        }
+        .login-fade-in {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.98);
+            transition: opacity 0.7s cubic-bezier(.4,0,.2,1), transform 0.7s cubic-bezier(.4,0,.2,1);
+        }
+        .login-fade-in.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        .horizontal-align label.login-label {
+            min-width: 90px;
+            margin-right: 6px;
+            margin-left: 0;
+        }
+        .login-fields {
+            width: 85%;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .horizontal-align {
+            margin: 0 !important;
+        }
+        #bg-fade-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0;
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            transition: opacity 0.4s cubic-bezier(0.4,0,0.2,1);
+        }

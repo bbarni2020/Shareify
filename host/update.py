@@ -26,6 +26,9 @@ def relaunch_as_admin():
         os.execvp('sudo', ['sudo', sys.executable] + sys.argv)
     sys.exit(0)
 
+if os.environ.get('ENABLE_UPDATES','true').lower()!='true':
+    print('Updates disabled')
+    sys.exit(1)
 if not is_admin():
     print("update.py is not running as administrator/root. Trying to relaunch as admin/root...")
     relaunch_as_admin()

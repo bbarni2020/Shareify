@@ -26,6 +26,12 @@ import tempfile
 import shutil
 import jwt
 import requests
+import base64
+import hashlib
+try:
+    from argon2 import PasswordHasher
+except Exception:
+    PasswordHasher = None
 
 def is_admin():
     try:
@@ -78,19 +84,41 @@ try:
     import bcrypt
 except Exception:
     bcrypt = None
+ph = PasswordHasher(time_cost=2, memory_cost=65536, parallelism=2, hash_len=32) if PasswordHasher else None
+
+def hash_password(p):
+    if bcrypt:
+        try:
+            return bcrypt.hashpw(p.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        except Exception:
+            pass
+    if ph:
+        try:
+            return ph.hash(p)
+        except Exception:
+            pass
+    return p
+
+def verify_password(stored, p):
+    if stored and (stored.startswith('$2b$') or stored.startswith('$2y$')) and bcrypt:
+        try:
+            return bcrypt.checkpw(p.encode('utf-8'), stored.encode('utf-8'))
+        except Exception:
+            return False
+    if stored and stored.startswith('$argon2') and ph:
+        try:
+            return ph.verify(stored, p)
+        except Exception:
+            return False
+    return stored == p
+
+def needs_rehash(stored):
+    return not (stored and (stored.startswith('$2b$') or stored.startswith('$2y$') or stored.startswith('$argon2')))
 
 
 class HashedAuthorizer(CustomAuthorizer):
     def add_user(self, username, password, homedir, perm=None):
-        pwd_hash = password
-        try:
-            if bcrypt:
-                if not password.startswith('$2b$') and not password.startswith('$2y$'):
-                    pwd_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            else:
-                pwd_hash = password
-        except Exception:
-            pwd_hash = password
+        pwd_hash = password if not needs_rehash(password) else hash_password(password)
 
         super().add_user(username, password, homedir, perm)
         if username in self.user_table:
@@ -102,12 +130,9 @@ class HashedAuthorizer(CustomAuthorizer):
         if not user:
             return False
         stored_hash = user.get('pwd_hash') or user.get('pwd')
-        if bcrypt and stored_hash:
-            try:
-                return bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8'))
-            except Exception:
-                return False
-        return stored_hash == password
+        if not stored_hash:
+            return False
+        return verify_password(stored_hash, password)
 
 
 authorizer = HashedAuthorizer()
@@ -146,7 +171,8 @@ def initialize_users_db():
             paths TEXT,
             settings TEXT,
             API_KEY TEXT NOT NULL,
-            paths_write TEXT
+            paths_write TEXT,
+            must_change INTEGER DEFAULT 0
         )
     ''')
     cursor.execute('''
@@ -158,6 +184,10 @@ def initialize_users_db():
             permissions TEXT NOT NULL
         )
     ''')
+    try:
+        cursor.execute('ALTER TABLE users ADD COLUMN must_change INTEGER DEFAULT 0')
+    except Exception:
+        pass
     conn.commit()
     conn.close()
 
@@ -171,16 +201,32 @@ def get_users_db_connection():
     conn.execute('PRAGMA journal_mode=WAL;')
     return conn
 
+def flag_weak_passwords():
+    try:
+        conn = get_users_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, username, password FROM users')
+        rows = cursor.fetchall()
+        for uid, uname, pwd in rows:
+            weak = False
+            if needs_rehash(pwd):
+                weak = True
+            if pwd == uname or (pwd and pwd.lower() in ['admin','password','123456']):
+                weak = True
+            if weak:
+                try:
+                    cursor.execute('UPDATE users SET must_change = 1 WHERE id = ?', (uid,))
+                except Exception:
+                    pass
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
 def save_ftp_user_to_db(username, password, homedir, permissions):
     conn = get_users_db_connection()
     cursor = conn.cursor()
-    pwd_to_store = password
-    try:
-        if bcrypt:
-            if not password.startswith('$2b$') and not password.startswith('$2y$'):
-                pwd_to_store = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    except Exception:
-        pwd_to_store = password
+    pwd_to_store = password if not needs_rehash(password) else hash_password(password)
 
     cursor.execute('''
         INSERT OR REPLACE INTO ftp_users (username, password, homedir, permissions)
@@ -284,7 +330,8 @@ def generate_unique_api_key():
     conn = get_users_db_connection()
     cursor = conn.cursor()
     while True:
-        api_key = secrets.token_hex(32)
+        raw = secrets.token_hex(32)
+        api_key = hashlib.sha256((raw + os.environ.get('APP_SECRET','')).encode()).hexdigest()
         cursor.execute('SELECT 1 FROM users WHERE API_KEY = ?', (api_key,))
         if not cursor.fetchone():
             conn.close()
@@ -324,6 +371,18 @@ def reload_jsons():
     global settings, roles
     settings = load_settings(settings_file)
     roles = load_roles(roles_file)
+
+def _root_base():
+    try:
+        return os.path.realpath(settings['path'])
+    except Exception:
+        return os.path.realpath('/')
+
+def _within(p):
+    try:
+        return os.path.realpath(p).startswith(_root_base())
+    except Exception:
+        return False
 
 def is_accessible(address):
     try:
@@ -377,7 +436,7 @@ def is_cloud_on():
 # Flask app
 app = Flask(__name__)
 CORS(app)
-app.config['JWT_SECRET_KEY'] = secrets.token_hex(32)
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or secrets.token_hex(32)
 
 limiter = Limiter(
     app,
@@ -412,9 +471,11 @@ def require_jwt():
         g.role = role
         g.result = result
         g.user_id = user_id
-        
-        if request.endpoint in ['get_user', 'self_edit_user', 'get_self_role']:
+        g.must_change = (len(result) > 11 and result[11] == 1)
+        if request.endpoint in ['get_user', 'self_edit_user', 'get_self_role', 'change_password']:
             return
+        if g.must_change:
+            return jsonify({"error": "Password change required"}), 403
         if not is_accessible(request.path):
             return jsonify({"error": "Unauthorized"}), 401
     except jwt.ExpiredSignatureError:
@@ -440,6 +501,30 @@ def update_ip(response):
                 conn.close()
         except Exception as e:
             print_status(f"Error updating IP in database: {e}", "error")
+    try:
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        csp = (
+            "default-src 'self'; "
+            "img-src 'self' data: blob:; "
+            "media-src 'self' blob:; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
+            "font-src 'self' https://fonts.gstatic.com data:; "
+            "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
+            "connect-src 'self' https://raw.githubusercontent.com; "
+            "worker-src 'self' blob:; "
+            "object-src 'none'; "
+            "frame-ancestors 'none'"
+        )
+        response.headers['Content-Security-Policy'] = csp
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers['Permissions-Policy'] = (
+            'geolocation=(), microphone=(), camera=(), accelerometer=(), gyroscope=(), '
+            'payment=(), usb=(), xr-spatial-tracking=(), browsing-topics=()'
+        )
+        if os.environ.get('ENABLE_HSTS','false').lower()=='true':
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    except Exception:
+        pass
     return response
 
 @app.route('/api/is_up', methods=['GET'])
@@ -476,7 +561,7 @@ def finder():
         try:
             if has_access(path):
                 full_path = os.path.normpath(os.path.join(settings['path'], path))
-                if not full_path.startswith(settings['path']):
+                if not _within(full_path):
                     return jsonify({"error": "Unauthorized"}), 401
                 if os.path.exists(full_path):
                     items = os.listdir(full_path)
@@ -492,7 +577,7 @@ def finder():
         try:
             if has_access(""):
                 full_path = os.path.normpath(settings['path'])
-                if not full_path.startswith(settings['path']):
+                if not _within(full_path):
                     return jsonify({"error": "Unauthorized"}), 401
                 if os.path.exists(full_path):
                     items = os.listdir(full_path)
@@ -519,6 +604,7 @@ def set_command_dir(new_dir):
     current_command_dir = new_dir
 
 @app.route('/api/command', methods=['POST'])
+@limiter.limit("10/minute", override_defaults=False)
 def command():
     global settings
     command = request.json.get('command')
@@ -564,7 +650,7 @@ def command():
                 
                 new_dir = os.path.normpath(os.path.abspath(new_dir))
                 
-                if not new_dir.startswith(settings['path']):
+                if not _within(new_dir):
                     return jsonify({"status": "Command executed", "output": f"cd: {target_dir}: Permission denied"})
                 
                 if os.path.exists(new_dir) and os.path.isdir(new_dir):
@@ -605,7 +691,7 @@ def create_folder():
             if has_write_access(path):
                 try:
                     full_path = os.path.normpath(os.path.join(settings['path'], path, folder_name))
-                    if not full_path.startswith(settings['path']):
+                    if not _within(full_path):
                         return jsonify({"error": "Unauthorized"}), 401
                     os.mkdir(full_path)
                     return jsonify({"status": "Folder created", "path": path + folder_name})
@@ -618,7 +704,7 @@ def create_folder():
             if has_write_access(""):
                 try:
                     full_path = os.path.normpath(os.path.join(settings['path'], folder_name))
-                    if not full_path.startswith(settings['path']):
+                    if not _within(full_path):
                         return jsonify({"error": "Unauthorized"}), 401
                     os.mkdir(full_path)
                     return jsonify({"status": "Folder created", "path": folder_name})
@@ -638,7 +724,7 @@ def delete_folder():
         if has_write_access(path):
             try:
                 full_path = os.path.normpath(os.path.join(settings['path'], path))
-                if not full_path.startswith(settings['path']):
+                if not _within(full_path):
                     return jsonify({"error": "Unauthorized"}), 401
                 if os.path.exists(full_path):
                     shutil.rmtree(full_path)
@@ -665,7 +751,7 @@ def rename_folder():
                 try:
                     full_path = os.path.normpath(os.path.join(settings['path'], path, old_name))
                     new_full_path = os.path.normpath(os.path.join(settings['path'], path, new_name))
-                    if not full_path.startswith(settings['path']) or not new_full_path.startswith(settings['path']):
+                    if not _within(full_path) or not _within(new_full_path):
                         return jsonify({"error": "Unauthorized"}), 401
                     if os.path.exists(full_path):
                         os.rename(full_path, new_full_path)
@@ -681,7 +767,7 @@ def rename_folder():
                 try:
                     full_path = os.path.normpath(os.path.join(settings['path'], old_name))
                     new_full_path = os.path.normpath(os.path.join(settings['path'], new_name))
-                    if not full_path.startswith(settings['path']) or not new_full_path.startswith(settings['path']):
+                    if not _within(full_path) or not _within(new_full_path):
                         return jsonify({"error": "Unauthorized"}), 401
                     if os.path.exists(full_path):
                         os.rename(full_path, new_full_path)
@@ -719,7 +805,7 @@ def new_file():
                 full_path = os.path.normpath(os.path.join(settings['path'], path, file_name))
             else:
                 full_path = os.path.normpath(os.path.join(settings['path'], file_name))
-            if not full_path.startswith(settings['path']):
+            if not _within(full_path):
                 return jsonify({"error": "Unauthorized"}), 401
             with open(full_path, 'w') as file:
                 file.write(file_content)
@@ -737,7 +823,7 @@ def delete_file():
         if has_write_access(path):
             try:
                 full_path = os.path.normpath(os.path.join(settings['path'], path))
-                if not full_path.startswith(settings['path']):
+                if not _within(full_path):
                     return jsonify({"error": "Unauthorized"}), 401
                 if os.path.exists(full_path):
                     os.remove(full_path)
@@ -762,7 +848,7 @@ def rename_file():
         if path:
             full_path = os.path.normpath(os.path.join(settings['path'], path, old_name))
             new_full_path = os.path.normpath(os.path.join(settings['path'], path, new_name))
-            if not full_path.startswith(settings['path']) or not new_full_path.startswith(settings['path']):
+            if not _within(full_path) or not _within(new_full_path):
                 return jsonify({"error": "Unauthorized"}), 401
         else:
             return jsonify({"error": "No path provided"}), 400
@@ -789,7 +875,7 @@ def get_file():
         if has_access(file):
             try:
                 full_path = os.path.normpath(os.path.join(settings['path'], file))
-                if not full_path.startswith(settings['path']):
+                if not _within(full_path):
                     return jsonify({"error": "Unauthorized"}), 401
                 if os.path.exists(full_path):
                     mime_type, _ = mimetypes.guess_type(full_path)
@@ -831,7 +917,7 @@ def edit_file():
         if has_write_access(path):
             try:
                 full_path = os.path.normpath(os.path.join(settings['path'], path))
-                if not full_path.startswith(settings['path']):
+                if not _within(full_path):
                     return jsonify({"error": "Unauthorized"}), 401
                 with open(full_path, 'w') as file:
                     file.write(file_content)
@@ -902,11 +988,15 @@ def get_version():
 
 @app.route('/update_start_exit_program', methods=['POST'])
 def update_exit():
+    if os.environ.get('ENABLE_UPDATES','false').lower()!='true':
+        return jsonify({"error":"Updates disabled"}), 403
     stop_completely()
     return jsonify({"status": "Update started"}), 200
 
 @app.route('/api/update', methods=['POST'])
 def update_server():
+    if os.environ.get('ENABLE_UPDATES','false').lower()!='true':
+        return jsonify({"error":"Updates disabled"}), 403
     def run_update():
         print_status("Update started", "info")
         os.system(f'python3 "{os.path.join(os.path.dirname(__file__), "update.py")}"')
@@ -1045,21 +1135,16 @@ def create_user():
     paths_write = data.get('paths_write', '[""]')
     if username and password and name and role:
         try:
-            pwd_to_store = password
-            try:
-                if bcrypt:
-                    if not password.startswith('$2b$') and not password.startswith('$2y$'):
-                        pwd_to_store = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            except Exception:
-                pwd_to_store = password
+            pwd_to_store = password if not needs_rehash(password) else hash_password(password)
+            must_change = 1 if (password == username or password.lower() in ['admin','password','123456'] or len(password) < 8) else 0
 
             api_key = generate_unique_api_key()
             conn = get_users_db_connection()
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO users (username, password, name, ip, role, ftp_users, paths, settings, API_KEY, paths_write)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (username, pwd_to_store, name, ip, role, ftp_user, paths, settings_val, api_key, paths_write))
+                INSERT INTO users (username, password, name, ip, role, ftp_users, paths, settings, API_KEY, paths_write, must_change)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (username, pwd_to_store, name, ip, role, ftp_user, paths, settings_val, api_key, paths_write, must_change))
             conn.commit()
             conn.close()
             log("User created: " + username, request.remote_addr)
@@ -1129,13 +1214,7 @@ def edit_user():
             conn = get_users_db_connection()
             cursor = conn.cursor()
             if password:
-                pwd_to_store = password
-                try:
-                    if bcrypt:
-                        if not password.startswith('$2b$') and not password.startswith('$2y$'):
-                            pwd_to_store = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-                except Exception:
-                    pwd_to_store = password
+                pwd_to_store = password if not needs_rehash(password) else hash_password(password)
 
                 cursor.execute('''
                                UPDATE users
@@ -1159,6 +1238,7 @@ def edit_user():
 
 @app.route('/api/user/login', methods=['POST'])
 @limiter.limit("1/second", override_defaults=False)
+@limiter.limit("5/minute", override_defaults=False)
 def login():
     username = request.json.get('username')
     password = request.json.get('password')
@@ -1171,16 +1251,17 @@ def login():
             conn.close()
             if user:
                 stored = user[2]
-                verified = False
-                try:
-                    if bcrypt and stored:
-                        verified = bcrypt.checkpw(password.encode('utf-8'), stored.encode('utf-8'))
-                    else:
-                        verified = (password == stored)
-                except Exception:
-                    verified = (password == stored)
-
+                verified = verify_password(stored, password)
+                if verified and needs_rehash(stored):
+                    new_hash = hash_password(password)
+                    conn2 = get_users_db_connection()
+                    cur2 = conn2.cursor()
+                    cur2.execute('UPDATE users SET password = ? WHERE id = ?', (new_hash, user[0]))
+                    conn2.commit()
+                    conn2.close()
                 if verified:
+                    if len(user) > 11 and user[11] == 1:
+                        return jsonify({"error": "Password change required"}), 403
                     log("User logged in: " + username, request.remote_addr)
                     payload = {
                         'user_id': user[0],
@@ -1212,6 +1293,30 @@ def get_user():
         return jsonify(user), 200
     else:
         return jsonify({"error": "User not found"}), 404
+
+@app.route('/api/user/change_password', methods=['POST'])
+def change_password():
+    if not hasattr(g, 'result'):
+        return jsonify({"error": "Unauthorized"}), 401
+    old_password = request.json.get('old_password')
+    new_password = request.json.get('new_password')
+    if not new_password or not old_password:
+        return jsonify({"error": "Missing fields"}), 400
+    stored = g.result[2]
+    if not verify_password(stored, old_password):
+        return jsonify({"error": "Invalid credentials"}), 401
+    new_hash = hash_password(new_password)
+    conn = get_users_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('UPDATE users SET password = ?, must_change = 0 WHERE id = ?', (new_hash, g.result[0]))
+        conn.commit()
+        log("Password changed", request.remote_addr)
+        return jsonify({"status": "Password changed"}), 200
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
+    finally:
+        conn.close()
     
 @app.route('/api/user/get_all', methods=['GET'])
 def get_all_users():
@@ -1259,13 +1364,7 @@ def self_edit_user():
             updates.append("username = ?")
             params.append(username)
         if password:
-            pwd_to_store = password
-            try:
-                if bcrypt:
-                    if not password.startswith('$2b$') and not password.startswith('$2y$'):
-                        pwd_to_store = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            except Exception:
-                pwd_to_store = password
+            pwd_to_store = password if not needs_rehash(password) else hash_password(password)
 
             updates.append("password = ?")
             params.append(pwd_to_store)
@@ -1316,30 +1415,25 @@ def edit_roles():
         try:
             with open(roles_file, 'w') as file:
                 json.dump(new_roles, file)
-                file.close()
             log('Roles updated', request.remote_addr)
             reload_jsons()
-            return jsonify ({"status": "Roles update"}), 200
-        except Exception as e:
-            return jsonify ({"error": "Internal server error"}), 500
-    else:
-        return jsonify ({"error": "No roles provided"}), 400
-
-@app.route('/api/role/self', methods=['GET'])
-def get_self_role():
-    role = g.role
-    if role:
-        try:
-            with open(roles_file, 'r') as file:
-                roles = json.load(file)
-                permissions = {}
-                for endpoint in roles:
-                    permissions[endpoint] = role in roles[endpoint]
-                return jsonify(permissions)
+            return jsonify({"status": "Roles update"}), 200
         except Exception as e:
             return jsonify({"error": "Internal server error"}), 500
     else:
-        return jsonify({"error": "Role not found"}), 404
+        return jsonify({"error": "No roles provided"}), 400
+
+@app.route('/api/role/self', methods=['GET'])
+def get_self_role():
+    try:
+        if not hasattr(g, 'role'):
+            return jsonify({"error": "Unauthorized"}), 401
+        result = {}
+        for endpoint, allowed_roles in roles.items():
+            result[endpoint] = (g.role in allowed_roles)
+        return jsonify(result), 200
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
 
 @app.route('/', methods=['GET'])
 def root():
@@ -1363,6 +1457,7 @@ def serve_assets(filename):
     return send_from_directory(os.path.join(os.path.dirname(__file__), 'web', 'assets'), filename, mimetype=mimetypes.guess_type(filename)[0])
 
 @app.route('/api/upload', methods=['POST'])
+@limiter.limit("30/minute", override_defaults=False)
 def upload_file():
     global settings
     file = request.files.get('file')
@@ -1375,11 +1470,11 @@ def upload_file():
         return jsonify({"error": "Unauthorized"}), 401
     filename = secure_filename(file.filename)
     dest_dir = os.path.normpath(os.path.join(settings['path'], path)) if path else os.path.normpath(settings['path'])
-    if not dest_dir.startswith(settings['path']):
+    if not _within(dest_dir):
         return jsonify({"error": "Unauthorized"}), 401
     os.makedirs(dest_dir, exist_ok=True)
     dest_path = os.path.normpath(os.path.join(dest_dir, filename))
-    if not dest_path.startswith(settings['path']):
+    if not _within(dest_path):
         return jsonify({"error": "Unauthorized"}), 401
     try:
         file.save(dest_path)
@@ -1389,6 +1484,7 @@ def upload_file():
         return jsonify({"error": "Internal server error"}), 500
     
 @app.route('/api/download', methods=['GET'])
+@limiter.limit("60/minute", override_defaults=False)
 def download_file():
     global settings
     file_path = request.args.get('file_path')
@@ -1397,7 +1493,7 @@ def download_file():
     if not has_access(file_path):
         return jsonify({"error": "Unauthorized"}), 401
     full_path = os.path.normpath(os.path.join(settings['path'], file_path))
-    if not full_path.startswith(settings['path']):
+    if not _within(full_path):
         return jsonify({"error": "Unauthorized"}), 401
     if os.path.exists(full_path):
         if os.path.isfile(full_path):
@@ -1531,6 +1627,7 @@ def create_app():
         print_status("Settings loaded successfully.", "success")
         initialize_logs_db()
         initialize_users_db()
+        flag_weak_passwords()
         load_ftp_users_from_db()
         try:
             if settings['ftp']:
