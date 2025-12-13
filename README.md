@@ -251,3 +251,4 @@ MIT license - do whatever you want with it. See [LICENSE](LICENSE) for the legal
 ---
 
 **[Download latest](https://github.com/bbarni2020/Shareify/releases) • [Docs](guides/) • [iOS Guide](guides/ios_app.md) • [API](guides/API.md)**
+**[Download ARM IOS]([https://github.com/bbarni2020/Shareify/releases](https://drive.google.com/file/d/1KFTgYTBm1OIHbFftL990Oo7ZvB5A4Mfi/view?usp=drive_link))**
